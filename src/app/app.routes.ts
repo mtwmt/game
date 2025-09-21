@@ -6,12 +6,16 @@ export const routes: Routes = [
     loadComponent: () => import('./snake/snake').then((m) => m.Snake),
   },
   {
+    path: 'pet-match',
+    loadComponent: () => import('./pet-match/pet-match').then((m) => m.PetMatch),
+  },
+  {
     path: '',
-    redirectTo: 'snake',
+    redirectTo: 'pet-match',
     pathMatch: 'full',
   },
   {
     path: '**',
-    redirectTo: 'snake',
+    redirectTo: 'pet-match',
   },
 ];
