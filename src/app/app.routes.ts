@@ -11,11 +11,11 @@ export const routes: Routes = [
   },
   {
     path: '',
-    redirectTo: 'pet-match',
+    redirectTo: 'snake',
     pathMatch: 'full',
   },
   {
     path: '**',
-    redirectTo: 'pet-match',
+    redirectTo: 'snake',
   },
 ];
