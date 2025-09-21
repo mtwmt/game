@@ -144,6 +144,16 @@ export class PetMatch implements OnInit, OnDestroy {
       this.boardWidth,
       this.boardHeight
     );
+
+    // 調試信息：在開發環境中顯示配對詳情
+    if (this.isBrowser && !path) {
+      console.log(
+        `配對失敗: 寵物${this.petEmojis[tile1.petType]} (${tile1.position.x},${
+          tile1.position.y
+        }) → (${tile2.position.x},${tile2.position.y}) 無法找到路徑`
+      );
+    }
+
     if (path) {
       // Valid match found
       this.matchPath.set(path);
