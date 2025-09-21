@@ -2,6 +2,10 @@ import { Routes } from '@angular/router';
 
 export const routes: Routes = [
   {
+    path: '',
+    loadComponent: () => import('./home/home').then((m) => m.Home),
+  },
+  {
     path: 'snake',
     loadComponent: () => import('./snake/snake').then((m) => m.Snake),
   },
@@ -10,12 +14,7 @@ export const routes: Routes = [
     loadComponent: () => import('./pet-match/pet-match').then((m) => m.PetMatch),
   },
   {
-    path: '',
-    redirectTo: 'snake',
-    pathMatch: 'full',
-  },
-  {
     path: '**',
-    redirectTo: 'snake',
+    redirectTo: '',
   },
 ];
