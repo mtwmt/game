@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { Component, inject, OnDestroy, OnInit, signal, PLATFORM_ID } from '@angular/core';
 import { PathfindingService, Tile, Position, PathSegment } from './pathfinding.service';
 import { GameLogicService, GameStats } from './game-logic.service';
 
@@ -11,6 +11,8 @@ import { GameLogicService, GameStats } from './game-logic.service';
 export class PetMatch implements OnInit, OnDestroy {
   private pathfindingService = inject(PathfindingService);
   private gameLogicService = inject(GameLogicService);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
 
   protected readonly boardWidth = 6;
   protected readonly boardHeight = 4;
@@ -76,6 +78,8 @@ export class PetMatch implements OnInit, OnDestroy {
   }
 
   private startTimer() {
+    if (!this.isBrowser) return;
+
     this.gameStartTime = Date.now();
     this.timeUpdateInterval = setInterval(() => {
       const elapsed = this.gameLogicService.getElapsedTime(this.gameStartTime);
@@ -121,7 +125,11 @@ export class PetMatch implements OnInit, OnDestroy {
     // Check if pets are the same type
     if (tile1.petType !== tile2.petType) {
       // Different types, clear selection after short delay
-      setTimeout(() => this.clearSelection(), 500);
+      if (this.isBrowser) {
+        setTimeout(() => this.clearSelection(), 500);
+      } else {
+        this.clearSelection();
+      }
       return;
     }
 
@@ -142,7 +150,7 @@ export class PetMatch implements OnInit, OnDestroy {
       this.showPath.set(true);
 
       // Show path animation, then remove tiles
-      this.animationTimeout = setTimeout(() => {
+      const executeRemoval = () => {
         const currentBoard = this.board();
         this.gameLogicService.removeTiles(currentBoard, tile1, tile2);
 
@@ -162,10 +170,20 @@ export class PetMatch implements OnInit, OnDestroy {
         this.clearSelection();
         this.updateGameStats();
         this.checkGameOver();
-      }, 800);
+      };
+
+      if (this.isBrowser) {
+        this.animationTimeout = setTimeout(executeRemoval, 800);
+      } else {
+        executeRemoval();
+      }
     } else {
       // No valid path, clear selection
-      setTimeout(() => this.clearSelection(), 500);
+      if (this.isBrowser) {
+        setTimeout(() => this.clearSelection(), 500);
+      } else {
+        this.clearSelection();
+      }
     }
   }
 
