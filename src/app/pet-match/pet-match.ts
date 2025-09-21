@@ -259,7 +259,7 @@ export class PetMatch implements OnInit, OnDestroy {
     if (!tile) return 'bg-stone-800 border border-stone-700';
 
     const baseClass =
-      'bg-gradient-to-br border-2 cursor-pointer transition-all duration-200 flex items-center justify-center text-2xl';
+      'bg-gradient-to-br border-2 cursor-pointer flex items-center justify-center text-2xl';
 
     if (tile.selected) {
       return `${baseClass} from-yellow-400 to-yellow-600 border-yellow-300 brightness-125`;
@@ -282,7 +282,6 @@ export class PetMatch implements OnInit, OnDestroy {
     ];
 
     return `${baseClass} ${colors[tile.petType] || colors[0]}`;
-    // return `${colors[tile.petType] || colors[0]}`
   }
 
   protected getPathStyle(segment: PathSegment): any {
