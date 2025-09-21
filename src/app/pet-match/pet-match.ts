@@ -262,7 +262,7 @@ export class PetMatch implements OnInit, OnDestroy {
       'bg-gradient-to-br border-2 cursor-pointer transition-all duration-200 flex items-center justify-center text-2xl';
 
     if (tile.selected) {
-      return `${baseClass} from-yellow-400 to-yellow-600 border-yellow-300 shadow-lg shadow-yellow-400/50`;
+      return `${baseClass} from-yellow-400 to-yellow-600 border-yellow-300 border-4 shadow-lg shadow-yellow-400/50 brightness-125`;
     }
 
     // Different colors for different pet types
@@ -305,7 +305,7 @@ export class PetMatch implements OnInit, OnDestroy {
         width: `${width}px`,
         height: '2px',
         background: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
-        boxShadow: '0 0 8px #fbbf24, 0 0 16px #f59e0b',
+        boxShadow: '0 0 8px #fbbf24, 0 0 8px #f59e0b',
         zIndex: 10,
       };
     } else {
