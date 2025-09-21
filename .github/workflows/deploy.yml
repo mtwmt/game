@@ -26,7 +26,7 @@ jobs:
       - name: Build project
         run: |
           npm install
-          npm run build -- --base-href=/game/
+          npm run build -- --base-href=/game/ --prerender=false
 
       - name: Add .nojekyll
         run: touch dist/game/browser/.nojekyll
