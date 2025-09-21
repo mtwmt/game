@@ -90,7 +90,7 @@
         @for (row of board(); track $index) {
           @for (tile of row; track tile?.id || $index) {
           <div
-            class="w-12 h-12 rounded-lg relative active:scale-95"
+            class="w-12 h-12 rounded-lg relative"
             [ngClass]="getTileClass(tile)"
             (click)="onTileClick(tile)"
           >
