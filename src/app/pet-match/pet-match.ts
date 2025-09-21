@@ -15,7 +15,7 @@ export class PetMatch implements OnInit, OnDestroy {
   private isBrowser = isPlatformBrowser(this.platformId);
 
   protected readonly boardWidth = 6;
-  protected readonly boardHeight = 4;
+  protected readonly boardHeight = 8;
   protected readonly petTypes = 12; // Number of different pet types
 
   protected readonly board = signal<(Tile | null)[][]>([]);
@@ -259,10 +259,10 @@ export class PetMatch implements OnInit, OnDestroy {
     if (!tile) return 'bg-stone-800 border border-stone-700';
 
     const baseClass =
-      'bg-gradient-to-br border-2 cursor-pointer transition-all duration-200 flex items-center justify-center text-2xl hover:scale-105';
+      'bg-gradient-to-br border-2 cursor-pointer transition-all duration-200 flex items-center justify-center text-2xl';
 
     if (tile.selected) {
-      return `${baseClass} from-yellow-400 to-yellow-600 border-yellow-300 scale-110 shadow-lg shadow-yellow-400/50`;
+      return `${baseClass} from-yellow-400 to-yellow-600 border-yellow-300 shadow-lg shadow-yellow-400/50`;
     }
 
     // Different colors for different pet types
