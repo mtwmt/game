@@ -1,31 +1,14 @@
 <div class="flex flex-col items-center p-4 min-h-screen bg-stone-900">
-  <!-- <nav class="text-white">
-    <ul class="flex gap-6 text-lg font-medium">
-      <li>
-        <a
-          routerLink=""
-          class="transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-white/10"
-          >🏠 首頁</a
-        >
-      </li>
-      <li>
-        <a
-          routerLink="snake"
-          class="transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-white/10"
-          >🐍 貪食蛇</a
-        >
-      </li>
-      <li>
-        <a
-          routerLink="pet-match"
-          class="transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-white/10"
-          >🐱 寵物連連看</a
-        >
-      </li>
-    </ul>
-  </nav> -->
   <div class="h-full">
     <!-- <app-guideline /> -->
     <router-outlet />
   </div>
+
+  <footer class="text-xs text-lime-600 text-center">
+    <p class="p-4 text-right text-xs">
+      Copyright © 2025-{{ year }}
+      <a href="https://mtwmt.com/" target="_blank" class="mx-1 underline">Mandy</a>. All rights
+      reserved. Build with Angular
+    </p>
+  </footer>
 </div>

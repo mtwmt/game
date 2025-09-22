@@ -40,19 +40,6 @@
       </button>
     </div>
 
-    <!-- Game Statistics -->
-    <!-- <div class="flex flex-col gap-2">
-      <div
-        class="flex items-center gap-1 justify-center flex-wrap bg-neutral-900/70 rounded-md p-2 border border-neutral-700"
-      >
-        <div
-          class="border border-lime-400 bg-lime-400/20 px-2 py-1 text-lime-300 font-bold hover:bg-lime-400/30 transition"
-        >
-          <div class="text-lime-400 text-xs">分數</div>
-          <div class="text-center text-xs">{{ score() }}</div>
-        </div>
-      </div>
-    </div> -->
   </header>
 
   <!-- Game Board -->
@@ -64,7 +51,7 @@
     (touchend)="onTouchEnd($event)"
   >
     @for (cell of getBoard(); track cell) {
-    <div class="w-3 h-3 sm:w-5 sm:h-5" [ngClass]="getCellClass(getCol(cell), getRow(cell))"></div>
+    <div class="w-3 h-3" [ngClass]="getCellClass(getCol(cell), getRow(cell))"></div>
     }
   </main>
 

@@ -1,66 +1,95 @@
 <div class="max-w-6xl mx-auto px-4">
   <!-- Header -->
   <div class="text-center mb-12">
-    <h1 class="text-4xl md:text-5xl font-bold text-lime-400 mb-4">
-      🎮 遊戲中心
-    </h1>
-    <p class="text-stone-300 text-lg md:text-xl">
-      精選經典小遊戲，隨時隨地享受遊戲樂趣
-    </p>
+    <h1 class="text-4xl md:text-5xl font-bold text-lime-400 mb-4">🎮 遊戲中心</h1>
+    <p class="text-stone-300 text-lg md:text-xl">精選經典小遊戲，隨時隨地享受遊戲樂趣</p>
   </div>
 
   <!-- Game Grid -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
     @for (game of games; track game.route) {
-      <div class="group relative overflow-hidden rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-{{game.color}}/20"
-           [ngClass]="'border-' + game.color + '-600 bg-gradient-to-br from-' + game.color + '-900/20 to-' + game.color + '-800/10'">
+    <div
+      class="group relative overflow-hidden rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-{{
+        game.color
+      }}/20"
+      [ngClass]="
+        'border-' +
+        game.color +
+        '-600 bg-gradient-to-br from-' +
+        game.color +
+        '-900/20 to-' +
+        game.color +
+        '-800/10'
+      "
+    >
+      <!-- Game Card Content -->
+      <div class="p-6">
+        <!-- Game Icon -->
+        <div class="text-6xl mb-4 text-center">{{ game.emoji }}</div>
 
-        <!-- Game Card Content -->
-        <div class="p-6">
-          <!-- Game Icon -->
-          <div class="text-6xl mb-4 text-center">{{ game.emoji }}</div>
+        <!-- Game Title -->
+        <h2 class="text-2xl font-bold mb-3 text-center" [ngClass]="'text-' + game.color + '-300'">
+          {{ game.title }}
+        </h2>
 
-          <!-- Game Title -->
-          <h2 class="text-2xl font-bold mb-3 text-center"
-              [ngClass]="'text-' + game.color + '-300'">
-            {{ game.title }}
-          </h2>
+        <!-- Game Description -->
+        <p class="text-stone-400 text-center mb-4 line-clamp-2">
+          {{ game.description }}
+        </p>
 
-          <!-- Game Description -->
-          <p class="text-stone-400 text-center mb-4 line-clamp-2">
-            {{ game.description }}
-          </p>
-
-          <!-- Difficulty Badge -->
-          <div class="flex justify-center mb-4">
-            <span class="px-3 py-1 rounded-full text-xs font-medium"
-                  [ngClass]="'bg-' + game.color + '-500/20 text-' + game.color + '-300 border border-' + game.color + '-500/30'">
-              {{ game.difficulty }}
-            </span>
-          </div>
-
-          <!-- Play Button -->
-          <div class="text-center">
-            <a [routerLink]="game.route"
-               class="inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
-               [ngClass]="'bg-' + game.color + '-600 hover:bg-' + game.color + '-500 text-white shadow-lg hover:shadow-' + game.color + '-500/30'">
-              <span class="mr-2">🚀</span>
-              開始遊戲
-            </a>
-          </div>
+        <!-- Difficulty Badge -->
+        <div class="flex justify-center mb-4">
+          <span
+            class="px-3 py-1 rounded-full text-xs font-medium"
+            [ngClass]="
+              'bg-' +
+              game.color +
+              '-500/20 text-' +
+              game.color +
+              '-300 border border-' +
+              game.color +
+              '-500/30'
+            "
+          >
+            {{ game.difficulty }}
+          </span>
         </div>
 
-        <!-- Hover Effect Overlay -->
-        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-             [ngClass]="'bg-gradient-to-br from-' + game.color + '-400/10 to-' + game.color + '-600/10'">
+        <!-- Play Button -->
+        <div class="text-center">
+          <a
+            [routerLink]="game.route"
+            class="inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
+            [ngClass]="
+              'bg-' +
+              game.color +
+              '-600 hover:bg-' +
+              game.color +
+              '-500 text-white shadow-lg hover:shadow-' +
+              game.color +
+              '-500/30'
+            "
+          >
+            <span class="mr-2">🚀</span>
+            開始遊戲
+          </a>
         </div>
       </div>
+
+      <!-- Hover Effect Overlay -->
+      <div
+        class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        [ngClass]="'bg-gradient-to-br from-' + game.color + '-400/10 to-' + game.color + '-600/10'"
+      ></div>
+    </div>
     }
   </div>
 
   <!-- Stats Section -->
   <div class="text-center mb-12">
-    <div class="inline-flex items-center gap-8 bg-stone-800/50 backdrop-blur-sm rounded-2xl px-8 py-6 border border-stone-700">
+    <div
+      class="inline-flex items-center gap-8 bg-stone-800/50 backdrop-blur-sm rounded-2xl px-8 py-6 border border-stone-700"
+    >
       <div class="text-center">
         <div class="text-2xl font-bold text-lime-400">{{ games.length }}</div>
         <div class="text-stone-400 text-sm">遊戲總數</div>
@@ -75,18 +104,64 @@
         <div class="text-2xl font-bold text-purple-400">無廣告</div>
         <div class="text-stone-400 text-sm">純淨體驗</div>
       </div>
+      <div class="w-px h-12 bg-stone-600"></div>
+      <div class="text-center">
+        <div class="text-2xl font-bold text-purple-400">
+          <style data-styled="true" data-styled-version="5.3.3">
+            .eDynhg {
+              display: -webkit-box;
+              display: -webkit-flex;
+              display: -ms-flexbox;
+              display: flex;
+              -webkit-align-items: center;
+              -webkit-box-align: center;
+              -ms-flex-align: center;
+              align-items: center;
+              -webkit-box-pack: center;
+              -webkit-justify-content: center;
+              -ms-flex-pack: center;
+              justify-content: center;
+              width: 100%;
+              height: 40px;
+              /* padding: 8px 16px; */
+              -webkit-backdrop-filter: blur(20px);
+              backdrop-filter: blur(20px);
+              border-radius: 12px;
+              color: white;
+              -webkit-text-decoration: none !important;
+              text-decoration: none !important;
+            } /*!sc*/
+            .eDynhg:hover {
+              -webkit-text-decoration: none !important;
+              text-decoration: none !important;
+            } /*!sc*/
+            data-styled.g160[id='sc-1ykasxb-0'] {
+              content: 'eDynhg,';
+            } /*!sc*/
+          </style>
+          <a
+            style="background-color: #ad5138; color: #f8e0be; border: none"
+            href="https://mtwmt.bobaboba.me"
+            target="_blank"
+            class="sc-1ykasxb-0 eDynhg"
+            ><img
+              height="100%"
+              src="https://s3.ap-southeast-1.amazonaws.com/media.anyonelab.com/images/boba/boba-embed-icon.png"
+              alt="boba-icon"
+            />
+            <!-- <div style="flex: 1; text-align: center">請我喝珍奶！</div> -->
+          </a>
+        </div>
+        <div class="text-stone-400 text-sm">請我喝飲料！</div>
+      </div>
     </div>
   </div>
 
   <!-- Comments Section -->
   <div class="max-w-4xl mx-auto">
     <div class="bg-stone-800/30 backdrop-blur-sm rounded-xl border border-stone-700 p-6">
-      <h3 class="text-xl font-bold text-stone-300 mb-4 text-center">
-        💬 留言討論
-      </h3>
-      <div class="text-center text-stone-400 text-sm mb-4">
-        歡迎分享你的遊戲體驗或建議！
-      </div>
+      <h3 class="text-xl font-bold text-stone-300 mb-4 text-center">💬 留言討論</h3>
+      <div class="text-center text-stone-400 text-sm mb-4">歡迎分享你的遊戲體驗或建議！</div>
       <div id="comments"></div>
     </div>
   </div>
