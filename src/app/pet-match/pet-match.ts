@@ -2,10 +2,11 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit, signal, PLATFORM_ID } from '@angular/core';
 import { PathfindingService, Tile, Position, PathSegment } from './pathfinding.service';
 import { GameLogicService, GameStats } from './game-logic.service';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-pet-match',
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './pet-match.html',
 })
 export class PetMatch implements OnInit, OnDestroy {
@@ -32,6 +33,16 @@ export class PetMatch implements OnInit, OnDestroy {
   protected readonly gameTime = signal(0);
   protected readonly remainingTiles = signal(0);
   protected readonly formattedTime = signal('00:00');
+
+  // 重排功能
+  protected readonly shufflesUsed = signal(0);
+  protected readonly maxShuffles = signal(3); // 每關限制3次重排
+
+  // 提示功能
+  protected readonly hintsUsed = signal(0);
+  protected readonly maxHints = signal(3); // 每關限制3次提示
+  protected readonly hintTiles = signal<Tile[]>([]); // 提示的兩個方塊
+  protected readonly showHint = signal(false); // 是否顯示提示
 
   private animationTimeout?: NodeJS.Timeout;
   private gameStartTime = 0;
@@ -126,7 +137,7 @@ export class PetMatch implements OnInit, OnDestroy {
     if (tile1.petType !== tile2.petType) {
       // Different types, clear selection after short delay
       if (this.isBrowser) {
-        setTimeout(() => this.clearSelection(), 500);
+        setTimeout(() => this.clearSelection(), 300);
       } else {
         this.clearSelection();
       }
@@ -183,14 +194,14 @@ export class PetMatch implements OnInit, OnDestroy {
       };
 
       if (this.isBrowser) {
-        this.animationTimeout = setTimeout(executeRemoval, 800);
+        this.animationTimeout = setTimeout(executeRemoval, 200);
       } else {
         executeRemoval();
       }
     } else {
       // No valid path, clear selection
       if (this.isBrowser) {
-        setTimeout(() => this.clearSelection(), 500);
+        setTimeout(() => this.clearSelection(), 300);
       } else {
         this.clearSelection();
       }
@@ -222,8 +233,15 @@ export class PetMatch implements OnInit, OnDestroy {
         this.pathfindingService
       )
     ) {
-      this.gameOver.set(true);
-      this.stopTimer();
+      // 如果沒有有效移動，但還有剩餘方塊且還有重排次數，自動重排
+      if (this.remainingTiles() > 0 && this.canShuffle()) {
+        console.log('自動觸發重排：無可用移動但還有剩餘方塊');
+        this.shuffleTiles();
+      } else {
+        // 否則遊戲結束
+        this.gameOver.set(true);
+        this.stopTimer();
+      }
     }
   }
 
@@ -240,6 +258,9 @@ export class PetMatch implements OnInit, OnDestroy {
     this.clearSelection();
     this.showPath.set(false);
     this.matchPath.set([]);
+    this.shufflesUsed.set(0); // 重置重排次數
+    this.hintsUsed.set(0); // 重置提示次數
+    this.hideHint(); // 隱藏提示
     this.stopTimer();
     if (this.animationTimeout) {
       clearTimeout(this.animationTimeout);
@@ -253,6 +274,9 @@ export class PetMatch implements OnInit, OnDestroy {
     this.moves.set(0);
     this.gameTime.set(0);
     this.formattedTime.set('00:00');
+    this.shufflesUsed.set(0); // 重置重排次數
+    this.hintsUsed.set(0); // 重置提示次數
+    this.hideHint(); // 隱藏提示
     this.gameOver.set(false);
     this.levelComplete.set(false);
     this.clearSelection();
@@ -273,6 +297,11 @@ export class PetMatch implements OnInit, OnDestroy {
 
     if (tile.selected) {
       return `${baseClass} from-yellow-400 to-yellow-600 border-yellow-300 brightness-125`;
+    }
+
+    // 提示方塊的特殊效果
+    if (this.isHintTile(tile)) {
+      return `${baseClass} from-green-400 to-green-600 border-green-300 animate-pulse ring-2 ring-green-400 ring-opacity-75`;
     }
 
     // Different colors for different pet types
@@ -334,5 +363,163 @@ export class PetMatch implements OnInit, OnDestroy {
         zIndex: 10,
       };
     }
+  }
+
+  // 重排功能
+  protected shuffleTiles() {
+    if (this.shufflesUsed() >= this.maxShuffles() || this.gameOver() || this.levelComplete() || this.remainingTiles() === 0) {
+      return;
+    }
+
+    // 清除當前選擇
+    this.clearSelection();
+
+    // 收集所有非空方塊的寵物類型
+    const board = this.board();
+    const petTypes: number[] = [];
+
+    for (let y = 0; y < this.boardHeight; y++) {
+      for (let x = 0; x < this.boardWidth; x++) {
+        if (board[y][x]) {
+          petTypes.push(board[y][x]!.petType);
+        }
+      }
+    }
+
+    // 洗牌寵物類型
+    for (let i = petTypes.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [petTypes[i], petTypes[j]] = [petTypes[j], petTypes[i]];
+    }
+
+    // 重新分配給非空位置
+    let petIndex = 0;
+    let id = Date.now(); // 使用時間戳作為新的ID起點
+
+    for (let y = 0; y < this.boardHeight; y++) {
+      for (let x = 0; x < this.boardWidth; x++) {
+        if (board[y][x]) {
+          board[y][x] = {
+            id: id++,
+            petType: petTypes[petIndex++],
+            position: { x, y },
+            selected: false,
+          };
+        }
+      }
+    }
+
+    // 更新棋盤信號
+    this.board.set([...board]);
+
+    // 增加重排使用次數
+    this.shufflesUsed.update(count => count + 1);
+
+    // 重排後重新檢查遊戲狀態
+    this.updateGameStats();
+    this.checkGameOver();
+  }
+
+  // 檢查是否還有可用移動
+  protected hasAvailableMoves(): boolean {
+    return this.gameLogicService.hasValidMoves(
+      this.board(),
+      this.boardWidth,
+      this.boardHeight,
+      this.pathfindingService
+    );
+  }
+
+  // 檢查是否可以使用重排
+  protected canShuffle(): boolean {
+    return this.shufflesUsed() < this.maxShuffles() &&
+           !this.gameOver() &&
+           !this.levelComplete() &&
+           this.remainingTiles() > 0;
+  }
+
+  // 檢查是否應該顯示重排按鈕
+  protected shouldShowShuffleButton(): boolean {
+    return this.shufflesUsed() < this.maxShuffles() &&
+           !this.gameOver() &&
+           !this.levelComplete() &&
+           this.remainingTiles() > 0;
+  }
+
+  // 提示功能相關方法
+  protected useHint(): void {
+    if (!this.canUseHint()) return;
+
+    // 清除當前選擇
+    this.clearSelection();
+
+    // 尋找一個有效的配對
+    const hintPair = this.findValidPair();
+    if (hintPair) {
+      this.hintTiles.set([hintPair.tile1, hintPair.tile2]);
+      this.showHint.set(true);
+      this.hintsUsed.update(count => count + 1);
+
+      // 3秒後自動隱藏提示
+      if (this.isBrowser) {
+        setTimeout(() => this.hideHint(), 3000);
+      }
+    }
+  }
+
+  protected hideHint(): void {
+    this.showHint.set(false);
+    this.hintTiles.set([]);
+  }
+
+  protected canUseHint(): boolean {
+    return this.hintsUsed() < this.maxHints() &&
+           !this.gameOver() &&
+           !this.levelComplete() &&
+           !this.showHint() &&
+           this.remainingTiles() > 0;
+  }
+
+  private findValidPair(): { tile1: Tile; tile2: Tile } | null {
+    const board = this.board();
+
+    // 遍歷所有方塊尋找有效配對
+    for (let y1 = 0; y1 < this.boardHeight; y1++) {
+      for (let x1 = 0; x1 < this.boardWidth; x1++) {
+        const tile1 = board[y1][x1];
+        if (!tile1) continue;
+
+        // 尋找相同類型的其他方塊
+        for (let y2 = 0; y2 < this.boardHeight; y2++) {
+          for (let x2 = 0; x2 < this.boardWidth; x2++) {
+            const tile2 = board[y2][x2];
+            if (!tile2 || tile1.id === tile2.id) continue;
+
+            // 檢查是否為相同類型且有連通路徑
+            if (tile1.petType === tile2.petType) {
+              const path = this.pathfindingService.findPath(
+                tile1.position,
+                tile2.position,
+                board,
+                this.boardWidth,
+                this.boardHeight
+              );
+
+              if (path) {
+                return { tile1, tile2 };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // 檢查方塊是否為提示方塊
+  protected isHintTile(tile: Tile | null): boolean {
+    if (!tile || !this.showHint()) return false;
+    return this.hintTiles().some(hintTile => hintTile.id === tile.id);
   }
 }

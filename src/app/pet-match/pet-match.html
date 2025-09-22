@@ -1,105 +1,121 @@
-<div class="relative p-2 h-full">
-  <div class="text-center">
+<div class="w-full max-w-sm mx-auto flex flex-col">
+  <header class="mb-2 flex flex-col gap-3 items-stretch">
     <div class="flex justify-between items-center">
-      <h1 class="text-lime-400 text-3xl font-bold leading-none">寵物連連看</h1>
+      <h1 class="text-center text-2xl font-bold tracking-wider text-lime-400 drop-shadow">
+        寵物連連看
+      </h1>
+      <a routerLink="/" class="text-lime-600 text-sm">HOME</a>
+    </div>
 
-      <!-- Game Control Buttons -->
-      <div>
-        @if (levelComplete()) {
-        <button
-          class="border border-green-800 bg-green-900 p-2 text-green-400 font-bold hover:bg-green-400/30 transition mr-2"
-          (click)="nextLevel()"
-        >
-          下一關
-        </button>
-        }
-        @if (gameOver()) {
-        <button
-          class="border border-cyan-800 bg-cyan-900 p-2 text-cyan-400 font-bold hover:bg-cyan-400/30 transition"
-          (click)="resetGame()"
-        >
-          重新開始
-        </button>
-        } @else {
-        <button
-          class="border border-yellow-800 bg-yellow-900 p-2 text-yellow-400 font-bold hover:bg-yellow-300/30 transition"
-          (click)="resetGame()"
-        >
-          新遊戲
-        </button>
-        }
-      </div>
+    <!-- Game Control Buttons -->
+    <div class="flex gap-2">
+      @if (gameOver()) {
+      <button
+        class="h-12 w-1/3 touch-btn rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+        (click)="resetGame()"
+      >
+        重新開始
+      </button>
+      } @else {
+      <button
+        class="h-12 w-1/3 touch-btn rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-base shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300"
+        (click)="resetGame()"
+      >
+        新遊戲
+      </button>
+      }
+
+      <button
+        class="h-12 w-1/3 touch-btn rounded-md bg-zinc-800 border border-zinc-600 text-lime-200 font-medium shadow hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-lime-300"
+        [class.opacity-50]="shufflesUsed() >= maxShuffles()"
+        [disabled]="shufflesUsed() >= maxShuffles()"
+        (click)="shuffleTiles()"
+        title="重新洗牌所有方塊 (剩餘: {{ maxShuffles() - shufflesUsed() }})"
+      >
+        重排 (<span>{{ shufflesUsed() }}/{{ maxShuffles() }}</span
+        >)
+      </button>
+
+      <button
+        class="h-12 w-1/3 touch-btn rounded-md border font-medium shadow focus:outline-none focus:ring-2"
+        [class]="
+          canUseHint()
+            ? 'bg-emerald-700 border-emerald-500 text-emerald-50 hover:bg-emerald-600 focus:ring-emerald-300'
+            : 'bg-zinc-800 border-zinc-600 text-zinc-400 opacity-50'
+        "
+        [disabled]="!canUseHint()"
+        (click)="useHint()"
+        title="顯示一個可配對的提示 (剩餘: {{ maxHints() - hintsUsed() }})"
+      >
+        提示 (<span>{{ hintsUsed() }}/{{ maxHints() }}</span
+        >)
+      </button>
     </div>
 
     <!-- Game Statistics -->
-    <div class="flex justify-center gap-3 text-white my-4 flex-wrap">
+    <div class="flex flex-col gap-2">
       <div
-        class="border border-cyan-400 bg-cyan-400/20 px-3 py-2 text-cyan-300 font-bold hover:bg-cyan-400/30 transition"
+        class="flex items-center gap-1 justify-center flex-wrap bg-neutral-900/70 rounded-md p-2 border border-neutral-700"
       >
-        <div class="text-cyan-400 text-lg leading-none">關卡</div>
-        <div class="text-center">{{ level() }}</div>
-      </div>
+        <div
+          class="border border-cyan-400 bg-cyan-400/20 px-2 py-1 text-cyan-300 font-bold hover:bg-cyan-400/30 transition"
+        >
+          <div class="text-cyan-400 text-xs">關卡</div>
+          <div class="text-center text-xs">{{ level() }}</div>
+        </div>
 
-      <div
-        class="border border-lime-400 bg-lime-400/20 px-3 py-2 text-lime-300 font-bold hover:bg-lime-400/30 transition"
-      >
-        <div class="text-lime-400 text-lg leading-none">分數</div>
-        <div class="text-center">{{ score() }}</div>
-      </div>
+        <div
+          class="border border-lime-400 bg-lime-400/20 px-2 py-1 text-lime-300 font-bold hover:bg-lime-400/30 transition"
+        >
+          <div class="text-lime-400 text-xs">分數</div>
+          <div class="text-center text-xs">{{ score() }}</div>
+        </div>
 
-      <div
-        class="border border-yellow-400 bg-yellow-400/20 px-3 py-2 text-yellow-300 font-bold hover:bg-yellow-400/30 transition"
-      >
-        <div class="text-yellow-400 text-lg leading-none">移動</div>
-        <div class="text-center">{{ moves() }}</div>
-      </div>
+        <div
+          class="border border-yellow-400 bg-yellow-400/20 px-2 py-1 text-yellow-300 font-bold hover:bg-yellow-400/30 transition"
+        >
+          <div class="text-yellow-400 text-xs">移動</div>
+          <div class="text-center text-xs">{{ moves() }}</div>
+        </div>
 
-      <div
-        class="border border-purple-400 bg-purple-400/20 px-3 py-2 text-purple-300 font-bold hover:bg-purple-400/30 transition"
-      >
-        <div class="text-purple-400 text-lg leading-none">時間</div>
-        <div class="text-center">{{ formattedTime() }}</div>
-      </div>
+        <div
+          class="border border-orange-400 bg-orange-400/20 px-2 py-1 text-orange-300 font-bold hover:bg-orange-400/30 transition"
+        >
+          <div class="text-orange-400 text-xs">剩餘</div>
+          <div class="text-center text-xs">{{ remainingTiles() }}</div>
+        </div>
 
-      <div
-        class="border border-orange-400 bg-orange-400/20 px-3 py-2 text-orange-300 font-bold hover:bg-orange-400/30 transition"
-      >
-        <div class="text-orange-400 text-lg leading-none">剩餘</div>
-        <div class="text-center">{{ remainingTiles() }}</div>
+        <!-- Timeline -->
+        <div class="w-full mt-2 h-2 bg-neutral-700/80 rounded overflow-hidden relative">
+          <div class="h-full w-full bg-gradient-to-r from-lime-500 to-lime-300"></div>
+          <span
+            class="absolute inset-0 text-[9px] tracking-wide text-neutral-900/70 font-semibold flex items-center justify-center select-none"
+          >
+            {{ formattedTime() }}
+          </span>
+        </div>
       </div>
-
-      @if (gameOver()) {
-      <div
-        class="border border-fuchsia-400 bg-fuchsia-400/20 px-3 py-2 text-fuchsia-300 font-bold"
-      >
-        <div class="text-fuchsia-400 text-lg leading-none">遊戲結束</div>
-        <div class="text-sm">{{ score() === 0 ? '再試一次！' : '恭喜完成！' }}</div>
-      </div>
-      }
     </div>
-  </div>
+  </header>
 
   <!-- Game Board -->
-  <div class="flex justify-center">
+  <main class="flex justify-center">
     <div class="relative inline-block">
-      <!-- bg-lime-900/30 border border-lime-800 p-5 space-y-5 -->
       <div
-        class="inline-grid gap-[2px] p-4  border-2 border-lime-700 rounded-lg"
+        class="inline-grid gap-[2px] p-4 border-2 border-lime-700 rounded-lg"
         [ngStyle]="{ 'grid-template-columns': 'repeat(' + boardWidth + ', minmax(0, 1fr))' }"
       >
-        @for (row of board(); track $index) {
-          @for (tile of row; track tile?.id || $index) {
-          <div
-            class="w-12 h-12 rounded-lg relative"
-            [ngClass]="getTileClass(tile)"
-            (click)="onTileClick(tile)"
-          >
-            @if (tile) {
-            <span class="select-none pointer-events-none">{{ petEmojis[tile.petType] }}</span>
-            }
-          </div>
+        @for (row of board(); track $index) { @for (tile of row; track tile?.id || $index) {
+        <div
+          class="w-12 h-12 rounded-lg relative"
+          [ngClass]="getTileClass(tile)"
+          (click)="onTileClick(tile)"
+        >
+          @if (tile) {
+          <span class="select-none pointer-events-none">{{ petEmojis[tile.petType] }}</span>
           }
-        }
+        </div>
+        } }
       </div>
 
       <!-- Connection Path Overlay -->
@@ -116,8 +132,12 @@
 
       <!-- Level Complete Overlay -->
       @if (levelComplete()) {
-      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
-        <div class="bg-gradient-to-br from-green-600 to-green-800 border-2 border-green-400 rounded-xl p-8 shadow-2xl shadow-green-400/50 text-center animate-pulse">
+      <div
+        class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg"
+      >
+        <div
+          class="bg-gradient-to-br from-green-600 to-green-800 border-2 border-green-400 rounded-lg p-8 shadow-2xl shadow-green-400/50 text-center"
+        >
           <div class="text-green-200 text-3xl mb-4">🎉</div>
           <h2 class="text-green-100 text-2xl font-bold mb-4">關卡 {{ level() }} 完成！</h2>
 
@@ -147,10 +167,10 @@
       </div>
       }
     </div>
-  </div>
+  </main>
 
   <!-- Game Instructions -->
-  <div class="mt-6 text-center text-stone-400 text-sm max-w-md mx-auto">
+  <!-- <div class="text-xs text-lime-600 text-center pt-1">
     <p class="mb-2">點擊兩個相同的寵物來配對！</p>
     <p class="text-xs">連接線不能超過2-3次轉彎，配對成功後方塊會消失。</p>
     @if (level() === 1) {
@@ -158,21 +178,23 @@
     } @else {
     <p class="text-xs text-orange-400 mt-1">第{{ level() }}關：消除後空白會往下補位！</p>
     }
-  </div>
+  </div> -->
 
   <!-- Selected Tiles Indicator -->
-  @if (selectedTiles().length > 0) {
+  <!-- @if (selectedTiles().length > 0) {
   <div class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
     <div class="bg-stone-800/90 border border-yellow-400 rounded-lg px-4 py-2 backdrop-blur-sm">
       <div class="text-yellow-400 text-sm font-bold mb-1">已選擇:</div>
       <div class="flex gap-2">
         @for (tile of selectedTiles(); track tile.id) {
-        <div class="w-8 h-8 bg-yellow-400/20 border border-yellow-400 rounded flex items-center justify-center text-lg">
+        <div
+          class="w-8 h-8 bg-yellow-400/20 border border-yellow-400 rounded flex items-center justify-center text-lg"
+        >
           {{ petEmojis[tile.petType] }}
         </div>
         }
       </div>
     </div>
   </div>
-  }
+  } -->
 </div>

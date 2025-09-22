@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnDestroy, OnInit, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 interface Position {
   x: number;
@@ -10,7 +11,7 @@ type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 
 @Component({
   selector: 'app-snake',
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './snake.html',
 })
 export class Snake implements OnInit, OnDestroy {
