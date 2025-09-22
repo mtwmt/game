@@ -1,8 +1,17 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit, signal, PLATFORM_ID } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal, computed, PLATFORM_ID } from '@angular/core';
 import { PathfindingService, Tile, Position, PathSegment } from './pathfinding.service';
 import { GameLogicService, GameStats } from './game-logic.service';
 import { RouterLink } from '@angular/router';
+
+// 關卡類型枚舉
+enum LevelType {
+  CLASSIC = 'classic', // 第一關：不補位
+  GRAVITY_DOWN = 'down', // 第二關：向下補位
+  GRAVITY_UP = 'up', // 第三關：向上補位
+  GRAVITY_LEFT = 'left', // 第四關：向左補位
+  GRAVITY_RIGHT = 'right', // 第五關以後：向右補位
+}
 
 @Component({
   selector: 'app-pet-match',
@@ -25,28 +34,74 @@ export class PetMatch implements OnInit, OnDestroy {
   protected readonly level = signal(1);
   protected readonly gameOver = signal(false);
   protected readonly levelComplete = signal(false);
+  protected readonly gameComplete = signal(false); // 全部破關
   protected readonly matchPath = signal<PathSegment[]>([]);
   protected readonly showPath = signal(false);
 
-  // 新增遊戲統計
+  // 遊戲統計
   protected readonly moves = signal(0);
   protected readonly gameTime = signal(0);
-  protected readonly remainingTiles = signal(0);
-  protected readonly formattedTime = signal('00:00');
 
-  // 重排功能
-  protected readonly shufflesUsed = signal(0);
-  protected readonly maxShuffles = signal(3); // 每關限制3次重排
+  // 使用computed自動計算剩餘方塊數量
+  protected readonly remainingTiles = computed(() =>
+    this.gameLogicService.getRemainingTileCount(this.board())
+  );
+
+  // 使用computed自動計算格式化的遊戲時間
+  protected readonly formattedTime = computed(() =>
+    this.gameLogicService.formatTime(this.gameTime())
+  );
+
+  // 倒數計時系統 (5分鐘 = 300秒)
+  protected readonly MAX_LEVEL_TIME = 300; // 每關限時5分鐘（常數）
+  protected readonly countdownTime = signal(this.MAX_LEVEL_TIME); // 剩餘秒數
+  // 格式化倒數時間
+  protected readonly formattedCountdown = computed(() => {
+    const seconds = this.countdownTime();
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  });
+  protected readonly timeUp = computed(() => this.countdownTime() <= 0);
+  // 計算時間線百分比
+  protected readonly timelinePercentage = computed(
+    () => (this.countdownTime() / this.MAX_LEVEL_TIME) * 100
+  );
+
+  protected readonly timelineColorClass = computed(() => {
+    if (this.countdownTime() <= 30) return 'from-red-500 to-red-300';
+    if (this.countdownTime() <= 60) return 'from-yellow-500 to-yellow-300';
+    return 'from-lime-500 to-lime-300';
+  });
+  protected readonly timelineTextClass = computed(() => {
+    if (this.countdownTime() <= this.MAX_LEVEL_TIME * 0.5) return 'text-white';
+    return 'text-neutral-900/90';
+  });
+
+  // 道具系統 - 全遊戲累積，不重置
+  protected readonly totalShufflesUsed = signal(0);
+  protected readonly totalHintsUsed = signal(0);
+  protected readonly maxShufflesPerGame = signal(5); // 整個遊戲共5次重排
+  protected readonly maxHintsPerGame = signal(5); // 整個遊戲共5次提示
+
+  // 計算剩餘道具數量
+  protected readonly remainingShuffles = computed(
+    () => this.maxShufflesPerGame() - this.totalShufflesUsed()
+  );
+
+  protected readonly remainingHints = computed(
+    () => this.maxHintsPerGame() - this.totalHintsUsed()
+  );
 
   // 提示功能
-  protected readonly hintsUsed = signal(0);
-  protected readonly maxHints = signal(3); // 每關限制3次提示
   protected readonly hintTiles = signal<Tile[]>([]); // 提示的兩個方塊
   protected readonly showHint = signal(false); // 是否顯示提示
 
   private animationTimeout?: NodeJS.Timeout;
   private gameStartTime = 0;
   private timeUpdateInterval?: NodeJS.Timeout;
+  private countdownInterval?: NodeJS.Timeout;
+  private levelStartTime = 0;
 
   // Pet emojis for visual representation
   protected readonly petEmojis = [
@@ -69,11 +124,18 @@ export class PetMatch implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.clearAllTimers();
+  }
+
+  private clearAllTimers() {
     if (this.animationTimeout) {
       clearTimeout(this.animationTimeout);
     }
     if (this.timeUpdateInterval) {
       clearInterval(this.timeUpdateInterval);
+    }
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
     }
   }
 
@@ -84,24 +146,75 @@ export class PetMatch implements OnInit, OnDestroy {
       this.petTypes
     );
     this.board.set(board);
-    this.updateGameStats();
-    this.startTimer();
+    this.startLevelTimer();
   }
 
-  private startTimer() {
+  private startLevelTimer() {
     if (!this.isBrowser) return;
 
-    this.gameStartTime = Date.now();
+    this.clearAllTimers();
+
+    this.levelStartTime = Date.now();
+    this.countdownTime.set(this.MAX_LEVEL_TIME);
+
+    // 經過時間計時器
     this.timeUpdateInterval = setInterval(() => {
-      const elapsed = this.gameLogicService.getElapsedTime(this.gameStartTime);
+      const elapsed = this.gameLogicService.getElapsedTime(this.levelStartTime);
       this.gameTime.set(elapsed);
-      this.formattedTime.set(this.gameLogicService.formatTime(elapsed));
+    }, 1000);
+
+    // 倒數計時器
+    this.countdownInterval = setInterval(() => {
+      const elapsed = this.gameLogicService.getElapsedTime(this.levelStartTime);
+      const remaining = Math.max(0, this.MAX_LEVEL_TIME - elapsed);
+      this.countdownTime.set(remaining);
+
+      // 時間到了
+      if (remaining <= 0) {
+        this.handleTimeUp();
+      }
     }, 1000);
   }
 
-  private updateGameStats() {
-    const remaining = this.gameLogicService.getRemainingTileCount(this.board());
-    this.remainingTiles.set(remaining);
+  private handleTimeUp() {
+    // 避免重複執行
+    if (this.gameOver()) return;
+
+    this.clearAllTimers();
+    this.gameOver.set(true);
+  }
+
+  // 取得當前關卡類型
+  private getCurrentLevelType(): LevelType {
+    const level = this.level();
+    if (level === 1) return LevelType.CLASSIC;
+    if (level === 2) return LevelType.GRAVITY_DOWN;
+    if (level === 3) return LevelType.GRAVITY_UP;
+    if (level === 4) return LevelType.GRAVITY_LEFT;
+    return LevelType.GRAVITY_RIGHT; // 第五關以後
+  }
+
+  // 根據關卡類型應用重力效果
+  private applyLevelGravity(board: (Tile | null)[][]): void {
+    const levelType = this.getCurrentLevelType();
+
+    switch (levelType) {
+      case LevelType.CLASSIC:
+        // 第一關：不補位
+        break;
+      case LevelType.GRAVITY_DOWN:
+        this.gameLogicService.collapseBoardDown(board, this.boardWidth, this.boardHeight);
+        break;
+      case LevelType.GRAVITY_UP:
+        this.gameLogicService.collapseBoardUp(board, this.boardWidth, this.boardHeight);
+        break;
+      case LevelType.GRAVITY_LEFT:
+        this.gameLogicService.collapseBoardLeft(board, this.boardWidth, this.boardHeight);
+        break;
+      case LevelType.GRAVITY_RIGHT:
+        this.gameLogicService.collapseBoardRight(board, this.boardWidth, this.boardHeight);
+        break;
+    }
   }
 
   protected onTileClick(tile: Tile | null) {
@@ -175,12 +288,8 @@ export class PetMatch implements OnInit, OnDestroy {
         const currentBoard = this.board();
         this.gameLogicService.removeTiles(currentBoard, tile1, tile2);
 
-        // 【關卡差異邏輯】第一關與第二關以後的不同行為
-        // 第一關：消除後空白不補位，保持原有連連看玩法
-        // 第二關以後：消除後空白往下補位，增加策略難度
-        if (this.level() >= 2) {
-          this.gameLogicService.collapseBoard(currentBoard, this.boardWidth, this.boardHeight);
-        }
+        // 根據關卡類型應用不同的重力效果
+        this.applyLevelGravity(currentBoard);
 
         // 更新棋盤信號 (重要！)
         this.board.set([...currentBoard]);
@@ -189,7 +298,6 @@ export class PetMatch implements OnInit, OnDestroy {
         this.showPath.set(false);
         this.matchPath.set([]);
         this.clearSelection();
-        this.updateGameStats();
         this.checkGameOver();
       };
 
@@ -220,7 +328,12 @@ export class PetMatch implements OnInit, OnDestroy {
     // 檢查是否已完成
     if (this.gameLogicService.isGameComplete(board)) {
       this.levelComplete.set(true);
-      this.stopTimer();
+      this.clearAllTimers();
+
+      // 檢查是否為第五關，如果是則全破關
+      if (this.level() >= 5) {
+        this.gameComplete.set(true);
+      }
       return;
     }
 
@@ -234,7 +347,7 @@ export class PetMatch implements OnInit, OnDestroy {
       )
     ) {
       // 如果沒有有效移動，但還有剩餘方塊且還有重排次數，自動重排
-      if (this.remainingTiles() > 0 && this.canShuffle()) {
+      if (this.remainingTiles() > 0 && this.canUseShuffle()) {
         console.log('自動觸發重排：無可用移動但還有剩餘方塊');
         this.shuffleTiles();
       } else {
@@ -253,15 +366,19 @@ export class PetMatch implements OnInit, OnDestroy {
   }
 
   protected nextLevel() {
+    // 如果已經全破關，不執行下一關
+    if (this.gameComplete()) {
+      return;
+    }
+
     this.level.update((l) => l + 1);
     this.levelComplete.set(false);
     this.clearSelection();
     this.showPath.set(false);
     this.matchPath.set([]);
-    this.shufflesUsed.set(0); // 重置重排次數
-    this.hintsUsed.set(0); // 重置提示次數
     this.hideHint(); // 隱藏提示
-    this.stopTimer();
+    // 注意：道具次數不重置，延續到下一關
+    this.clearAllTimers();
     if (this.animationTimeout) {
       clearTimeout(this.animationTimeout);
     }
@@ -273,16 +390,17 @@ export class PetMatch implements OnInit, OnDestroy {
     this.level.set(1);
     this.moves.set(0);
     this.gameTime.set(0);
-    this.formattedTime.set('00:00');
-    this.shufflesUsed.set(0); // 重置重排次數
-    this.hintsUsed.set(0); // 重置提示次數
+    // 重置整個遊戲時，道具次數重置
+    this.totalShufflesUsed.set(0);
+    this.totalHintsUsed.set(0);
     this.hideHint(); // 隱藏提示
     this.gameOver.set(false);
     this.levelComplete.set(false);
+    this.gameComplete.set(false);
     this.clearSelection();
     this.showPath.set(false);
     this.matchPath.set([]);
-    this.stopTimer();
+    this.clearAllTimers();
     if (this.animationTimeout) {
       clearTimeout(this.animationTimeout);
     }
@@ -367,7 +485,12 @@ export class PetMatch implements OnInit, OnDestroy {
 
   // 重排功能
   protected shuffleTiles() {
-    if (this.shufflesUsed() >= this.maxShuffles() || this.gameOver() || this.levelComplete() || this.remainingTiles() === 0) {
+    if (
+      !this.canUseShuffle() ||
+      this.gameOver() ||
+      this.levelComplete() ||
+      this.remainingTiles() === 0
+    ) {
       return;
     }
 
@@ -413,10 +536,9 @@ export class PetMatch implements OnInit, OnDestroy {
     this.board.set([...board]);
 
     // 增加重排使用次數
-    this.shufflesUsed.update(count => count + 1);
+    this.totalShufflesUsed.update((count) => count + 1);
 
     // 重排後重新檢查遊戲狀態
-    this.updateGameStats();
     this.checkGameOver();
   }
 
@@ -431,19 +553,14 @@ export class PetMatch implements OnInit, OnDestroy {
   }
 
   // 檢查是否可以使用重排
-  protected canShuffle(): boolean {
-    return this.shufflesUsed() < this.maxShuffles() &&
-           !this.gameOver() &&
-           !this.levelComplete() &&
-           this.remainingTiles() > 0;
-  }
-
-  // 檢查是否應該顯示重排按鈕
-  protected shouldShowShuffleButton(): boolean {
-    return this.shufflesUsed() < this.maxShuffles() &&
-           !this.gameOver() &&
-           !this.levelComplete() &&
-           this.remainingTiles() > 0;
+  protected canUseShuffle(): boolean {
+    return (
+      this.remainingShuffles() > 0 &&
+      !this.gameOver() &&
+      !this.levelComplete() &&
+      !this.timeUp() &&
+      this.remainingTiles() > 0
+    );
   }
 
   // 提示功能相關方法
@@ -458,7 +575,7 @@ export class PetMatch implements OnInit, OnDestroy {
     if (hintPair) {
       this.hintTiles.set([hintPair.tile1, hintPair.tile2]);
       this.showHint.set(true);
-      this.hintsUsed.update(count => count + 1);
+      this.totalHintsUsed.update((count) => count + 1);
 
       // 3秒後自動隱藏提示
       if (this.isBrowser) {
@@ -473,11 +590,14 @@ export class PetMatch implements OnInit, OnDestroy {
   }
 
   protected canUseHint(): boolean {
-    return this.hintsUsed() < this.maxHints() &&
-           !this.gameOver() &&
-           !this.levelComplete() &&
-           !this.showHint() &&
-           this.remainingTiles() > 0;
+    return (
+      this.remainingHints() > 0 &&
+      !this.gameOver() &&
+      !this.levelComplete() &&
+      !this.timeUp() &&
+      !this.showHint() &&
+      this.remainingTiles() > 0
+    );
   }
 
   private findValidPair(): { tile1: Tile; tile2: Tile } | null {
@@ -520,6 +640,6 @@ export class PetMatch implements OnInit, OnDestroy {
   // 檢查方塊是否為提示方塊
   protected isHintTile(tile: Tile | null): boolean {
     if (!tile || !this.showHint()) return false;
-    return this.hintTiles().some(hintTile => hintTile.id === tile.id);
+    return this.hintTiles().some((hintTile) => hintTile.id === tile.id);
   }
 }

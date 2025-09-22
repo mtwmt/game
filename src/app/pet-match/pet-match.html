@@ -26,13 +26,17 @@
       }
 
       <button
-        class="h-12 w-1/3 touch-btn rounded-md bg-zinc-800 border border-zinc-600 text-lime-200 font-medium shadow hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-lime-300"
-        [class.opacity-50]="shufflesUsed() >= maxShuffles()"
-        [disabled]="shufflesUsed() >= maxShuffles()"
+        class="h-12 w-1/3 touch-btn rounded-md border font-medium shadow focus:outline-none focus:ring-2"
+        [class]="
+          canUseShuffle()
+            ? 'bg-zinc-800 border-zinc-600 text-lime-200 hover:bg-zinc-700 focus:ring-lime-300'
+            : 'bg-zinc-800 border-zinc-600 text-zinc-400 opacity-50'
+        "
+        [disabled]="!canUseShuffle()"
         (click)="shuffleTiles()"
-        title="重新洗牌所有方塊 (剩餘: {{ maxShuffles() - shufflesUsed() }})"
+        title="重新洗牌所有方塊 (剩餘: {{ remainingShuffles() }})"
       >
-        重排 (<span>{{ shufflesUsed() }}/{{ maxShuffles() }}</span
+        重排 (<span>{{ totalShufflesUsed() }}/{{ maxShufflesPerGame() }}</span
         >)
       </button>
 
@@ -45,9 +49,9 @@
         "
         [disabled]="!canUseHint()"
         (click)="useHint()"
-        title="顯示一個可配對的提示 (剩餘: {{ maxHints() - hintsUsed() }})"
+        title="顯示一個可配對的提示 (剩餘: {{ remainingHints() }})"
       >
-        提示 (<span>{{ hintsUsed() }}/{{ maxHints() }}</span
+        提示 (<span>{{ totalHintsUsed() }}/{{ maxHintsPerGame() }}</span
         >)
       </button>
     </div>
@@ -85,13 +89,43 @@
           <div class="text-center text-xs">{{ remainingTiles() }}</div>
         </div>
 
+        <div
+          class="border px-2 py-1 font-bold hover:bg-opacity-30 transition"
+          [class]="
+            countdownTime() <= 30
+              ? 'border-red-400 bg-red-400/20 text-red-300 hover:bg-red-400/30'
+              : countdownTime() <= 60
+              ? 'border-yellow-400 bg-yellow-400/20 text-yellow-300 hover:bg-yellow-400/30'
+              : 'border-blue-400 bg-blue-400/20 text-blue-300 hover:bg-blue-400/30'
+          "
+        >
+          <div
+            class="text-xs"
+            [class]="
+              countdownTime() <= 30
+                ? 'text-red-400'
+                : countdownTime() <= 60
+                ? 'text-yellow-400'
+                : 'text-blue-400'
+            "
+          >
+            倒數
+          </div>
+          <div class="text-center text-xs">{{ formattedCountdown() }}</div>
+        </div>
+
         <!-- Timeline -->
         <div class="w-full mt-2 h-2 bg-neutral-700/80 rounded overflow-hidden relative">
-          <div class="h-full w-full bg-gradient-to-r from-lime-500 to-lime-300"></div>
+          <div
+            class="h-full bg-gradient-to-r transition-all duration-300"
+            [class]="timelineColorClass()"
+            [style.width.%]="timelinePercentage()"
+          ></div>
           <span
-            class="absolute inset-0 text-[9px] tracking-wide text-neutral-900/70 font-semibold flex items-center justify-center select-none"
+            class="absolute inset-0 text-[9px] tracking-wide font-semibold flex items-center justify-center select-none transition-colors duration-300"
+            [class]="timelineTextClass()"
           >
-            {{ formattedTime() }}
+            {{ formattedTime() }} / {{ formattedCountdown() }}
           </span>
         </div>
       </div>
@@ -130,21 +164,42 @@
       </div>
       }
 
-      <!-- Level Complete Overlay -->
+      <!-- Game Over Overlay -->
       @if (gameOver()) {
       <div
         class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg"
       >
         <div
-          class="bg-gradient-to-br from-green-600 to-green-800 border-2 border-green-400 rounded-lg p-8 shadow-2xl shadow-green-400/50 text-center"
+          class="bg-gradient-to-br border-2 rounded-lg p-8 shadow-2xl text-center"
+          [class]="
+            timeUp()
+              ? 'from-red-600 to-red-800 border-red-400 shadow-red-400/50'
+              : 'from-orange-600 to-orange-800 border-orange-400 shadow-orange-400/50'
+          "
         >
-          <h2 class="text-green-100 text-2xl font-bold mb-4">遊戲結束</h2>
-          <div class="bg-green-700/50 rounded-lg p-3 mb-6">
-            <div class="text-green-200">總分數</div>
-            <div class="text-green-100 font-bold text-2xl">{{ score() }}</div>
+          <div class="text-3xl mb-4" [innerHTML]="timeUp() ? '⏰' : '😵'"></div>
+          <h2
+            class="text-2xl font-bold mb-4"
+            [class]="timeUp() ? 'text-red-100' : 'text-orange-100'"
+          >
+            {{ timeUp() ? '時間到了！' : '遊戲結束' }}
+          </h2>
+          <div
+            class="rounded-lg p-3 mb-6"
+            [class]="timeUp() ? 'bg-red-700/50' : 'bg-orange-700/50'"
+          >
+            <div [class]="timeUp() ? 'text-red-200' : 'text-orange-200'">總分數</div>
+            <div class="font-bold text-2xl" [class]="timeUp() ? 'text-red-100' : 'text-orange-100'">
+              {{ score() }}
+            </div>
           </div>
           <button
-            class="bg-green-500 hover:bg-green-400 text-green-900 font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+            class="font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+            [class]="
+              timeUp()
+                ? 'bg-red-500 hover:bg-red-400 text-red-900'
+                : 'bg-orange-500 hover:bg-orange-400 text-orange-900'
+            "
             (click)="resetGame()"
           >
             重新開始
@@ -156,11 +211,48 @@
         class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg"
       >
         <div
-          class="bg-gradient-to-br from-green-600 to-green-800 border-2 border-green-400 rounded-lg p-8 shadow-2xl shadow-green-400/50 text-center"
+          class="bg-gradient-to-br border-2 rounded-lg p-8 shadow-2xl text-center"
+          [class]="
+            gameComplete()
+              ? 'from-yellow-500 to-yellow-700 border-yellow-300 shadow-yellow-300/50'
+              : 'from-green-600 to-green-800 border-green-400 shadow-green-400/50'
+          "
         >
-          <div class="text-green-200 text-3xl mb-4">🎉</div>
-          <h2 class="text-green-100 text-2xl font-bold mb-4">關卡 {{ level() }} 完成！</h2>
+          <div class="text-3xl mb-4" [innerHTML]="gameComplete() ? '🏆' : '🎉'"></div>
+          <h2
+            class="text-2xl font-bold mb-4"
+            [class]="gameComplete() ? 'text-yellow-100' : 'text-green-100'"
+          >
+            {{ gameComplete() ? '恭喜你全部破關！' : '關卡 ' + level() + ' 完成！' }}
+          </h2>
 
+          @if (gameComplete()) {
+          <!-- 全破關顯示 -->
+          <div class="mb-6">
+            <div class="text-yellow-200 text-lg mb-4">🎮 遊戲統計 🎮</div>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div class="bg-yellow-600/50 rounded-lg p-3">
+                <div class="text-yellow-200">總移動</div>
+                <div class="text-yellow-100 font-bold text-xl">{{ moves() }}</div>
+              </div>
+              <div class="bg-yellow-600/50 rounded-lg p-3">
+                <div class="text-yellow-200">總時間</div>
+                <div class="text-yellow-100 font-bold text-xl">{{ formattedTime() }}</div>
+              </div>
+              <div class="bg-yellow-600/50 rounded-lg p-3">
+                <div class="text-yellow-200">道具使用</div>
+                <div class="text-yellow-100 font-bold text-xl">
+                  {{ totalShufflesUsed() + totalHintsUsed() }}
+                </div>
+              </div>
+              <div class="bg-yellow-600/50 rounded-lg p-3">
+                <div class="text-yellow-200">最終分數</div>
+                <div class="text-yellow-100 font-bold text-xl">{{ score() }}</div>
+              </div>
+            </div>
+          </div>
+          } @else {
+          <!-- 一般關卡完成顯示 -->
           <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
             <div class="bg-green-700/50 rounded-lg p-3">
               <div class="text-green-200">移動次數</div>
@@ -176,12 +268,18 @@
             <div class="text-green-200">總分數</div>
             <div class="text-green-100 font-bold text-2xl">{{ score() }}</div>
           </div>
+          }
 
           <button
-            class="bg-green-500 hover:bg-green-400 text-green-900 font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
-            (click)="nextLevel()"
+            class="font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+            [class]="
+              gameComplete()
+                ? 'bg-yellow-400 hover:bg-yellow-300 text-yellow-900'
+                : 'bg-green-500 hover:bg-green-400 text-green-900'
+            "
+            (click)="gameComplete() ? resetGame() : nextLevel()"
           >
-            下一關 →
+            {{ gameComplete() ? '重新挑戰' : '下一關 →' }}
           </button>
         </div>
       </div>
