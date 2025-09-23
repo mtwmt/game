@@ -1,0 +1,278 @@
+<div class="w-full max-w-sm mx-auto flex flex-col">
+  <header class="mb-2 flex flex-col gap-3 items-stretch">
+    <div class="flex justify-between items-center">
+      <h1 class="text-center text-2xl font-bold tracking-wider text-lime-400 drop-shadow">
+        中國象棋
+      </h1>
+      <a routerLink="/" class="text-lime-600 text-sm">HOME</a>
+    </div>
+
+    <!-- Game Control Buttons -->
+    <div class="flex gap-2">
+      <button
+        class="h-12 w-1/3 touch-btn rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+        (click)="startPvP()"
+      >
+        👥 雙人對戰
+      </button>
+      <button
+        class="h-12 w-1/3 touch-btn rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-base shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300 drop-shadow-[0_0_5px_#22d3ee]"
+        (click)="startVsAI()"
+      >
+        🤖 人機對戰
+      </button>
+
+      <button
+        class="h-12 w-1/3 touch-btn rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+        (click)="resetGame(false)"
+      >
+        重新開始
+      </button>
+    </div>
+
+    <!-- Game Statistics -->
+    <div class="flex flex-col gap-2">
+      <div
+        class="flex items-center gap-1 justify-between flex-wrap bg-white/10 rounded-md p-2 border border-white/20"
+      >
+        <div
+          class="border px-2 py-1 font-bold"
+          [ngClass]="
+            currentPlayer() === PlayerColor.RED
+              ? 'bg-red-500/20 border-red-400 text-red-300'
+              : 'bg-neutral-800/20 border-neutral-400 text-neutral-300'
+          "
+        >
+          <div class="text-xs">當前回合</div>
+          <div class="text-center text-xs">
+            @if (isVsAI() && currentPlayer() === PlayerColor.BLACK) {
+            <span>🤖</span>
+            }{{ currentPlayerDisplay() }}
+          </div>
+        </div>
+        @if (isInCheck()) {
+        <div class="text-3xl text-amber-300 animate-pulse">將軍！</div>
+        } @if (isVsAI()) {
+        <button
+          class="py-3 border-1 border-lime-400 bg-lime-400/20 px-2 py-1 text-lime-300 font-bold hover:bg-lime-400/30 transition"
+          (click)="startPvP()"
+        >
+          <div class="text-center text-xs">切換模式</div>
+        </button>
+        }
+        <div
+          class="w-full text-center text-sm mt-2 h-4 bg-neutral-700/80 rounded overflow-hidden relative animate-pulse text-white"
+        >
+          @if (aiIsThinking()) { AI 思考中... }
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex justify-center">
+    <div class="relative inline-block">
+      <!-- Chess Board -->
+      <div class="chess-board bg-amber-100 border-4 border-amber-800 p-6 relative">
+        <!-- Column Labels (Top) -->
+        <div class="flex justify-center mb-2">
+          <div class="grid grid-cols-9 gap-0">
+            @for (letter of getColumnLetters(); track letter) {
+            <div class="w-12 text-center text-xs font-bold text-amber-800">{{ letter }}</div>
+            }
+          </div>
+        </div>
+
+        <div class="flex">
+          <!-- Row Numbers (Left) -->
+          <div class="flex flex-col justify-center mr-2">
+            @for (num of getRowNumbers(); track num) {
+            <div class="h-12 flex items-center justify-center text-xs font-bold text-amber-800 w-6">
+              {{ num }}
+            </div>
+            }
+          </div>
+
+          <!-- Game Board Grid - 改為線條網格 -->
+          <div class="relative w-[414px] h-[456px] bg-amber-100">
+            <!-- 水平線 -->
+            @for (i of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; track i) {
+            <div
+              class="absolute left-0 right-0 h-[1px] bg-amber-800"
+              [class]="i === 6 ? 'z-20 h-[1.5px]' : 'z-10'"
+              [style.top.px]="i * 50 + 4"
+            ></div>
+            }
+
+            <!-- 垂直線 - 修改為不穿過河界的實現 -->
+            @for (i of [0, 1, 2, 3, 4, 5, 6, 7, 8]; track i) {
+            <!-- 上半部分垂直線（從頂部到河界上邊緣） -->
+            <div
+              class="absolute w-[1px] bg-amber-800"
+              [style.left.px]="i * 50 + 4"
+              [style.top.px]="4"
+              [style.height.px]="200"
+            ></div>
+            <!-- 下半部分垂直線（從河界下邊緣到底部） -->
+            <div
+              class="absolute w-[1px] bg-amber-800"
+              [style.left.px]="i * 50 + 4"
+              [style.top.px]="254"
+              [style.height.px]="200"
+            ></div>
+            }
+
+            <!-- 宮殿對角線 - 上方宮殿 -->
+            <svg class="absolute top-0 left-[154px] w-[100px] h-[100px]" viewBox="0 0 100 100">
+              <line x1="0" y1="0" x2="100" y2="100" stroke="#d97706" stroke-width="1" />
+              <line x1="100" y1="0" x2="0" y2="100" stroke="#d97706" stroke-width="1" />
+            </svg>
+
+            <!-- 宮殿對角線 - 下方宮殿 -->
+            <svg class="absolute bottom-0 left-[154px] w-[100px] h-[100px]" viewBox="0 0 100 100">
+              <line x1="0" y1="0" x2="100" y2="100" stroke="#d97706" stroke-width="1" />
+              <line x1="100" y1="0" x2="0" y2="100" stroke="#d97706" stroke-width="1" />
+            </svg>
+
+            <!-- 楚河漢界 - 保持區域完全空白 -->
+            <div
+              class="absolute left-0 right-0 top-[204px] h-[50px] bg-amber-100 flex items-center justify-between px-16 z-5"
+            >
+              <span class="text-amber-700 font-bold text-sm tracking-wider">楚河</span>
+              <span class="text-amber-700 font-bold text-sm tracking-wider">漢界</span>
+            </div>
+
+            <!-- 交叉點和棋子 -->
+            @for (row of board(); track $index; let y = $index) { @for (square of row; track $index;
+            let x = $index) {
+            <!-- 交叉點 -->
+            <div
+              class="absolute w-[24px] h-[24px] -translate-x-1/2 -translate-y-1/2 rounded-full hover:bg-amber-200/30 cursor-pointer z-20"
+              [style.top.px]="y * 50 + 4"
+              [style.left.px]="x * 50 + 4"
+              [ngClass]="{ 'valid-move-point': isValidMove(x, y) }"
+              (click)="onSquareClick(x, y)"
+            >
+              <!-- 兵/卒點 -->
+              @if ( (y === 2 || y === 7) && (x === 0 || x === 2 || x === 4 || x === 6 || x === 8) )
+              {
+              <div
+                class="absolute w-[6px] h-[6px] bg-amber-800 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+              ></div>
+              }
+
+              <!-- 炮台點 -->
+              @if ( (y === 3 || y === 6) && (x === 1 || x === 7) ) {
+              <div
+                class="absolute w-[6px] h-[6px] bg-amber-800 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+              ></div>
+              }
+
+              <!-- Chess Piece -->
+              @if (square) {
+              <div
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40px] h-[40px]"
+                [ngClass]="getPieceClass(square)"
+              >
+                <div
+                  class="w-10 h-10 rounded-full border-2 flex items-center justify-center text-lg font-bold shadow-lg"
+                  [class]="
+                    square.color === PlayerColor.RED
+                      ? 'bg-red-100 border-red-600 text-red-800'
+                      : 'bg-neutral-100 border-neutral-800 text-neutral-800'
+                  "
+                >
+                  {{ getPieceSymbol(square) }}
+                </div>
+              </div>
+              }
+
+              <!-- 有效移動標記 -->
+              @if (isValidMove(x, y) && !square) {
+              <div
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-green-500 rounded-full opacity-70"
+              ></div>
+              }
+
+              <!-- 攻擊移動標記 -->
+              @if (isValidMove(x, y) && square && square.color !== currentPlayer()) {
+              <div
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[42px] h-[42px] border-2 border-red-500 rounded-full"
+              ></div>
+              }
+            </div>
+            } }
+          </div>
+
+          <!-- Row Numbers (Right) -->
+          <div class="flex flex-col justify-center ml-2">
+            @for (num of getRowNumbers(); track num) {
+            <div class="h-12 flex items-center justify-center text-xs font-bold text-amber-800 w-6">
+              {{ num }}
+            </div>
+            }
+          </div>
+        </div>
+
+        <!-- Column Labels (Bottom) -->
+        <div class="flex justify-center mt-2">
+          <div class="grid grid-cols-9 gap-0" style="width: 450px">
+            @for (letter of getColumnLetters(); track letter) {
+            <div class="w-12 text-center text-xs font-bold text-amber-800">{{ letter }}</div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Over Overlay -->
+      @if (gameOver()) {
+      <div
+        class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg"
+      >
+        <div
+          class="bg-gradient-to-br from-amber-600 to-amber-800 border-2 border-amber-400 rounded-lg p-8 shadow-2xl text-center"
+        >
+          <div class="text-3xl mb-4">🏆</div>
+          <h2 class="text-2xl font-bold mb-4 text-amber-100">
+            {{ winner() === PlayerColor.RED ? '紅方獲勝！' : '黑方獲勝！' }}
+          </h2>
+          <button
+            class="bg-amber-400 hover:bg-amber-300 text-amber-900 font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+            (click)="resetGame()"
+          >
+            重新開始
+          </button>
+        </div>
+      </div>
+      }
+    </div>
+  </main>
+
+  <!-- Move History -->
+  {{ moveHistory() | json }}
+  @if (moveHistory().length > 0) {
+  <section class="mt-6">
+    <h3 class="text-lg font-bold text-amber-400 mb-3">棋譜記錄</h3>
+    <div
+      class="bg-neutral-900/70 border border-neutral-700 rounded-md p-4 max-h-32 overflow-y-auto"
+    >
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        @for (move of moveHistory(); track $index; let i = $index) { @if (i % 2 === 0) {
+        <div class="flex gap-2">
+          <span class="text-neutral-400">{{ Math.floor(i / 2) + 1 }}.</span>
+          <span class="text-red-400">{{ move }}</span>
+          @if (moveHistory()[i + 1]) {
+          <span class="text-neutral-300">{{ moveHistory()[i + 1] }}</span>
+          }
+        </div>
+        } }
+      </div>
+    </div>
+  </section>
+  }
+
+  <!-- Game Instructions -->
+  <footer class="mt-4 text-xs text-amber-600 text-center">
+    <p class="mb-1">點擊選擇棋子，再點擊目標位置移動</p>
+    <p>紅方先行，將軍對方即獲勝</p>
+  </footer>
+</div>

@@ -35,6 +35,14 @@ export class Home implements OnInit {
       emoji: '🐱',
       color: 'pink',
       difficulty: '中等'
+    },
+    {
+      title: '中國象棋',
+      description: '經典中國象棋對戰，實現完整的象棋規則包含將帥、士象、車馬砲兵等所有棋子移動邏輯。',
+      route: '/chinese-chess',
+      emoji: '♟️',
+      color: 'amber',
+      difficulty: '困難'
     }
   ];
 

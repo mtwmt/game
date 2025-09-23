@@ -25,7 +25,7 @@ export class PetMatch implements OnInit, OnDestroy {
   private isBrowser = isPlatformBrowser(this.platformId);
 
   protected readonly boardWidth = 6;
-  protected readonly boardHeight = 8;
+  protected readonly boardHeight = 9;
   protected readonly petTypes = 12; // Number of different pet types
 
   protected readonly board = signal<(Tile | null)[][]>([]);

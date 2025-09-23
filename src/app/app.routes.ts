@@ -14,6 +14,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pet-match/pet-match').then((m) => m.PetMatch),
   },
   {
+    path: 'chinese-chess',
+    loadComponent: () => import('./chinese-chess/chinese-chess').then((m) => m.ChineseChess),
+  },
+  {
     path: '**',
     redirectTo: '',
   },

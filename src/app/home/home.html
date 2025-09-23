@@ -1,167 +1,159 @@
-<div class="max-w-6xl mx-auto px-4 h-full overflow-auto">
+<div class="max-w-6xl mx-auto px-3 sm:px-4 h-full overflow-auto">
   <!-- Header -->
-  <div class="text-center mb-12">
-    <h1 class="text-4xl md:text-5xl font-bold text-lime-400 mb-4">🎮 遊戲中心</h1>
-    <p class="text-stone-300 text-lg md:text-xl">精選經典小遊戲，隨時隨地享受遊戲樂趣</p>
+  <div class="text-center mb-8 sm:mb-12">
+    <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-lime-400 mb-3 sm:mb-4">🎮 遊戲中心</h1>
+    <p class="text-stone-300 text-base sm:text-lg md:text-xl px-2">精選經典小遊戲，隨時隨地享受遊戲樂趣</p>
   </div>
 
   <!-- Game Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-8 sm:mb-12">
     @for (game of games; track game.route) {
-    <div
+    <a
+      [routerLink]="game.route"
       class="group relative overflow-hidden rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-{{
         game.color
-      }}/20"
-      [ngClass]="
-        'border-' +
-        game.color +
-        '-600 bg-gradient-to-br from-' +
-        game.color +
-        '-900/20 to-' +
-        game.color +
-        '-800/10'
-      "
+      }}/20 block"
+      [ngClass]="{
+        'border-green-600 bg-gradient-to-br from-green-900/20 to-green-800/10': game.color === 'green',
+        'border-pink-600 bg-gradient-to-br from-pink-900/20 to-pink-800/10': game.color === 'pink',
+        'border-amber-600 bg-gradient-to-br from-amber-900/20 to-amber-800/10': game.color === 'amber'
+      }"
     >
       <!-- Game Card Content -->
-      <div class="p-6">
+      <div class="p-3 sm:p-4 lg:p-6">
         <!-- Game Icon -->
-        <div class="text-6xl mb-4 text-center">{{ game.emoji }}</div>
+        <div class="text-3xl sm:text-4xl lg:text-6xl mb-2 sm:mb-3 lg:mb-4 text-center">{{ game.emoji }}</div>
 
         <!-- Game Title -->
-        <h2 class="text-2xl font-bold mb-3 text-center" [ngClass]="'text-' + game.color + '-300'">
+        <h2 class="text-base sm:text-xl lg:text-2xl font-bold mb-1 sm:mb-2 lg:mb-3 text-center" [ngClass]="{
+          'text-green-300': game.color === 'green',
+          'text-pink-300': game.color === 'pink',
+          'text-amber-300': game.color === 'amber'
+        }">
           {{ game.title }}
         </h2>
 
         <!-- Game Description -->
-        <p class="text-stone-400 text-center mb-4 line-clamp-2">
+        <p class="text-stone-400 text-center mb-2 sm:mb-3 lg:mb-4 text-xs sm:text-sm lg:text-base line-clamp-2 lg:line-clamp-2">
           {{ game.description }}
         </p>
 
         <!-- Difficulty Badge -->
-        <div class="flex justify-center mb-4">
+        <div class="flex justify-center mb-2 sm:mb-3 lg:mb-4">
           <span
-            class="px-3 py-1 rounded-full text-xs font-medium"
-            [ngClass]="
-              'bg-' +
-              game.color +
-              '-500/20 text-' +
-              game.color +
-              '-300 border border-' +
-              game.color +
-              '-500/30'
-            "
+            class="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs font-medium border"
+            [ngClass]="{
+              'bg-green-500/20 text-green-300 border-green-500/30': game.color === 'green',
+              'bg-pink-500/20 text-pink-300 border-pink-500/30': game.color === 'pink',
+              'bg-amber-500/20 text-amber-300 border-amber-500/30': game.color === 'amber'
+            }"
           >
             {{ game.difficulty }}
           </span>
         </div>
 
-        <!-- Play Button -->
+        <!-- Play Button Visual -->
         <div class="text-center">
-          <a
-            [routerLink]="game.route"
-            class="inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
-            [ngClass]="
-              'bg-' +
-              game.color +
-              '-600 hover:bg-' +
-              game.color +
-              '-500 text-white shadow-lg hover:shadow-' +
-              game.color +
-              '-500/30'
-            "
+          <div
+            class="inline-flex items-center px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 rounded-lg font-medium transition-all duration-200 w-full justify-center text-white shadow-lg"
+            [ngClass]="{
+              'bg-green-600 group-hover:bg-green-500 group-hover:shadow-green-500/30': game.color === 'green',
+              'bg-pink-600 group-hover:bg-pink-500 group-hover:shadow-pink-500/30': game.color === 'pink',
+              'bg-amber-600 group-hover:bg-amber-500 group-hover:shadow-amber-500/30': game.color === 'amber'
+            }"
           >
-            <span class="mr-2">🚀</span>
-            開始遊戲
-          </a>
+            <span class="mr-1 sm:mr-2 text-xs sm:text-sm">🚀</span>
+            <span class="text-xs sm:text-sm lg:text-base">開始遊戲</span>
+          </div>
         </div>
       </div>
 
       <!-- Hover Effect Overlay -->
       <div
         class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-        [ngClass]="'bg-gradient-to-br from-' + game.color + '-400/10 to-' + game.color + '-600/10'"
+        [ngClass]="{
+          'bg-gradient-to-br from-green-400/10 to-green-600/10': game.color === 'green',
+          'bg-gradient-to-br from-pink-400/10 to-pink-600/10': game.color === 'pink',
+          'bg-gradient-to-br from-amber-400/10 to-amber-600/10': game.color === 'amber'
+        }"
       ></div>
-    </div>
+    </a>
     }
   </div>
 
   <!-- Stats Section -->
-  <div class="text-center mb-12">
-    <div
-      class="inline-flex items-center gap-8 bg-stone-800/50 backdrop-blur-sm rounded-2xl px-8 py-6 border border-stone-700"
-    >
-      <div class="text-center">
-        <div class="text-2xl font-bold text-lime-400">{{ games.length }}</div>
-        <div class="text-stone-400 text-sm">遊戲總數</div>
+  <div class="text-center mb-8 sm:mb-12">
+    <!-- Mobile Stats (2x2 Grid) -->
+    <div class="grid grid-cols-2 gap-3 sm:hidden">
+      <div class="bg-stone-800/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-stone-700">
+        <div class="text-xl font-bold text-lime-400">{{ games.length }}</div>
+        <div class="text-stone-400 text-xs">遊戲總數</div>
       </div>
-      <div class="w-px h-12 bg-stone-600"></div>
-      <div class="text-center">
-        <div class="text-2xl font-bold text-cyan-400">免費</div>
-        <div class="text-stone-400 text-sm">完全免費</div>
+      <div class="bg-stone-800/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-stone-700">
+        <div class="text-xl font-bold text-cyan-400">免費</div>
+        <div class="text-stone-400 text-xs">完全免費</div>
       </div>
-      <div class="w-px h-12 bg-stone-600"></div>
-      <div class="text-center">
-        <div class="text-2xl font-bold text-purple-400">無廣告</div>
-        <div class="text-stone-400 text-sm">純淨體驗</div>
+      <div class="bg-stone-800/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-stone-700">
+        <div class="text-xl font-bold text-purple-400">無廣告</div>
+        <div class="text-stone-400 text-xs">純淨體驗</div>
       </div>
-      <div class="w-px h-12 bg-stone-600"></div>
-      <div class="text-center">
-        <div class="text-2xl font-bold text-purple-400">
-          <style data-styled="true" data-styled-version="5.3.3">
-            .eDynhg {
-              display: -webkit-box;
-              display: -webkit-flex;
-              display: -ms-flexbox;
-              display: flex;
-              -webkit-align-items: center;
-              -webkit-box-align: center;
-              -ms-flex-align: center;
-              align-items: center;
-              -webkit-box-pack: center;
-              -webkit-justify-content: center;
-              -ms-flex-pack: center;
-              justify-content: center;
-              width: 100%;
-              height: 40px;
-              /* padding: 8px 16px; */
-              -webkit-backdrop-filter: blur(20px);
-              backdrop-filter: blur(20px);
-              border-radius: 12px;
-              color: white;
-              -webkit-text-decoration: none !important;
-              text-decoration: none !important;
-            } /*!sc*/
-            .eDynhg:hover {
-              -webkit-text-decoration: none !important;
-              text-decoration: none !important;
-            } /*!sc*/
-            data-styled.g160[id='sc-1ykasxb-0'] {
-              content: 'eDynhg,';
-            } /*!sc*/
-          </style>
+      <div class="bg-stone-800/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-stone-700">
+        <div class="text-xl font-bold text-purple-400">
           <a
-            style="background-color: #ad5138; color: #f8e0be; border: none"
+            style="background-color: #ad5138; color: #f8e0be; border: none; display: flex; align-items: center; justify-content: center; width: 100%; height: 30px; border-radius: 8px; text-decoration: none;"
             href="https://mtwmt.bobaboba.me"
             target="_blank"
-            class="sc-1ykasxb-0 eDynhg"
             ><img
               height="100%"
               src="https://s3.ap-southeast-1.amazonaws.com/media.anyonelab.com/images/boba/boba-embed-icon.png"
               alt="boba-icon"
             />
-            <!-- <div style="flex: 1; text-align: center">請我喝珍奶！</div> -->
           </a>
         </div>
-        <div class="text-stone-400 text-sm">請我喝飲料！</div>
+        <div class="text-stone-400 text-xs">請我喝飲料</div>
+      </div>
+    </div>
+
+    <!-- Desktop Stats (Horizontal) -->
+    <div class="hidden sm:inline-flex items-center gap-4 lg:gap-8 bg-stone-800/50 backdrop-blur-sm rounded-2xl px-6 lg:px-8 py-4 lg:py-6 border border-stone-700">
+      <div class="text-center">
+        <div class="text-xl lg:text-2xl font-bold text-lime-400">{{ games.length }}</div>
+        <div class="text-stone-400 text-xs lg:text-sm">遊戲總數</div>
+      </div>
+      <div class="w-px h-8 lg:h-12 bg-stone-600"></div>
+      <div class="text-center">
+        <div class="text-xl lg:text-2xl font-bold text-cyan-400">免費</div>
+        <div class="text-stone-400 text-xs lg:text-sm">完全免費</div>
+      </div>
+      <div class="w-px h-8 lg:h-12 bg-stone-600"></div>
+      <div class="text-center">
+        <div class="text-xl lg:text-2xl font-bold text-purple-400">無廣告</div>
+        <div class="text-stone-400 text-xs lg:text-sm">純淨體驗</div>
+      </div>
+      <div class="w-px h-8 lg:h-12 bg-stone-600"></div>
+      <div class="text-center">
+        <div class="text-xl lg:text-2xl font-bold text-purple-400">
+          <a
+            style="background-color: #ad5138; color: #f8e0be; border: none; display: flex; align-items: center; justify-content: center; width: 100%; height: 32px; border-radius: 12px; text-decoration: none;"
+            href="https://mtwmt.bobaboba.me"
+            target="_blank"
+            ><img
+              height="100%"
+              src="https://s3.ap-southeast-1.amazonaws.com/media.anyonelab.com/images/boba/boba-embed-icon.png"
+              alt="boba-icon"
+            />
+          </a>
+        </div>
+        <div class="text-stone-400 text-xs lg:text-sm">請我喝飲料！</div>
       </div>
     </div>
   </div>
 
   <!-- Comments Section -->
   <div class="max-w-4xl mx-auto">
-    <div class="bg-stone-800/30 backdrop-blur-sm rounded-xl border border-stone-700 p-6">
-      <h3 class="text-xl font-bold text-stone-300 mb-4 text-center">💬 留言討論</h3>
-      <div class="text-center text-stone-400 text-sm mb-4">歡迎分享你的遊戲體驗或建議！</div>
+    <div class="bg-stone-800/30 backdrop-blur-sm rounded-xl border border-stone-700 p-4 sm:p-6">
+      <h3 class="text-lg sm:text-xl font-bold text-stone-300 mb-3 sm:mb-4 text-center">💬 留言討論</h3>
+      <div class="text-center text-stone-400 text-sm mb-3 sm:mb-4">歡迎分享你的遊戲體驗或建議！</div>
       <div id="comments"></div>
     </div>
   </div>
