@@ -1,7 +1,9 @@
 <div class="w-full max-w-[95vw] sm:max-w-sm mx-auto flex flex-col px-2 sm:px-0">
   <header class="mb-2 flex flex-col gap-3 items-stretch">
     <div class="flex justify-between items-center">
-      <h1 class="text-center text-2xl font-bold tracking-wider text-lime-400 drop-shadow">
+      <h1
+        class="text-center text-2xl font-bold tracking-wider text-lime-400 drop-shadow"
+      >
         中國象棋
       </h1>
       <a routerLink="/" class="text-lime-600 text-sm">HOME</a>
@@ -52,14 +54,15 @@
         </div>
         @if (isInCheck()) {
         <div class="text-3xl text-amber-300 animate-pulse">將軍！</div>
-        } @if (isVsAI()) {
+        }
         <button
           class="py-3 border-1 border-lime-400 bg-lime-400/20 px-2 py-1 text-lime-300 font-bold hover:bg-lime-400/30 transition"
-          (click)="startPvP()"
+          (click)="toggleGameMode()"
         >
-          <div class="text-center text-xs">切換模式</div>
+          <div class="text-center text-xs">
+            {{ isVsAI() ? '切換至雙人' : '切換至AI' }}
+          </div>
         </button>
-        }
         <div
           class="w-full text-center text-sm mt-2 h-4 bg-neutral-700/80 rounded overflow-hidden relative animate-pulse text-white"
         >
@@ -72,12 +75,18 @@
   <main class="flex justify-center">
     <div class="relative inline-block">
       <!-- Chess Board -->
-      <div class="chess-board bg-amber-100 border-2 sm:border-4 border-amber-800 p-2 sm:p-6 relative">
+      <div
+        class="chess-board bg-amber-100 border-2 sm:border-4 border-amber-800 p-2 sm:p-6 relative"
+      >
         <!-- Column Labels (Top) -->
         <div class="flex justify-center mb-1 sm:mb-2">
           <div class="grid grid-cols-9 gap-0">
             @for (letter of getColumnLetters(); track letter) {
-            <div class="w-[36px] sm:w-[50px] text-center text-xs font-bold text-amber-800">{{ letter }}</div>
+            <div
+              class="w-[36px] sm:w-[50px] text-center text-xs font-bold text-amber-800"
+            >
+              {{ letter }}
+            </div>
             }
           </div>
         </div>
@@ -86,14 +95,18 @@
           <!-- Row Numbers (Left) -->
           <div class="flex flex-col justify-center mr-1 sm:mr-2">
             @for (num of getRowNumbers(); track num) {
-            <div class="h-[40px] sm:h-[50px] flex items-center justify-center text-xs font-bold text-amber-800 w-4 sm:w-6">
+            <div
+              class="h-[40px] sm:h-[50px] flex items-center justify-center text-xs font-bold text-amber-800 w-4 sm:w-6"
+            >
               {{ num }}
             </div>
             }
           </div>
 
           <!-- Game Board Grid - 改為線條網格 -->
-          <div class="relative w-[310px] h-[360px] sm:w-[408px] sm:h-[450px] bg-amber-100">
+          <div
+            class="relative w-[310px] h-[360px] sm:w-[408px] sm:h-[450px] bg-amber-100"
+          >
             <!-- 水平線 -->
             @for (i of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; track i) {
             <div
@@ -146,26 +159,94 @@
 
             <!-- 宮殿對角線 - 手機版 -->
             <!-- 上方宮殿 -->
-            <svg class="absolute top-0 left-[122px] w-[72px] h-[80px] sm:hidden" viewBox="0 0 100 100">
-              <line x1="0" y1="0" x2="100" y2="100" stroke="#d97706" stroke-width="1" />
-              <line x1="100" y1="0" x2="0" y2="100" stroke="#d97706" stroke-width="1" />
+            <svg
+              class="absolute top-0 left-[122px] w-[72px] h-[80px] sm:hidden"
+              viewBox="0 0 100 100"
+            >
+              <line
+                x1="0"
+                y1="0"
+                x2="100"
+                y2="100"
+                stroke="#d97706"
+                stroke-width="1"
+              />
+              <line
+                x1="100"
+                y1="0"
+                x2="0"
+                y2="100"
+                stroke="#d97706"
+                stroke-width="1"
+              />
             </svg>
             <!-- 下方宮殿 -->
-            <svg class="absolute bottom-0 left-[122px] w-[72px] h-[80px] sm:hidden" viewBox="0 0 100 100">
-              <line x1="0" y1="0" x2="100" y2="100" stroke="#d97706" stroke-width="1" />
-              <line x1="100" y1="0" x2="0" y2="100" stroke="#d97706" stroke-width="1" />
+            <svg
+              class="absolute bottom-0 left-[122px] w-[72px] h-[80px] sm:hidden"
+              viewBox="0 0 100 100"
+            >
+              <line
+                x1="0"
+                y1="0"
+                x2="100"
+                y2="100"
+                stroke="#d97706"
+                stroke-width="1"
+              />
+              <line
+                x1="100"
+                y1="0"
+                x2="0"
+                y2="100"
+                stroke="#d97706"
+                stroke-width="1"
+              />
             </svg>
 
             <!-- 宮殿對角線 - 桌面版 -->
             <!-- 上方宮殿 -->
-            <svg class="absolute top-0 left-[154px] w-[100px] h-[100px] hidden sm:block" viewBox="0 0 100 100">
-              <line x1="0" y1="0" x2="100" y2="100" stroke="#d97706" stroke-width="1" />
-              <line x1="100" y1="0" x2="0" y2="100" stroke="#d97706" stroke-width="1" />
+            <svg
+              class="absolute top-0 left-[154px] w-[100px] h-[100px] hidden sm:block"
+              viewBox="0 0 100 100"
+            >
+              <line
+                x1="0"
+                y1="0"
+                x2="100"
+                y2="100"
+                stroke="#d97706"
+                stroke-width="1"
+              />
+              <line
+                x1="100"
+                y1="0"
+                x2="0"
+                y2="100"
+                stroke="#d97706"
+                stroke-width="1"
+              />
             </svg>
             <!-- 下方宮殿 -->
-            <svg class="absolute bottom-0 left-[154px] w-[100px] h-[100px] hidden sm:block" viewBox="0 0 100 100">
-              <line x1="0" y1="0" x2="100" y2="100" stroke="#d97706" stroke-width="1" />
-              <line x1="100" y1="0" x2="0" y2="100" stroke="#d97706" stroke-width="1" />
+            <svg
+              class="absolute bottom-0 left-[154px] w-[100px] h-[100px] hidden sm:block"
+              viewBox="0 0 100 100"
+            >
+              <line
+                x1="0"
+                y1="0"
+                x2="100"
+                y2="100"
+                stroke="#d97706"
+                stroke-width="1"
+              />
+              <line
+                x1="100"
+                y1="0"
+                x2="0"
+                y2="100"
+                stroke="#d97706"
+                stroke-width="1"
+              />
             </svg>
 
             <!-- 楚河漢界 - 手機版 -->
@@ -173,21 +254,29 @@
               class="absolute left-0 right-0 bg-amber-100 flex items-center justify-between px-8 z-5 sm:hidden"
               style="top: 161px; height: 40px;"
             >
-              <span class="text-amber-700 font-bold text-xs tracking-wider">楚河</span>
-              <span class="text-amber-700 font-bold text-xs tracking-wider">漢界</span>
+              <span class="text-amber-700 font-bold text-xs tracking-wider"
+                >楚河</span
+              >
+              <span class="text-amber-700 font-bold text-xs tracking-wider"
+                >漢界</span
+              >
             </div>
             <!-- 楚河漢界 - 桌面版 -->
             <div
               class="absolute left-0 right-0 bg-amber-100 flex items-center justify-between px-16 z-5 hidden sm:flex"
               style="top: 204px; height: 50px;"
             >
-              <span class="text-amber-700 font-bold text-sm tracking-wider">楚河</span>
-              <span class="text-amber-700 font-bold text-sm tracking-wider">漢界</span>
+              <span class="text-amber-700 font-bold text-sm tracking-wider"
+                >楚河</span
+              >
+              <span class="text-amber-700 font-bold text-sm tracking-wider"
+                >漢界</span
+              >
             </div>
 
             <!-- 交叉點和棋子 -->
-            @for (row of board(); track $index; let y = $index) { @for (square of row; track $index;
-            let x = $index) {
+            @for (row of board(); track $index; let y = $index) { @for (square
+            of row; track $index; let x = $index) {
             <!-- 交叉點 - 手機版 -->
             <div
               class="absolute w-[20px] h-[20px] -translate-x-1/2 -translate-y-1/2 rounded-full hover:bg-amber-200/30 cursor-pointer z-20 sm:hidden"
@@ -197,8 +286,8 @@
               (click)="onSquareClick(x, y)"
             >
               <!-- 兵/卒點 - 手機版 -->
-              @if ( (y === 2 || y === 7) && (x === 0 || x === 2 || x === 4 || x === 6 || x === 8) )
-              {
+              @if ( (y === 2 || y === 7) && (x === 0 || x === 2 || x === 4 || x
+              === 6 || x === 8) ) {
               <div
                 class="absolute w-[6px] h-[6px] bg-amber-800 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
               ></div>
@@ -238,7 +327,8 @@
               }
 
               <!-- 攻擊移動標記 - 手機版 -->
-              @if (isValidMove(x, y) && square && square.color !== currentPlayer()) {
+              @if (isValidMove(x, y) && square && square.color !==
+              currentPlayer()) {
               <div
                 class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[34px] h-[34px] border-2 border-red-500 rounded-full"
               ></div>
@@ -254,8 +344,8 @@
               (click)="onSquareClick(x, y)"
             >
               <!-- 兵/卒點 - 桌面版 -->
-              @if ( (y === 2 || y === 7) && (x === 0 || x === 2 || x === 4 || x === 6 || x === 8) )
-              {
+              @if ( (y === 2 || y === 7) && (x === 0 || x === 2 || x === 4 || x
+              === 6 || x === 8) ) {
               <div
                 class="absolute w-[6px] h-[6px] bg-amber-800 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
               ></div>
@@ -295,7 +385,8 @@
               }
 
               <!-- 攻擊移動標記 - 桌面版 -->
-              @if (isValidMove(x, y) && square && square.color !== currentPlayer()) {
+              @if (isValidMove(x, y) && square && square.color !==
+              currentPlayer()) {
               <div
                 class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[42px] h-[42px] border-2 border-red-500 rounded-full"
               ></div>
@@ -307,7 +398,9 @@
           <!-- Row Numbers (Right) -->
           <div class="flex flex-col justify-center ml-1 sm:ml-2">
             @for (num of getRowNumbers(); track num) {
-            <div class="h-[40px] sm:h-[50px] flex items-center justify-center text-xs font-bold text-amber-800 w-4 sm:w-6">
+            <div
+              class="h-[40px] sm:h-[50px] flex items-center justify-center text-xs font-bold text-amber-800 w-4 sm:w-6"
+            >
               {{ num }}
             </div>
             }
@@ -318,7 +411,11 @@
         <div class="flex justify-center mt-1 sm:mt-2">
           <div class="grid grid-cols-9 gap-0">
             @for (letter of getColumnLetters(); track letter) {
-            <div class="w-[36px] sm:w-[50px] text-center text-xs font-bold text-amber-800">{{ letter }}</div>
+            <div
+              class="w-[36px] sm:w-[50px] text-center text-xs font-bold text-amber-800"
+            >
+              {{ letter }}
+            </div>
             }
           </div>
         </div>
@@ -349,15 +446,15 @@
   </main>
 
   <!-- Move History -->
-  {{ moveHistory() | json }}
-  @if (moveHistory().length > 0) {
+  {{ moveHistory() | json }} @if (moveHistory().length > 0) {
   <section class="mt-6">
     <h3 class="text-lg font-bold text-amber-400 mb-3">棋譜記錄</h3>
     <div
       class="bg-neutral-900/70 border border-neutral-700 rounded-md p-4 max-h-32 overflow-y-auto"
     >
       <div class="grid grid-cols-2 gap-2 text-sm">
-        @for (move of moveHistory(); track $index; let i = $index) { @if (i % 2 === 0) {
+        @for (move of moveHistory(); track $index; let i = $index) { @if (i % 2
+        === 0) {
         <div class="flex gap-2">
           <span class="text-neutral-400">{{ Math.floor(i / 2) + 1 }}.</span>
           <span class="text-red-400">{{ move }}</span>

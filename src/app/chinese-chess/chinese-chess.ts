@@ -3,7 +3,13 @@ import { CommonModule, NgClass, NgStyle } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ChessGameService } from './chess-game.service';
 import { ChessAIService } from './chess-ai.service';
-import { ChessPiece, PlayerColor, Position, GameState, MoveResult } from './chess-piece.interface';
+import {
+  ChessPiece,
+  PlayerColor,
+  Position,
+  GameState,
+  MoveResult,
+} from './chess-piece.interface';
 
 @Component({
   selector: 'app-chinese-chess',
@@ -46,7 +52,10 @@ export class ChineseChess implements OnInit {
 
   // 檢查是否是AI回合
   protected isAITurn = computed(
-    () => this.isVsAI() && this.currentPlayer() === PlayerColor.BLACK && !this.gameOver()
+    () =>
+      this.isVsAI() &&
+      this.currentPlayer() === PlayerColor.BLACK &&
+      !this.gameOver()
   );
 
   // 檢查是否可以點擊棋盤（不是AI回合）
@@ -57,7 +66,10 @@ export class ChineseChess implements OnInit {
   protected readonly PlayerColor = PlayerColor;
   protected readonly Math = Math;
 
-  constructor(private chessGameService: ChessGameService, private chessAIService: ChessAIService) {}
+  constructor(
+    private chessGameService: ChessGameService,
+    private chessAIService: ChessAIService
+  ) {}
 
   ngOnInit(): void {
     this.resetGame(true); // 預設啟動AI對戰模式
@@ -107,7 +119,10 @@ export class ChineseChess implements OnInit {
 
     // 設定新選擇
     piece.isSelected = true;
-    const validMoves = this.chessGameService.getPossibleMoves(piece, currentState.board);
+    const validMoves = this.chessGameService.getPossibleMoves(
+      piece,
+      currentState.board
+    );
 
     this.gameState.set({
       ...currentState,
@@ -139,16 +154,27 @@ export class ChineseChess implements OnInit {
     const piece = currentState.board[from.y][from.x];
     if (!piece) return;
 
-    const result: MoveResult = this.chessGameService.makeMove(currentState, from, to);
+    const result: MoveResult = this.chessGameService.makeMove(
+      currentState,
+      from,
+      to
+    );
 
     if (result.success) {
       // 更新移動歷史
-      const moveNotation = this.generateMoveNotation(piece, from, to, result.captured);
+      const moveNotation = this.generateMoveNotation(
+        piece,
+        from,
+        to,
+        result.captured
+      );
       const newHistory = [...currentState.moveHistory, moveNotation];
 
       // 切換玩家
       const nextPlayer =
-        currentState.currentPlayer === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED;
+        currentState.currentPlayer === PlayerColor.RED
+          ? PlayerColor.BLACK
+          : PlayerColor.RED;
 
       // 檢查遊戲狀態
       const isInCheck = result.isCheck || false;
@@ -176,9 +202,14 @@ export class ChineseChess implements OnInit {
         gameOver,
         isVsAI: currentState.isVsAI,
         nextPlayer,
-        shouldTrigger: !gameOver && currentState.isVsAI && nextPlayer === PlayerColor.BLACK,
+        shouldTrigger:
+          !gameOver && currentState.isVsAI && nextPlayer === PlayerColor.BLACK,
       });
-      if (!gameOver && currentState.isVsAI && nextPlayer === PlayerColor.BLACK) {
+      if (
+        !gameOver &&
+        currentState.isVsAI &&
+        nextPlayer === PlayerColor.BLACK
+      ) {
         console.log('準備觸發AI移動...');
         this.triggerAIMove();
       }
@@ -274,6 +305,27 @@ export class ChineseChess implements OnInit {
     this.gameState.set(newGameState);
   }
 
+  toggleGameMode(): void {
+    const currentState = this.gameState();
+    const newIsVsAI = !currentState.isVsAI;
+
+    // Simply toggle the mode without resetting the game
+    this.gameState.set({
+      ...currentState,
+      isVsAI: newIsVsAI,
+      aiIsThinking: false, // Reset AI thinking state when switching
+    });
+
+    // If switching to AI mode and it's currently black's turn, trigger AI move
+    if (
+      newIsVsAI &&
+      currentState.currentPlayer === PlayerColor.BLACK &&
+      !currentState.gameOver
+    ) {
+      this.triggerAIMove();
+    }
+  }
+
   private triggerAIMove(): void {
     const currentState = this.gameState();
     console.log('🤖 觸發AI移動，當前玩家:', currentState.currentPlayer);
@@ -315,11 +367,20 @@ export class ChineseChess implements OnInit {
     if (!piece) return;
 
     // 執行移動（復用現有邏輯）
-    const result: MoveResult = this.chessGameService.makeMove(currentState, from, to);
+    const result: MoveResult = this.chessGameService.makeMove(
+      currentState,
+      from,
+      to
+    );
 
     if (result.success) {
       // 更新移動歷史
-      const moveNotation = this.generateMoveNotation(piece, from, to, result.captured);
+      const moveNotation = this.generateMoveNotation(
+        piece,
+        from,
+        to,
+        result.captured
+      );
       const newHistory = [...currentState.moveHistory, moveNotation];
 
       // 切換回玩家
