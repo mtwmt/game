@@ -21,8 +21,8 @@ export class ChessAIService {
 
   // 棋子價值表
   private readonly PIECE_VALUES = {
-    general: 10000,
-    chariot: 500,
+    king: 10000,
+    rook: 500,
     cannon: 450,
     horse: 400,
     elephant: 200,
@@ -32,7 +32,7 @@ export class ChessAIService {
 
   // 位置獎勵表 (簡化版)
   private readonly POSITION_BONUS = {
-    general: [
+    king: [
       [0, 0, 0, 8, 9, 8, 0, 0, 0],
       [0, 0, 0, 9, 10, 9, 0, 0, 0],
       [0, 0, 0, 8, 9, 8, 0, 0, 0]
@@ -404,7 +404,7 @@ export class ChessAIService {
       for (let y = 0; y < 10; y++) {
         for (let x = 0; x < 9; x++) {
           const piece = gameState.board[y][x];
-          if (piece && piece.type === 'general' && piece.color === aiColor) {
+          if (piece && piece.type === 'king' && piece.color === aiColor) {
             threats.push({ x, y });
             break;
           }

@@ -4,18 +4,18 @@ export interface Position {
 }
 
 export enum PieceType {
-  GENERAL = 'general',    // 將/帥
-  ADVISOR = 'advisor',    // 士/仕
-  ELEPHANT = 'elephant',  // 象/相
-  HORSE = 'horse',        // 馬
-  CHARIOT = 'chariot',    // 車
-  CANNON = 'cannon',      // 砲/炮
-  SOLDIER = 'soldier'     // 兵/卒
+  KING = 'king', // 將/帥
+  ADVISOR = 'advisor', // 士/仕
+  ELEPHANT = 'elephant', // 象/相
+  HORSE = 'horse', // 馬
+  ROOK = 'rook', // 車
+  CANNON = 'cannon', // 砲/炮
+  SOLDIER = 'soldier', // 兵/卒
 }
 
 export enum PlayerColor {
   RED = 'red',
-  BLACK = 'black'
+  BLACK = 'black',
 }
 
 export interface ChessPiece {
@@ -33,6 +33,9 @@ export interface MoveResult {
   isCheck?: boolean;
   isCheckmate?: boolean;
   isStalemate?: boolean;
+  gameOver?: boolean;
+  winner?: PlayerColor;
+  isSelfInCheck?: boolean;
 }
 
 export interface GameState {
@@ -44,6 +47,7 @@ export interface GameState {
   winner: PlayerColor | null;
   moveHistory: string[];
   isInCheck: boolean;
+  isSelfInCheck: boolean;
   isVsAI: boolean;
   aiIsThinking: boolean;
   aiThinkingText: string;
