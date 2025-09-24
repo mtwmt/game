@@ -8,23 +8,27 @@
     </div>
 
     <!-- Game Control Buttons -->
-    <div class="flex gap-2">
-      <button
-        class="h-12 w-1/3 touch-btn rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
-        (click)="startPvP()"
-      >
-        👥 雙人對戰
-      </button>
+    <div class="flex gap-2 justify-between">
       <button
         class="h-12 w-1/3 touch-btn rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-base shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300 drop-shadow-[0_0_5px_#22d3ee]"
-        (click)="startVsAI()"
+        (click)="toggleGameMode()"
       >
-        🤖 人機對戰
+        {{ isVsAI() ? '👥 切換雙人' : '🤖 切換AI' }}
       </button>
+
+      <div class="h-12 w-1/3 touch-btn rounded-md border font-medium shadow bg-zinc-800">
+        @if (isInCheck()) {
+        <div class="text-3xl text-center text-amber-300 font-bold leading-12 animate-pulse">
+          將軍！
+        </div>
+        } @if (isSelfInCheck() && !isInCheck()) {
+        <div class="text-3xl text-red-400 animate-pulse">被將軍！</div>
+        }
+      </div>
 
       <button
         class="h-12 w-1/3 touch-btn rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
-        (click)="resetGame(false)"
+        (click)="resetGame()"
       >
         重新開始
       </button>
@@ -33,8 +37,14 @@
     <!-- Game Statistics -->
     <div class="flex flex-col gap-2">
       <div
-        class="flex items-center gap-1 justify-between flex-wrap bg-white/10 rounded-md p-2 border border-white/20"
+        class="flex items-center gap-1 flex-wrap bg-white/10 rounded-md p-2 border border-white/20"
       >
+        <div
+          class="border border-lime-400 bg-lime-400/20 px-2 py-1 text-lime-300 font-bold hover:bg-lime-400/30 transition"
+        >
+          <div class="text-lime-400 text-xs">當前對戰</div>
+          <div class="text-center text-xs">{{ isVsAI() ? '🤖' : '👥' }}</div>
+        </div>
         <div
           class="border px-2 py-1 font-bold"
           [ngClass]="
@@ -50,20 +60,29 @@
             }{{ currentPlayerDisplay() }}
           </div>
         </div>
-        @if (isInCheck()) {
+
+        <!-- 最後一步棋記錄 -->
+        @if (moveHistory().length > 0) {
+        <div class="border border-amber-400 bg-amber-400/20 px-2 py-1 text-amber-300 font-bold">
+          <div class="text-amber-400 text-xs">最後一步</div>
+          <div class="text-center text-xs">
+            {{ moveHistory()[moveHistory().length - 1] }}
+          </div>
+        </div>
+        }
+        <!-- @if (isInCheck()) {
         <div class="text-3xl text-amber-300 animate-pulse">將軍！</div>
-        }
-        @if (isSelfInCheck()) {
+        } @if (isSelfInCheck() ) {
         <div class="text-3xl text-red-400 animate-pulse">被將軍！</div>
-        }
-        <button
+        } -->
+        <!-- <button
           class="py-3 border-1 border-lime-400 bg-lime-400/20 px-2 py-1 text-lime-300 font-bold hover:bg-lime-400/30 transition"
           (click)="toggleGameMode()"
         >
           <div class="text-center text-xs">
             {{ isVsAI() ? '切換至雙人' : '切換至AI' }}
           </div>
-        </button>
+        </button> -->
         <div
           class="w-full text-center text-sm mt-2 h-4 bg-neutral-700/80 rounded overflow-hidden relative animate-pulse text-white"
         >

@@ -14,6 +14,20 @@ interface BoardCache {
   lastMoveCount: number;
 }
 
+export const initialState: GameState = {
+  board: [],
+  currentPlayer: PlayerColor.RED,
+  selectedPiece: null,
+  validMoves: [],
+  gameOver: false,
+  winner: null,
+  moveHistory: [],
+  isInCheck: false,
+  isSelfInCheck: false,
+  isVsAI: true,
+  aiIsThinking: false,
+  aiThinkingText: '',
+};
 @Injectable({
   providedIn: 'root',
 })
@@ -21,20 +35,24 @@ export class ChessGameService {
   private boardCache: BoardCache = {
     kingPositions: new Map(),
     piecesByColor: new Map(),
-    lastMoveCount: -1
+    lastMoveCount: -1,
   };
 
   private moveCache = new Map<string, Position[]>();
-  
+
   // 常用方向常數
   private readonly ORTHOGONAL_DIRECTIONS = [
-    { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
-    { dx: -1, dy: 0 }, { dx: 1, dy: 0 }
+    { dx: 0, dy: -1 },
+    { dx: 0, dy: 1 },
+    { dx: -1, dy: 0 },
+    { dx: 1, dy: 0 },
   ];
-  
+
   private readonly DIAGONAL_DIRECTIONS = [
-    { dx: -1, dy: -1 }, { dx: 1, dy: -1 },
-    { dx: -1, dy: 1 }, { dx: 1, dy: 1 }
+    { dx: -1, dy: -1 },
+    { dx: 1, dy: -1 },
+    { dx: -1, dy: 1 },
+    { dx: 1, dy: 1 },
   ];
   initializeBoard(): (ChessPiece | null)[][] {
     const board: (ChessPiece | null)[][] = Array(10)
@@ -120,18 +138,8 @@ export class ChessGameService {
 
   initializeGameState(): GameState {
     return {
+      ...initialState,
       board: this.initializeBoard(),
-      currentPlayer: PlayerColor.RED,
-      selectedPiece: null,
-      validMoves: [],
-      gameOver: false,
-      winner: null,
-      moveHistory: [],
-      isInCheck: false,
-      isSelfInCheck: false,
-      isVsAI: false,
-      aiIsThinking: false,
-      aiThinkingText: '',
     };
   }
 
@@ -157,13 +165,13 @@ export class ChessGameService {
 
   wouldKingsFaceEachOther(board: (ChessPiece | null)[][], moveCount: number = 0): boolean {
     this.updateBoardCache(board, moveCount);
-    
+
     const redKing = this.boardCache.kingPositions.get(PlayerColor.RED);
     const blackKing = this.boardCache.kingPositions.get(PlayerColor.BLACK);
-    
+
     if (!redKing || !blackKing) return false;
     if (redKing.x !== blackKing.x) return false;
-    
+
     return this.isPathClear(board, redKing, blackKing);
   }
 
@@ -182,7 +190,7 @@ export class ChessGameService {
 
   private updateBoardCache(board: (ChessPiece | null)[][], moveCount: number): void {
     if (this.boardCache.lastMoveCount === moveCount) return;
-    
+
     this.boardCache.kingPositions.clear();
     this.boardCache.piecesByColor.clear();
     this.boardCache.piecesByColor.set(PlayerColor.RED, []);
@@ -199,7 +207,7 @@ export class ChessGameService {
         }
       }
     }
-    
+
     this.boardCache.lastMoveCount = moveCount;
   }
 
@@ -260,11 +268,11 @@ export class ChessGameService {
 
   getPossibleMoves(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
     const cacheKey = `${piece.id}-${piece.position.x}-${piece.position.y}-true`;
-    
+
     if (this.moveCache.has(cacheKey)) {
       return this.moveCache.get(cacheKey)!;
     }
-    
+
     const moves = this.calculatePieceMoves(piece, board, true);
     this.moveCache.set(cacheKey, moves);
     return moves;
@@ -272,11 +280,11 @@ export class ChessGameService {
 
   getPossibleMovesForCheck(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
     const cacheKey = `${piece.id}-${piece.position.x}-${piece.position.y}-false`;
-    
+
     if (this.moveCache.has(cacheKey)) {
       return this.moveCache.get(cacheKey)!;
     }
-    
+
     const moves = this.calculatePieceMoves(piece, board, false);
     this.moveCache.set(cacheKey, moves);
     return moves;
@@ -313,21 +321,21 @@ export class ChessGameService {
     checkKingFacing: boolean
   ): Position[] {
     const { x, y } = piece.position;
-    const kingMoves = this.ORTHOGONAL_DIRECTIONS.map(dir => ({
+    const kingMoves = this.ORTHOGONAL_DIRECTIONS.map((dir) => ({
       x: x + dir.dx,
-      y: y + dir.dy
+      y: y + dir.dy,
     }));
 
-    return kingMoves.filter(move => {
+    return kingMoves.filter((move) => {
       if (!this.isValidPosition(move.x, move.y) || !this.isInPalace(move.x, move.y, piece.color)) {
         return false;
       }
-      
+
       const target = board[move.y][move.x];
       if (target && target.color === piece.color) {
         return false;
       }
-      
+
       return !checkKingFacing || !this.wouldMoveCreateKingFacing(piece, move, board);
     });
   }
@@ -357,15 +365,16 @@ export class ChessGameService {
 
   private getAdvisorMoves(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
     const { x, y } = piece.position;
-    const advisorMoves = this.DIAGONAL_DIRECTIONS.map(dir => ({
+    const advisorMoves = this.DIAGONAL_DIRECTIONS.map((dir) => ({
       x: x + dir.dx,
-      y: y + dir.dy
+      y: y + dir.dy,
     }));
 
-    return advisorMoves.filter(move =>
-      this.isValidPosition(move.x, move.y) &&
-      this.isInPalace(move.x, move.y, piece.color) &&
-      this.isValidMoveForPiece(move, piece, board)
+    return advisorMoves.filter(
+      (move) =>
+        this.isValidPosition(move.x, move.y) &&
+        this.isInPalace(move.x, move.y, piece.color) &&
+        this.isValidMoveForPiece(move, piece, board)
     );
   }
 
@@ -474,16 +483,16 @@ export class ChessGameService {
 
   isInCheck(board: (ChessPiece | null)[][], color: PlayerColor, moveCount: number = 0): boolean {
     this.updateBoardCache(board, moveCount);
-    
+
     const kingPos = this.boardCache.kingPositions.get(color);
     if (!kingPos) return false;
 
     const enemyColor = color === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED;
     const enemyPieces = this.boardCache.piecesByColor.get(enemyColor) || [];
 
-    return enemyPieces.some(piece => {
+    return enemyPieces.some((piece) => {
       const moves = this.getPossibleMovesForCheck(piece, board);
-      return moves.some(move => move.x === kingPos.x && move.y === kingPos.y);
+      return moves.some((move) => move.x === kingPos.x && move.y === kingPos.y);
     });
   }
 

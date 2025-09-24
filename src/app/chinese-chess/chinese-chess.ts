@@ -1,8 +1,8 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { ChessGameService } from './chess-game.service';
-import { ChessAIService } from './chess-ai.service';
+import { ChessGameService, initialState } from './chess-game.service';
+import { ChessAIService, AIDifficulty } from './chess-ai.service';
 import { ChessPiece, PlayerColor, Position, GameState, MoveResult } from './chess-piece.interface';
 
 @Component({
@@ -16,20 +16,7 @@ export class ChineseChess implements OnInit {
   private chessGameService = inject(ChessGameService);
   private chessAIService = inject(ChessAIService);
 
-  protected gameState = signal<GameState>({
-    board: [],
-    currentPlayer: PlayerColor.RED,
-    selectedPiece: null,
-    validMoves: [],
-    gameOver: false,
-    winner: null,
-    moveHistory: [],
-    isInCheck: false,
-    isSelfInCheck: false,
-    isVsAI: false,
-    aiIsThinking: false,
-    aiThinkingText: '',
-  });
+  protected gameState = signal<GameState>(initialState);
 
   protected board = computed(() => this.gameState().board);
   protected currentPlayer = computed(() => this.gameState().currentPlayer);
@@ -61,14 +48,14 @@ export class ChineseChess implements OnInit {
 
   protected readonly PlayerColor = PlayerColor;
   protected readonly Math = Math;
+  protected readonly AIDifficulty = AIDifficulty;
 
   ngOnInit(): void {
-    this.resetGame(true); // 預設啟動AI對戰模式
+    this.resetGame();
   }
 
-  resetGame(vsAI: boolean = false): void {
+  resetGame(): void {
     const newGameState = this.chessGameService.initializeGameState();
-    newGameState.isVsAI = vsAI;
     this.gameState.set(newGameState);
   }
 
@@ -176,16 +163,6 @@ export class ChineseChess implements OnInit {
         winner,
       });
 
-      // 如果是AI對戰模式，讓AI學習玩家移動
-      if (currentState.isVsAI && currentState.currentPlayer === PlayerColor.RED) {
-        this.chessAIService.learnFromPlayerMove(from, to, currentState);
-      }
-
-      // 檢查遊戲是否結束，如果是則讓AI學習
-      if (gameOver && currentState.isVsAI) {
-        const playerWon = winner === PlayerColor.RED;
-        this.chessAIService.learnFromGameEnd(playerWon);
-      }
 
       // 如果是AI對戰模式且輪到AI，觸發AI移動
       console.log('檢查AI觸發條件:', {
@@ -278,16 +255,12 @@ export class ChineseChess implements OnInit {
 
   // ============ AI相關方法 ============
 
-  startVsAI(): void {
-    const newGameState = this.chessGameService.initializeGameState();
-    newGameState.isVsAI = true;
-    this.gameState.set(newGameState);
+  setAIDifficulty(difficulty: AIDifficulty): void {
+    this.chessAIService.setDifficulty(difficulty);
   }
 
-  startPvP(): void {
-    const newGameState = this.chessGameService.initializeGameState();
-    newGameState.isVsAI = false;
-    this.gameState.set(newGameState);
+  getCurrentDifficulty(): AIDifficulty {
+    return this.chessAIService.getDifficulty();
   }
 
   toggleGameMode(): void {
