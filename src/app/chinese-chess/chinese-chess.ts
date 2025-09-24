@@ -2,7 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ChessGameService, initialState } from './chess-game.service';
-import { ChessAIService, AIDifficulty } from './chess-ai.service';
+import { ChessAIService } from './chess-ai.service';
 import { ChessPiece, PlayerColor, Position, GameState, MoveResult } from './chess-piece.interface';
 
 @Component({
@@ -36,6 +36,8 @@ export class ChineseChess implements OnInit {
   protected aiIsThinking = computed(() => this.gameState().aiIsThinking);
   protected aiThinkingText = computed(() => this.gameState().aiThinkingText);
 
+  protected aiDifficulty = signal<'easy' | 'medium' | 'hard'>('medium');
+
   // 檢查是否是AI回合
   protected isAITurn = computed(
     () => this.isVsAI() && this.currentPlayer() === PlayerColor.BLACK && !this.gameOver()
@@ -48,7 +50,6 @@ export class ChineseChess implements OnInit {
 
   protected readonly PlayerColor = PlayerColor;
   protected readonly Math = Math;
-  protected readonly AIDifficulty = AIDifficulty;
 
   ngOnInit(): void {
     this.resetGame();
@@ -163,7 +164,6 @@ export class ChineseChess implements OnInit {
         winner,
       });
 
-
       // 如果是AI對戰模式且輪到AI，觸發AI移動
       console.log('檢查AI觸發條件:', {
         gameOver,
@@ -198,7 +198,11 @@ export class ChineseChess implements OnInit {
     if (rank === 0) {
       action = '平' + (piece.color === PlayerColor.RED ? 9 - to.x : to.x + 1);
     } else {
-      action = (rank < 0 ? '進' : '退') + Math.abs(rank);
+      // 修改進退邏輯，考慮紅黑雙方的方向差異
+      const isForward =
+        (piece.color === PlayerColor.RED && rank < 0) ||
+        (piece.color === PlayerColor.BLACK && rank > 0);
+      action = (isForward ? '進' : '退') + Math.abs(rank);
     }
 
     return `${pieceSymbol}${file}${action}`;
@@ -255,13 +259,6 @@ export class ChineseChess implements OnInit {
 
   // ============ AI相關方法 ============
 
-  setAIDifficulty(difficulty: AIDifficulty): void {
-    this.chessAIService.setDifficulty(difficulty);
-  }
-
-  getCurrentDifficulty(): AIDifficulty {
-    return this.chessAIService.getDifficulty();
-  }
 
   toggleGameMode(): void {
     const currentState = this.gameState();
@@ -283,6 +280,9 @@ export class ChineseChess implements OnInit {
   private triggerAIMove(): void {
     const currentState = this.gameState();
     console.log('🤖 觸發AI移動，當前玩家:', currentState.currentPlayer);
+
+    // 設置AI難度
+    this.chessAIService.setDifficulty(this.aiDifficulty());
 
     // 先設置 AI 思考狀態
     this.gameState.set({
@@ -369,5 +369,22 @@ export class ChineseChess implements OnInit {
       aiIsThinking: false,
       moveHistory: [...currentState.moveHistory, '🤖 AI投降'],
     });
+  }
+
+  // 設置AI難度
+  setAIDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
+    this.aiDifficulty.set(difficulty);
+    console.log('🤖 AI難度設置為:', difficulty);
+  }
+
+  // 獲取當前AI難度的中文描述
+  getAIDifficultyText(): string {
+    const difficulty = this.aiDifficulty();
+    switch (difficulty) {
+      case 'easy': return '簡單';
+      case 'medium': return '中等';
+      case 'hard': return '困難';
+      default: return '中等';
+    }
   }
 }

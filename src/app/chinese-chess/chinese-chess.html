@@ -34,6 +34,36 @@
       </button>
     </div>
 
+    <!-- AI 難度設置 (only show when AI mode is enabled) -->
+    @if (isVsAI()) {
+    <div class="flex gap-2 justify-center">
+      <div class="flex items-center gap-2 bg-neutral-800/50 rounded-lg p-2 border border-neutral-600">
+        <span class="text-amber-300 text-sm font-medium">🤖 AI難度:</span>
+        <button
+          class="px-3 py-1 text-xs rounded transition-colors"
+          [ngClass]="aiDifficulty() === 'easy' ? 'bg-green-600 text-white' : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'"
+          (click)="setAIDifficulty('easy')"
+        >
+          簡單
+        </button>
+        <button
+          class="px-3 py-1 text-xs rounded transition-colors"
+          [ngClass]="aiDifficulty() === 'medium' ? 'bg-yellow-600 text-white' : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'"
+          (click)="setAIDifficulty('medium')"
+        >
+          中等
+        </button>
+        <button
+          class="px-3 py-1 text-xs rounded transition-colors"
+          [ngClass]="aiDifficulty() === 'hard' ? 'bg-red-600 text-white' : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'"
+          (click)="setAIDifficulty('hard')"
+        >
+          困難
+        </button>
+      </div>
+    </div>
+    }
+
     <!-- Game Statistics -->
     <div class="flex flex-col gap-2">
       <div
