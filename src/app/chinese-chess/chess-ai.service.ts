@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ChessPiece, PlayerColor, Position, GameState } from './chess-piece.interface';
+import { ChessPiece, PieceType, PlayerColor, Position, GameState } from './chess-piece.interface';
 import { ChessGameService } from './chess-game.service';
 
 interface MoveEvaluation {
@@ -10,10 +10,9 @@ interface MoveEvaluation {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ChessAIService {
-
   constructor(private chessGameService: ChessGameService) {}
 
   // AI思考深度
@@ -21,29 +20,13 @@ export class ChessAIService {
 
   // 棋子價值表
   private readonly PIECE_VALUES = {
-    king: 10000,
-    rook: 500,
-    cannon: 450,
-    horse: 400,
-    elephant: 200,
-    advisor: 200,
-    soldier: 100
-  };
-
-  // 位置獎勵表 (簡化版)
-  private readonly POSITION_BONUS = {
-    king: [
-      [0, 0, 0, 8, 9, 8, 0, 0, 0],
-      [0, 0, 0, 9, 10, 9, 0, 0, 0],
-      [0, 0, 0, 8, 9, 8, 0, 0, 0]
-    ],
-    soldier: [
-      [9, 9, 9, 11, 13, 11, 9, 9, 9],
-      [19, 24, 34, 42, 44, 42, 34, 24, 19],
-      [19, 24, 32, 37, 37, 37, 32, 24, 19],
-      [19, 23, 27, 29, 30, 29, 27, 23, 19],
-      [14, 18, 20, 27, 29, 27, 20, 18, 14]
-    ]
+    [PieceType.KING]: 10000,
+    [PieceType.ROOK]: 500,
+    [PieceType.CANNON]: 450,
+    [PieceType.HORSE]: 400,
+    [PieceType.ELEPHANT]: 200,
+    [PieceType.ADVISOR]: 200,
+    [PieceType.SOLDIER]: 100,
   };
 
   makeAIMove(gameState: GameState): { from: Position; to: Position } | null {
@@ -67,10 +50,12 @@ export class ChessAIService {
     const bestMove = this.findBestMoveWithTimeout(gameState, searchDepth, 3000); // 3秒超時
 
     if (bestMove) {
-      console.log(`🤖 AI決定移動: (${bestMove.from.x},${bestMove.from.y}) -> (${bestMove.to.x},${bestMove.to.y}), 評分: ${bestMove.score}`);
+      console.log(
+        `🤖 AI決定移動: (${bestMove.from.x},${bestMove.from.y}) -> (${bestMove.to.x},${bestMove.to.y}), 評分: ${bestMove.score}`
+      );
       return {
         from: bestMove.from,
-        to: bestMove.to
+        to: bestMove.to,
       };
     }
 
@@ -79,11 +64,15 @@ export class ChessAIService {
     const randomMove = allMoves[Math.floor(Math.random() * allMoves.length)];
     return {
       from: randomMove.from,
-      to: randomMove.to
+      to: randomMove.to,
     };
   }
 
-  private findBestMoveWithTimeout(gameState: GameState, depth: number, timeoutMs: number): MoveEvaluation | null {
+  private findBestMoveWithTimeout(
+    gameState: GameState,
+    depth: number,
+    timeoutMs: number
+  ): MoveEvaluation | null {
     const startTime = Date.now();
     let bestMove: MoveEvaluation | null = null;
 
@@ -96,11 +85,12 @@ export class ChessAIService {
     }
   }
 
-  private findBestMove(gameState: GameState, depth: number): MoveEvaluation | null {
-    return this.findBestMoveInternal(gameState, depth, Date.now(), 10000);
-  }
-
-  private findBestMoveInternal(gameState: GameState, depth: number, startTime: number, timeoutMs: number): MoveEvaluation | null {
+  private findBestMoveInternal(
+    gameState: GameState,
+    depth: number,
+    startTime: number,
+    timeoutMs: number
+  ): MoveEvaluation | null {
     const moves = this.getAllPossibleMoves(gameState, gameState.currentPlayer);
 
     if (moves.length === 0) return null;
@@ -119,7 +109,15 @@ export class ChessAIService {
       const newGameState = this.simulateMove(gameState, move);
 
       // 使用Minimax算法評估，也傳入超時參數
-      const score = this.minimaxWithTimeout(newGameState, depth - 1, -Infinity, Infinity, gameState.currentPlayer === PlayerColor.RED, startTime, timeoutMs);
+      const score = this.minimaxWithTimeout(
+        newGameState,
+        depth - 1,
+        -Infinity,
+        Infinity,
+        gameState.currentPlayer === PlayerColor.RED,
+        startTime,
+        timeoutMs
+      );
 
       move.score = score;
 
@@ -139,7 +137,15 @@ export class ChessAIService {
     return bestMove;
   }
 
-  private minimaxWithTimeout(gameState: GameState, depth: number, alpha: number, beta: number, maximizingPlayer: boolean, startTime: number, timeoutMs: number): number {
+  private minimaxWithTimeout(
+    gameState: GameState,
+    depth: number,
+    alpha: number,
+    beta: number,
+    maximizingPlayer: boolean,
+    startTime: number,
+    timeoutMs: number
+  ): number {
     // 檢查超時
     if (Date.now() - startTime > timeoutMs) {
       return this.evaluateBoard(gameState);
@@ -160,7 +166,15 @@ export class ChessAIService {
         }
 
         const newGameState = this.simulateMove(gameState, move);
-        const evaluation = this.minimaxWithTimeout(newGameState, depth - 1, alpha, beta, false, startTime, timeoutMs);
+        const evaluation = this.minimaxWithTimeout(
+          newGameState,
+          depth - 1,
+          alpha,
+          beta,
+          false,
+          startTime,
+          timeoutMs
+        );
         maxEval = Math.max(maxEval, evaluation);
         alpha = Math.max(alpha, evaluation);
         if (beta <= alpha) break; // Alpha-beta剪枝
@@ -175,17 +189,21 @@ export class ChessAIService {
         }
 
         const newGameState = this.simulateMove(gameState, move);
-        const evaluation = this.minimaxWithTimeout(newGameState, depth - 1, alpha, beta, true, startTime, timeoutMs);
+        const evaluation = this.minimaxWithTimeout(
+          newGameState,
+          depth - 1,
+          alpha,
+          beta,
+          true,
+          startTime,
+          timeoutMs
+        );
         minEval = Math.min(minEval, evaluation);
         beta = Math.min(beta, evaluation);
         if (beta <= alpha) break; // Alpha-beta剪枝
       }
       return minEval;
     }
-  }
-
-  private minimax(gameState: GameState, depth: number, alpha: number, beta: number, maximizingPlayer: boolean): number {
-    return this.minimaxWithTimeout(gameState, depth, alpha, beta, maximizingPlayer, Date.now(), 10000);
   }
 
   private getAllPossibleMoves(gameState: GameState, color: PlayerColor): MoveEvaluation[] {
@@ -203,7 +221,7 @@ export class ChessAIService {
               from: piece.position,
               to,
               score: 0,
-              capturedPiece: capturedPiece || undefined
+              capturedPiece: capturedPiece || undefined,
             });
           }
         }
@@ -215,8 +233,8 @@ export class ChessAIService {
 
   private simulateMove(gameState: GameState, move: MoveEvaluation): GameState {
     // 深拷貝遊戲狀態
-    const newBoard = gameState.board.map(row =>
-      row.map(piece => piece ? { ...piece, position: { ...piece.position } } : null)
+    const newBoard = gameState.board.map((row) =>
+      row.map((piece) => (piece ? { ...piece, position: { ...piece.position } } : null))
     );
 
     // 執行移動
@@ -230,7 +248,8 @@ export class ChessAIService {
     return {
       ...gameState,
       board: newBoard,
-      currentPlayer: gameState.currentPlayer === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED
+      currentPlayer:
+        gameState.currentPlayer === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED,
     };
   }
 
@@ -278,26 +297,27 @@ export class ChessAIService {
 
     // 特殊棋子位置獎勵
     switch (piece.type) {
-      case 'horse':
+      case PieceType.HORSE:
         // 馬在中央更有威力
         if (y >= 2 && y <= 7 && x >= 1 && x <= 7) {
           bonus += 30;
         }
         break;
-      case 'cannon':
+      case PieceType.CANNON:
         // 炮在後排和中央列更好
         if (x === 4 || y === (piece.color === PlayerColor.RED ? 7 : 2)) {
           bonus += 20;
         }
         break;
-      case 'soldier':
+      case PieceType.SOLDIER:
         // 兵過河獎勵
-        const hasPassedRiver = (piece.color === PlayerColor.RED && y < 5) ||
-                             (piece.color === PlayerColor.BLACK && y > 4);
+        const hasPassedRiver =
+          (piece.color === PlayerColor.RED && y < 5) ||
+          (piece.color === PlayerColor.BLACK && y > 4);
         if (hasPassedRiver) {
           bonus += 50;
           // 兵在敵方陣地更深入更好
-          const depth = piece.color === PlayerColor.RED ? (4 - y) : (y - 5);
+          const depth = piece.color === PlayerColor.RED ? 4 - y : y - 5;
           bonus += depth * 10;
         }
         break;
@@ -306,7 +326,12 @@ export class ChessAIService {
     return bonus;
   }
 
-  private getThreatScore(x: number, y: number, piece: ChessPiece, board: (ChessPiece | null)[][]): number {
+  private getThreatScore(
+    x: number,
+    y: number,
+    piece: ChessPiece,
+    board: (ChessPiece | null)[][]
+  ): number {
     let score = 0;
     const enemyColor = piece.color === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED;
 
@@ -316,7 +341,7 @@ export class ChessAIService {
         const enemyPiece = board[r][c];
         if (enemyPiece && enemyPiece.color === enemyColor) {
           const enemyMoves = this.chessGameService.getPossibleMoves(enemyPiece, board);
-          if (enemyMoves.some(move => move.x === x && move.y === y)) {
+          if (enemyMoves.some((move) => move.x === x && move.y === y)) {
             // 受到攻擊，根據棋子價值減分
             score -= this.PIECE_VALUES[piece.type] * 0.5;
             break;
@@ -331,11 +356,15 @@ export class ChessAIService {
   private getCenterControlScore(board: (ChessPiece | null)[][]): number {
     let score = 0;
     const centerCells = [
-      {x: 3, y: 4}, {x: 4, y: 4}, {x: 5, y: 4},
-      {x: 3, y: 5}, {x: 4, y: 5}, {x: 5, y: 5}
+      { x: 3, y: 4 },
+      { x: 4, y: 4 },
+      { x: 5, y: 4 },
+      { x: 3, y: 5 },
+      { x: 4, y: 5 },
+      { x: 5, y: 5 },
     ];
 
-    for (const {x, y} of centerCells) {
+    for (const { x, y } of centerCells) {
       const piece = board[y][x];
       if (piece) {
         if (piece.color === PlayerColor.BLACK) {
@@ -365,10 +394,6 @@ export class ChessAIService {
     return score;
   }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
   // 獲取AI思考的描述文字
   getThinkingDescription(gameState: GameState): string {
     const threats = this.analyzeThreats(gameState);
@@ -378,7 +403,7 @@ export class ChessAIService {
       '正在分析棋局形勢...',
       '計算最佳移動路線...',
       '評估攻防平衡...',
-      '尋找戰術機會...'
+      '尋找戰術機會...',
     ];
 
     if (threats.length > 0) {
@@ -404,7 +429,7 @@ export class ChessAIService {
       for (let y = 0; y < 10; y++) {
         for (let x = 0; x < 9; x++) {
           const piece = gameState.board[y][x];
-          if (piece && piece.type === 'king' && piece.color === aiColor) {
+          if (piece && piece.type === PieceType.KING && piece.color === aiColor) {
             threats.push({ x, y });
             break;
           }
