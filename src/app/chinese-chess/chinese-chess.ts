@@ -176,6 +176,17 @@ export class ChineseChess implements OnInit {
         winner,
       });
 
+      // 如果是AI對戰模式，讓AI學習玩家移動
+      if (currentState.isVsAI && currentState.currentPlayer === PlayerColor.RED) {
+        this.chessAIService.learnFromPlayerMove(from, to, currentState);
+      }
+
+      // 檢查遊戲是否結束，如果是則讓AI學習
+      if (gameOver && currentState.isVsAI) {
+        const playerWon = winner === PlayerColor.RED;
+        this.chessAIService.learnFromGameEnd(playerWon);
+      }
+
       // 如果是AI對戰模式且輪到AI，觸發AI移動
       console.log('檢查AI觸發條件:', {
         gameOver,
