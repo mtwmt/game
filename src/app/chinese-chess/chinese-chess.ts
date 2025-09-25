@@ -36,7 +36,7 @@ export class ChineseChess implements OnInit {
   protected aiIsThinking = computed(() => this.gameState().aiIsThinking);
   protected aiThinkingText = computed(() => this.gameState().aiThinkingText);
 
-  protected aiDifficulty = signal<'easy' | 'medium' | 'hard'>('medium');
+  protected aiDifficulty = signal<'easy' | 'medium' | 'hard'>('hard');
 
   // 檢查是否是AI回合
   protected isAITurn = computed(
@@ -288,7 +288,7 @@ export class ChineseChess implements OnInit {
     this.gameState.set({
       ...currentState,
       aiIsThinking: true,
-      aiThinkingText: this.chessAIService.getThinkingDescription(currentState),
+      aiThinkingText: this.chessAIService.getThinkingDescription(),
     });
 
     // 使用 setTimeout 添加延遲，模擬 AI 思考
