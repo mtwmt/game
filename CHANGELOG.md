@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/mtwmt/game/compare/v1.1.0...v1.2.0) (2025-09-25)
+
+
+### Features
+
+* implement Chinese numeral notation for chess moves ([c4af2a8](https://github.com/mtwmt/game/commit/c4af2a85215a285e8317605dbefee98a3349e510))
+
 # [1.1.0](https://github.com/mtwmt/game/compare/v1.0.0...v1.1.0) (2025-09-25)
 
 
