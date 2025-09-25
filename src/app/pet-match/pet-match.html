@@ -11,14 +11,14 @@
     <div class="flex gap-2">
       @if (gameOver()) {
       <button
-        class="h-12 w-1/3 touch-btn rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+        class="h-12 w-1/3 rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
         (click)="resetGame()"
       >
         重新開始
       </button>
       } @else {
       <button
-        class="h-12 w-1/3 touch-btn rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-base shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300"
+        class="h-12 w-1/3 rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-base shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300"
         (click)="resetGame()"
       >
         新遊戲
@@ -26,7 +26,7 @@
       }
 
       <button
-        class="h-12 w-1/3 touch-btn rounded-md border font-medium shadow focus:outline-none focus:ring-2"
+        class="h-12 w-1/3 rounded-md border font-medium shadow focus:outline-none focus:ring-2"
         [class]="
           canUseShuffle()
             ? 'bg-zinc-800 border-zinc-600 text-lime-200 hover:bg-zinc-700 focus:ring-lime-300'
@@ -41,7 +41,7 @@
       </button>
 
       <button
-        class="h-12 w-1/3 touch-btn rounded-md border font-medium shadow focus:outline-none focus:ring-2"
+        class="h-12 w-1/3 rounded-md border font-medium shadow focus:outline-none focus:ring-2"
         [class]="
           canUseHint()
             ? 'bg-emerald-700 border-emerald-500 text-emerald-50 hover:bg-emerald-600 focus:ring-emerald-300'

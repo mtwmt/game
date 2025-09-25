@@ -51,4 +51,5 @@ export interface GameState {
   isVsAI: boolean;
   aiIsThinking: boolean;
   aiThinkingText: string;
+  hasApiKey: boolean;
 }

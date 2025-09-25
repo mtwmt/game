@@ -1,28 +1,26 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { ChessGameService, initialState } from './chess-game.service';
 import { ChessAIService } from './chess-ai.service';
-import {
-  ChessPiece,
-  PlayerColor,
-  Position,
-  GameState,
-  MoveResult,
-} from './chess-piece.interface';
+import { ChessPiece, PlayerColor, Position, GameState, MoveResult } from './chess-piece.interface';
+import { GeminiApiKeyComponent } from '../components/gemini-api-key/gemini-api-key.component';
 
 @Component({
   selector: 'app-chinese-chess',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, GeminiApiKeyComponent, FormsModule],
   templateUrl: './chinese-chess.html',
   styleUrl: './chinese-chess.scss',
 })
-export class ChineseChess implements OnInit {
+export class ChineseChess implements OnInit, OnDestroy {
   private chessGameService = inject(ChessGameService);
   private chessAIService = inject(ChessAIService);
+  private apiKeyUpdateListener?: () => void;
 
   protected gameState = signal<GameState>(initialState);
+  protected aiType = signal<'local' | 'service'>('local');
 
   protected board = computed(() => this.gameState().board);
   protected currentPlayer = computed(() => this.gameState().currentPlayer);
@@ -44,12 +42,14 @@ export class ChineseChess implements OnInit {
 
   protected aiDifficulty = signal<'easy' | 'medium' | 'hard'>('hard');
 
+  // API Key Modal
+  protected hasApiKey = computed(() => this.chessGameService.hasApiKey());
+  protected isGeminiEnabled = computed(() => this.hasApiKey() && this.isVsAI());
+  protected isApiKeyModalOpen = signal(false);
+
   // 檢查是否是AI回合
   protected isAITurn = computed(
-    () =>
-      this.isVsAI() &&
-      this.currentPlayer() === PlayerColor.BLACK &&
-      !this.gameOver()
+    () => this.isVsAI() && this.currentPlayer() === PlayerColor.BLACK && !this.gameOver()
   );
 
   // 檢查是否可以點擊棋盤（不是AI回合）
@@ -62,6 +62,30 @@ export class ChineseChess implements OnInit {
 
   ngOnInit(): void {
     this.resetGame();
+    this.chessGameService.updateApiKeyStatus();
+
+    // 根據 API key 狀態初始化 AI 類型
+    if (this.hasApiKey()) {
+      this.setAIType('service');
+    }
+
+    // 恢復事件監聽器
+    if (typeof window !== 'undefined') {
+      this.apiKeyUpdateListener = () => {
+        this.chessGameService.updateApiKeyStatus();
+        // 當 API key 狀態改變時，重新檢查 AI 類型
+        if (this.hasApiKey() && this.aiType() === 'local') {
+          this.setAIType('service');
+        }
+      };
+      window.addEventListener('gemini_api_key_updated', this.apiKeyUpdateListener);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined' && this.apiKeyUpdateListener) {
+      window.removeEventListener('gemini_api_key_updated', this.apiKeyUpdateListener);
+    }
   }
 
   resetGame(): void {
@@ -107,10 +131,7 @@ export class ChineseChess implements OnInit {
 
     // 設定新選擇
     piece.isSelected = true;
-    const validMoves = this.chessGameService.getPossibleMoves(
-      piece,
-      currentState.board
-    );
+    const validMoves = this.chessGameService.getPossibleMoves(piece, currentState.board);
 
     this.gameState.set({
       ...currentState,
@@ -142,36 +163,22 @@ export class ChineseChess implements OnInit {
     const piece = currentState.board[from.y][from.x];
     if (!piece) return;
 
-    const result: MoveResult = this.chessGameService.makeMove(
-      currentState,
-      from,
-      to
-    );
+    const result: MoveResult = this.chessGameService.makeMove(currentState, from, to);
 
     if (result.success) {
       // 更新移動歷史
-      const moveNotation = this.generateMoveNotation(
-        piece,
-        from,
-        to,
-        result.captured
-      );
+      const moveNotation = this.generateMoveNotation(piece, from, to, result.captured);
       const newHistory = [...currentState.moveHistory, moveNotation];
 
       // 切換玩家
       const nextPlayer =
-        currentState.currentPlayer === PlayerColor.RED
-          ? PlayerColor.BLACK
-          : PlayerColor.RED;
+        currentState.currentPlayer === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED;
 
       // 檢查遊戲狀態
       const isInCheck = result.isCheck || false;
       const isSelfInCheck = result.isSelfInCheck || false;
-      const gameOver =
-        result.isCheckmate || result.isStalemate || result.gameOver || false;
-      const winner =
-        result.winner ||
-        (result.isCheckmate ? currentState.currentPlayer : null);
+      const gameOver = result.isCheckmate || result.isStalemate || result.gameOver || false;
+      const winner = result.winner || (result.isCheckmate ? currentState.currentPlayer : null);
 
       // 清除選擇狀態
       currentState.board.flat().forEach((p) => {
@@ -195,14 +202,9 @@ export class ChineseChess implements OnInit {
         gameOver,
         isVsAI: currentState.isVsAI,
         nextPlayer,
-        shouldTrigger:
-          !gameOver && currentState.isVsAI && nextPlayer === PlayerColor.BLACK,
+        shouldTrigger: !gameOver && currentState.isVsAI && nextPlayer === PlayerColor.BLACK,
       });
-      if (
-        !gameOver &&
-        currentState.isVsAI &&
-        nextPlayer === PlayerColor.BLACK
-      ) {
+      if (!gameOver && currentState.isVsAI && nextPlayer === PlayerColor.BLACK) {
         console.log('準備觸發AI移動...');
         this.triggerAIMove();
       }
@@ -308,16 +310,12 @@ export class ChineseChess implements OnInit {
     });
 
     // If switching to AI mode and it's currently black's turn, trigger AI move
-    if (
-      newIsVsAI &&
-      currentState.currentPlayer === PlayerColor.BLACK &&
-      !currentState.gameOver
-    ) {
+    if (newIsVsAI && currentState.currentPlayer === PlayerColor.BLACK && !currentState.gameOver) {
       this.triggerAIMove();
     }
   }
 
-  private triggerAIMove(): void {
+  private async triggerAIMove(): Promise<void> {
     const currentState = this.gameState();
     console.log('🤖 觸發AI移動，當前玩家:', currentState.currentPlayer);
 
@@ -332,10 +330,10 @@ export class ChineseChess implements OnInit {
     });
 
     // 使用 setTimeout 添加延遲，模擬 AI 思考
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
-        // 讓AI決定移動
-        const aiMove = this.chessAIService.makeAIMove(currentState);
+        // 讓AI決定移動（現在是異步的）
+        const aiMove = await this.chessAIService.makeAIMove(currentState);
 
         if (aiMove) {
           console.log('🤖 AI選擇移動:', aiMove);
@@ -361,20 +359,11 @@ export class ChineseChess implements OnInit {
     if (!piece) return;
 
     // 執行移動（復用現有邏輯）
-    const result: MoveResult = this.chessGameService.makeMove(
-      currentState,
-      from,
-      to
-    );
+    const result: MoveResult = this.chessGameService.makeMove(currentState, from, to);
 
     if (result.success) {
       // 更新移動歷史
-      const moveNotation = this.generateMoveNotation(
-        piece,
-        from,
-        to,
-        result.captured
-      );
+      const moveNotation = this.generateMoveNotation(piece, from, to, result.captured);
       const newHistory = [...currentState.moveHistory, moveNotation];
 
       // 切換回玩家
@@ -383,10 +372,8 @@ export class ChineseChess implements OnInit {
       // 檢查遊戲狀態
       const isInCheck = result.isCheck || false;
       const isSelfInCheck = result.isSelfInCheck || false;
-      const gameOver =
-        result.isCheckmate || result.isStalemate || result.gameOver || false;
-      const winner =
-        result.winner || (result.isCheckmate ? PlayerColor.BLACK : null);
+      const gameOver = result.isCheckmate || result.isStalemate || result.gameOver || false;
+      const winner = result.winner || (result.isCheckmate ? PlayerColor.BLACK : null);
 
       // 清除選擇狀態
       currentState.board.flat().forEach((p) => {
@@ -441,5 +428,73 @@ export class ChineseChess implements OnInit {
       default:
         return '中等';
     }
+  }
+
+  openApiKeyModal(): void {
+    this.isApiKeyModalOpen.set(true);
+  }
+
+  closeApiKeyModal(): void {
+    this.isApiKeyModalOpen.set(false);
+  }
+
+  clearApiKey(): void {
+    // 確認對話框
+    // 從 localStorage 中移除 API Key
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('gemini-api-key');
+    }
+
+    // 更新 API Key 狀態
+    this.chessGameService.updateApiKeyStatus();
+
+    // 如果正在使用 Gemini AI，則自動切換回本地端 AI
+    if (this.aiType() === 'service') {
+      this.setAIType('local');
+    }
+
+    console.log('Gemini API Key 已清除');
+
+  }
+
+  onApiKeySaved(): void {
+    console.log('onApiKeySaved called');
+    this.chessGameService.updateApiKeyStatus();
+    console.log('hasApiKey after save:', this.hasApiKey());
+
+    // 延遲關閉 modal，確保狀態更新完成
+    setTimeout(() => {
+      this.closeApiKeyModal();
+    }, 100);
+  }
+
+  onApiKeyCleared(): void {
+    console.log('onApiKeyCleared called');
+    this.chessGameService.updateApiKeyStatus();
+    console.log('hasApiKey after clear:', this.hasApiKey());
+
+    // 如果正在使用 Gemini AI，則自動切換回本地端 AI
+    if (this.aiType() === 'service') {
+      this.setAIType('local');
+    }
+
+    // 延遲關閉 modal，確保狀態更新完成
+    setTimeout(() => {
+      this.closeApiKeyModal();
+    }, 100);
+  }
+
+  setAIType(type: 'local' | 'service'): void {
+    this.aiType.set(type);
+
+    // 當切換到 service 模式但沒有 API key 時，自動打開設定對話框
+    if (type === 'service' && !this.hasApiKey()) {
+      this.openApiKeyModal();
+    }
+
+    // 設置 ChessAIService 的 AI 類型
+    this.chessAIService.setUseGeminiAI(type === 'service');
+
+    console.log(`🤖 已切換 AI 類型: ${type}`);
   }
 }

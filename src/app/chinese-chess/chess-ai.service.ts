@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { PlayerColor, Position, GameState } from './chess-piece.interface';
 import { ChessGameService } from './chess-game.service';
 import { PIECE_VALUES, getPositionBonus } from './chess-values';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 interface MoveEval {
   move: { from: Position; to: Position };
@@ -17,13 +18,31 @@ export class ChessAIService {
   private searchTime = 3000;
   private startTime = 0;
   private nodes = 0;
+  private useGeminiAI = true; // 是否使用 Gemini AI
 
-  makeAIMove(gameState: GameState): { from: Position; to: Position } | null {
-    console.log(`🧠 AI開始思考 (深度${this.maxDepth}層)...`);
+  async makeAIMove(gameState: GameState): Promise<{ from: Position; to: Position } | null> {
+    console.log(`🧠 AI開始思考...`);
     this.startTime = Date.now();
     this.nodes = 0;
 
     try {
+      // 檢查是否可以使用 Gemini AI
+      if (this.useGeminiAI) {
+        console.log('🤖 使用 Gemini AI 進行決策...');
+        const geminiMove = await this.getGeminiMove(gameState);
+        if (geminiMove) {
+          const elapsed = Date.now() - this.startTime;
+          console.log(`🎯 Gemini AI 決策完成: ${elapsed}ms`);
+          console.log(
+            `🤖 Gemini 選擇移動: (${geminiMove.from.x},${geminiMove.from.y}) -> (${geminiMove.to.x},${geminiMove.to.y})`
+          );
+          return geminiMove;
+        }
+        console.log('⚠️ Gemini AI 未能提供有效移動，使用傳統算法...');
+      }
+
+      // 使用傳統 Minimax 算法
+      console.log(`🧠 使用 Minimax 算法 (深度${this.maxDepth}層)...`);
       const result = this.minimax(gameState, this.maxDepth, -Infinity, Infinity, true);
 
       const elapsed = Date.now() - this.startTime;
@@ -44,6 +63,149 @@ export class ChessAIService {
       const moves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
       return moves.length > 0 ? moves[0] : null;
     }
+  }
+
+  // 使用 Gemini AI 獲取最佳移動
+  private async getGeminiMove(
+    gameState: GameState
+  ): Promise<{ from: Position; to: Position } | null> {
+    try {
+      // Gemini AI 可直接使用 (已移除登入要求)
+
+      // 檢查 API Key 是否已設置 (優先使用用戶輸入的 Key)
+      const userApiKey =
+        typeof localStorage !== 'undefined' ? localStorage.getItem('gemini-api-key') : null;
+      const apiKey = userApiKey;
+
+      if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
+        console.log('❌ Gemini API Key 未設置，請在設定中輸入 API Key');
+        return null;
+      }
+
+      // 使用 Google Generative AI SDK (API Key 方式)
+      console.log(
+        '🔑 使用 API Key:',
+        apiKey ? `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}` : '無'
+      );
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+      console.log('📡 準備呼叫 Gemini API...');
+
+      const prompt = this.createGeminiPrompt(gameState);
+      console.log('🚀 正在呼叫 Gemini API...');
+      const result = await model.generateContent(prompt);
+      console.log('✅ Gemini API 呼叫成功！');
+      const response = await result.response;
+      const text = response.text();
+      console.log('📝 Gemini 回應長度:', text?.length || 0);
+
+      if (!text) {
+        console.log('❌ Gemini 沒有返回有效回應');
+        return null;
+      }
+
+      // 嘗試解析 JSON 回應
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const geminiResponse = JSON.parse(jsonMatch[0]);
+        console.log('🤖 Gemini 分析:', geminiResponse.analysis);
+        console.log('🤖 選擇理由:', geminiResponse.reasoning);
+
+        // 驗證移動是否有效
+        const possibleMoves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
+        const move = geminiResponse.move;
+        if (this.isValidMove(move, possibleMoves)) {
+          return move;
+        } else {
+          console.log('❌ Gemini 提供的移動無效');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Gemini API 調用失敗:', error);
+    }
+
+    return null;
+  }
+
+  // 創建 Gemini 提示
+  private createGeminiPrompt(gameState: GameState): string {
+    const boardDescription = this.describeBoardState(gameState);
+    const possibleMoves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
+    const movesDescription = this.describeValidMoves(possibleMoves);
+
+    return `
+You are a professional Chinese Chess AI. Please analyze the current board state and choose the best move.
+
+Board state (RED at bottom, BLACK at top, coordinates start from 0,0):
+${boardDescription}
+
+Available moves:
+${movesDescription}
+
+Please analyze the position and choose the best move. Response must be in JSON format:
+{
+  "analysis": "Your analysis process",
+  "move": {
+    "from": {"x": start_x_coordinate, "y": start_y_coordinate},
+    "to": {"x": target_x_coordinate, "y": target_y_coordinate}
+  },
+  "reasoning": "Reason for choosing this move"
+}
+
+Important notes:
+1. You are BLACK player, choose moves that benefit BLACK
+2. Coordinate system: x is column (0-8), y is row (0-9)
+3. You can only choose from the provided available moves
+4. Priority: capturing, checking, position improvement, defense
+5. You have maximum 10 seconds thinking time
+6. Please respond in Traditional Chinese
+`;
+  }
+
+  // 描述棋盤狀態
+  private describeBoardState(gameState: GameState): string {
+    let description = '';
+    for (let y = 0; y < 10; y++) {
+      let row = `Row ${y}: `;
+      for (let x = 0; x < 9; x++) {
+        const piece = gameState.board[y][x];
+        if (piece) {
+          const color = piece.color === PlayerColor.RED ? 'RED' : 'BLACK';
+          row += `(${x},${y}):${color}_${piece.type} `;
+        }
+      }
+      description += row + '\n';
+    }
+    return description;
+  }
+
+  // 描述可用移動
+  private describeValidMoves(moves: { from: Position; to: Position }[]): string {
+    return moves
+      .map(
+        (move, index) =>
+          `${index + 1}. Move from (${move.from.x},${move.from.y}) to (${move.to.x},${move.to.y})`
+      )
+      .join('\n');
+  }
+
+  // 驗證移動是否有效
+  private isValidMove(
+    move: { from: Position; to: Position },
+    possibleMoves: { from: Position; to: Position }[]
+  ): boolean {
+    return possibleMoves.some(
+      (validMove) =>
+        validMove.from.x === move.from.x &&
+        validMove.from.y === move.from.y &&
+        validMove.to.x === move.to.x &&
+        validMove.to.y === move.to.y
+    );
+  }
+
+  // 設置是否使用 Gemini AI
+  setUseGeminiAI(use: boolean): void {
+    this.useGeminiAI = use;
   }
 
   // Minimax with Alpha-Beta Pruning
@@ -211,30 +373,34 @@ export class ChessAIService {
     return score;
   }
 
-  // 模擬移動
+  // 模擬移動（優化版本，減少不必要的複製）
   private simulateMove(gameState: GameState, from: Position, to: Position): GameState {
-    const newBoard = gameState.board.map((row) =>
-      row.map((piece) =>
-        piece
-          ? {
-              id: piece.id,
-              type: piece.type,
-              color: piece.color,
-              position: { x: piece.position.x, y: piece.position.y },
-              isSelected: false,
-              hasMoved: piece.hasMoved,
+    // 只複製受影響的行和棋子
+    const newBoard = gameState.board.map((row, y) => {
+      if (y === from.y || y === to.y) {
+        return row.map((piece, x) => {
+          if ((x === from.x && y === from.y) || (x === to.x && y === to.y)) {
+            if (x === from.x && y === from.y) {
+              // 移動的起始位置變為空
+              return null;
+            } else if (x === to.x && y === to.y) {
+              // 目標位置放置移動的棋子
+              const movingPiece = gameState.board[from.y][from.x];
+              return movingPiece
+                ? {
+                    ...movingPiece,
+                    position: { x: to.x, y: to.y },
+                    hasMoved: true,
+                    isSelected: false,
+                  }
+                : null;
             }
-          : null
-      )
-    );
-
-    const piece = newBoard[from.y][from.x];
-    if (piece) {
-      newBoard[to.y][to.x] = piece;
-      newBoard[from.y][from.x] = null;
-      piece.position = { x: to.x, y: to.y };
-      piece.hasMoved = true;
-    }
+          }
+          return piece;
+        });
+      }
+      return row; // 未受影響的行直接引用原陣列
+    });
 
     return { ...gameState, board: newBoard };
   }

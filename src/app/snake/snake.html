@@ -11,21 +11,21 @@
     <div class="flex gap-2">
       @if (!gameStarted() && !gameOver()) {
       <button
-        class="h-12 w-1/2 touch-btn rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-base shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300"
+        class="h-12 w-1/2 rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-base shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300"
         (click)="startGame()"
       >
         開始遊戲
       </button>
       } @if (gameOver()) {
       <button
-        class="h-12 w-1/2 touch-btn rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+        class="h-12 w-1/2 rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
         (click)="resetGame()"
       >
         重新開始
       </button>
       } @if (gameStarted() && !gameOver()) {
       <button
-        class="h-12 w-1/2 touch-btn rounded-md bg-yellow-700 border border-yellow-500 text-yellow-50 font-semibold text-base shadow hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-300"
+        class="h-12 w-1/2 rounded-md bg-yellow-700 border border-yellow-500 text-yellow-50 font-semibold text-base shadow hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-300"
         (click)="togglePause()"
       >
         {{ isPaused() ? '繼續' : '暫停' }}
@@ -33,7 +33,7 @@
       }
 
       <button
-        class="h-12 w-1/2 touch-btn rounded-md bg-zinc-800 border border-zinc-600 text-lime-200 font-medium shadow hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-lime-300"
+        class="h-12 w-1/2 rounded-md bg-zinc-800 border border-zinc-600 text-lime-200 font-medium shadow hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-lime-300"
       >
         分數 (<span>{{ score() }}</span
         >)

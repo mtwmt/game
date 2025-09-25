@@ -1,0 +1,19 @@
+:host {
+  display: block;
+}
+
+// 自定義樣式可以在這裡添加
+.api-key-container {
+  // 如果需要額外的樣式，可以在這裡定義
+}
+
+// 響應式設計
+@media (max-width: 640px) {
+  .flex {
+    flex-direction: column;
+  }
+
+  .flex-1 {
+    margin-bottom: 0.5rem;
+  }
+}

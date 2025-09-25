@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import {
   ChessPiece,
   PieceType,
@@ -27,16 +27,34 @@ export const initialState: GameState = {
   isVsAI: true,
   aiIsThinking: false,
   aiThinkingText: '',
+  hasApiKey: false,
 };
 @Injectable({
   providedIn: 'root',
 })
 export class ChessGameService {
+  // 棋盤尺寸常數
+  static readonly BOARD_WIDTH = 9;
+  static readonly BOARD_HEIGHT = 10;
+  static readonly PALACE_LEFT = 3;
+  static readonly PALACE_RIGHT = 5;
+  static readonly RED_PALACE_TOP = 7;
+  static readonly RED_PALACE_BOTTOM = 9;
+  static readonly BLACK_PALACE_TOP = 0;
+  static readonly BLACK_PALACE_BOTTOM = 2;
+
+  // 統一的 API Key 狀態管理
+  hasApiKey = signal(false);
+
   private boardCache: BoardCache = {
     kingPositions: new Map(),
     piecesByColor: new Map(),
     lastMoveCount: -1,
   };
+
+  constructor() {
+    this.updateApiKeyStatus();
+  }
 
   private moveCache = new Map<string, Position[]>();
 
@@ -140,18 +158,21 @@ export class ChessGameService {
     return {
       ...initialState,
       board: this.initializeBoard(),
+      hasApiKey: this.checkHasApiKey()
     };
   }
 
   isValidPosition(x: number, y: number): boolean {
-    return x >= 0 && x < 9 && y >= 0 && y < 10;
+    return x >= 0 && x < ChessGameService.BOARD_WIDTH && y >= 0 && y < ChessGameService.BOARD_HEIGHT;
   }
 
   isInPalace(x: number, y: number, color: PlayerColor): boolean {
     if (color === PlayerColor.RED) {
-      return x >= 3 && x <= 5 && y >= 7 && y <= 9;
+      return x >= ChessGameService.PALACE_LEFT && x <= ChessGameService.PALACE_RIGHT &&
+             y >= ChessGameService.RED_PALACE_TOP && y <= ChessGameService.RED_PALACE_BOTTOM;
     } else {
-      return x >= 3 && x <= 5 && y >= 0 && y <= 2;
+      return x >= ChessGameService.PALACE_LEFT && x <= ChessGameService.PALACE_RIGHT &&
+             y >= ChessGameService.BLACK_PALACE_TOP && y <= ChessGameService.BLACK_PALACE_BOTTOM;
     }
   }
 
@@ -196,8 +217,8 @@ export class ChessGameService {
     this.boardCache.piecesByColor.set(PlayerColor.RED, []);
     this.boardCache.piecesByColor.set(PlayerColor.BLACK, []);
 
-    for (let y = 0; y < 10; y++) {
-      for (let x = 0; x < 9; x++) {
+    for (let y = 0; y < ChessGameService.BOARD_HEIGHT; y++) {
+      for (let x = 0; x < ChessGameService.BOARD_WIDTH; x++) {
         const piece = board[y][x];
         if (piece) {
           this.boardCache.piecesByColor.get(piece.color)!.push(piece);
@@ -218,8 +239,8 @@ export class ChessGameService {
 
   private getBoardHash(board: (ChessPiece | null)[][]): string {
     let hash = '';
-    for (let y = 0; y < 10; y++) {
-      for (let x = 0; x < 9; x++) {
+    for (let y = 0; y < ChessGameService.BOARD_HEIGHT; y++) {
+      for (let x = 0; x < ChessGameService.BOARD_WIDTH; x++) {
         const piece = board[y][x];
         hash += piece ? `${piece.type}${piece.color}${x}${y}` : 'e';
       }
@@ -568,5 +589,18 @@ export class ChessGameService {
     };
 
     return symbols[piece.type][piece.color];
+  }
+
+  checkHasApiKey(): boolean {
+    if (typeof localStorage !== 'undefined') {
+      const apiKey = localStorage.getItem('gemini-api-key');
+      return !!apiKey && apiKey !== 'YOUR_GEMINI_API_KEY_HERE';
+    }
+    return false;
+  }
+
+  updateApiKeyStatus(): void {
+    const hasKey = this.checkHasApiKey();
+    this.hasApiKey.set(hasKey);
   }
 }

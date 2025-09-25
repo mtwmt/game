@@ -10,13 +10,13 @@
     <!-- Game Control Buttons -->
     <div class="flex gap-2 justify-between">
       <button
-        class="h-12 w-1/3 touch-btn rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-base shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300 drop-shadow-[0_0_5px_#22d3ee]"
+        class="h-12 w-1/3 rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-base shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300 drop-shadow-[0_0_5px_#22d3ee]"
         (click)="toggleGameMode()"
       >
         {{ isVsAI() ? '👥 切換雙人' : '🤖 切換AI' }}
       </button>
 
-      <div class="h-12 w-1/3 touch-btn rounded-md border font-medium shadow bg-zinc-800">
+      <div class="h-12 w-1/3 rounded-md border font-medium shadow bg-zinc-800">
         @if (isInCheck()) {
         <div class="text-3xl text-center text-amber-300 font-bold leading-12 animate-pulse">
           將軍！
@@ -27,40 +27,127 @@
       </div>
 
       <button
-        class="h-12 w-1/3 touch-btn rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+        class="h-12 w-1/3 rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
         (click)="resetGame()"
       >
         重新開始
       </button>
     </div>
 
-    <!-- AI 難度設置 (only show when AI mode is enabled) -->
+    <!-- AI 設定按鈕 -->
+    <!-- <button
+      (click)="openApiKeyModal()"
+      class="w-full h-12 rounded-md bg-gray-700 border border-gray-500 text-gray-50 font-semibold text-base shadow hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300"
+    >
+      🤖 AI 設定
+    </button> -->
+
+    <!-- AI 相關設置 (only show when AI mode is enabled) -->
     @if (isVsAI()) {
-    <div class="flex gap-2 justify-center">
-      <div class="flex items-center gap-2 bg-neutral-800/50 rounded-lg p-2 border border-neutral-600">
-        <span class="text-amber-300 text-sm font-medium">🤖 AI難度:</span>
+    <div class="flex gap-2">
+      <!-- AI 類型選擇 -->
+      <div
+        class="w-3/5 flex items-center gap-2 bg-neutral-800/50 rounded-lg p-2 border border-neutral-600 justify-center"
+      >
+        <span class="text-amber-300 text-sm font-medium">🤖AI類型:</span>
         <button
-          class="px-3 py-1 text-xs rounded transition-colors"
-          [ngClass]="aiDifficulty() === 'easy' ? 'bg-green-600 text-white' : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'"
+          class="px-2 py-1 text-xs rounded transition-colors"
+          [ngClass]="
+            aiType() === 'local'
+              ? 'bg-blue-600 text-white'
+              : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+          "
+          (click)="setAIType('local')"
+        >
+          本地端
+        </button>
+        <button
+          class="px-2 py-1 text-xs rounded transition-colors"
+          [ngClass]="
+            aiType() === 'service'
+              ? 'bg-purple-600 text-white'
+              : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+          "
+          (click)="setAIType('service')"
+        >
+          Gemini AI
+        </button>
+      </div>
+
+      <!-- 本地端 AI 難度設置 -->
+      @if (aiType() === 'local') {
+      <div
+        class="w-2/5 flex items-center gap-2 bg-neutral-800/50 rounded-lg p-2 border border-neutral-600 justify-center"
+      >
+        <!-- <span class="text-amber-300 text-sm font-medium text-nowrap">🧠 難度:</span> -->
+        <button
+          class="px-1 py-1 text-xs rounded transition-colors"
+          [ngClass]="
+            aiDifficulty() === 'easy'
+              ? 'bg-green-600 text-white'
+              : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+          "
           (click)="setAIDifficulty('easy')"
         >
           簡單
         </button>
         <button
-          class="px-3 py-1 text-xs rounded transition-colors"
-          [ngClass]="aiDifficulty() === 'medium' ? 'bg-yellow-600 text-white' : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'"
+          class="px-1 py-1 text-xs rounded transition-colors"
+          [ngClass]="
+            aiDifficulty() === 'medium'
+              ? 'bg-yellow-600 text-white'
+              : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+          "
           (click)="setAIDifficulty('medium')"
         >
           中等
         </button>
         <button
-          class="px-3 py-1 text-xs rounded transition-colors"
-          [ngClass]="aiDifficulty() === 'hard' ? 'bg-red-600 text-white' : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'"
+          class="px-1 py-1 text-xs rounded transition-colors"
+          [ngClass]="
+            aiDifficulty() === 'hard'
+              ? 'bg-red-600 text-white'
+              : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+          "
           (click)="setAIDifficulty('hard')"
         >
           困難
         </button>
       </div>
+      }
+
+      <!-- Gemini AI 設定 -->
+      @if (aiType() === 'service') {
+      <div
+        class="w-2/5 flex items-center gap-2 bg-neutral-800/50 rounded-lg p-2 border border-neutral-600 justify-center"
+      >
+        <!-- <span class="text-purple-300 text-sm font-medium text-nowrap">Gemini:</span> -->
+        <!-- @if (hasApiKey()) {
+        <span class="text-green-400 text-xs">已設置 API Key</span>
+        } @else {
+        <span class="text-yellow-400 text-xs">未設置 API Key</span>
+        } -->
+
+        @if (hasApiKey()) {
+        <div class="flex gap-2 items-center">
+          <span class="text-green-400 text-xs">API Key 已設置</span>
+          <button
+            class="px-2 py-1 text-xs rounded transition-colors bg-red-700 hover:bg-red-600 text-white"
+            (click)="clearApiKey()"
+          >
+            清除
+          </button>
+        </div>
+        } @else {
+        <button
+          class="px-3 py-1 text-xs rounded transition-colors bg-purple-700 hover:bg-purple-600 text-white"
+          (click)="openApiKeyModal()"
+        >
+          Gemini API Key
+        </button>
+        }
+      </div>
+      }
     </div>
     }
 
@@ -92,27 +179,28 @@
         </div>
 
         <!-- 最後一步棋記錄 -->
-        @if (moveHistory().length > 0) {
+        <!-- @if (moveHistory().length > 0) { -->
         <div class="border border-amber-400 bg-amber-400/20 px-2 py-1 text-amber-300 font-bold">
           <div class="text-amber-400 text-xs">最後一步</div>
           <div class="text-center text-xs">
+            @if (moveHistory().length > 0) {
             {{ moveHistory()[moveHistory().length - 1] }}
+            } @else { ？？ }
           </div>
         </div>
-        }
-        <!-- @if (isInCheck()) {
-        <div class="text-3xl text-amber-300 animate-pulse">將軍！</div>
-        } @if (isSelfInCheck() ) {
-        <div class="text-3xl text-red-400 animate-pulse">被將軍！</div>
-        } -->
-        <!-- <button
-          class="py-3 border-1 border-lime-400 bg-lime-400/20 px-2 py-1 text-lime-300 font-bold hover:bg-lime-400/30 transition"
-          (click)="toggleGameMode()"
+        <!-- } -->
+
+        <!-- 串 AI  -->
+        <div
+          class="border border-green-400 bg-green-400/20 px-2 py-1 text-green-300 font-bold text-center"
+          (click)="openApiKeyModal()"
         >
+          <div class="text-green-400 text-xs">🤖 AI 設定</div>
           <div class="text-center text-xs">
-            {{ isVsAI() ? '切換至雙人' : '切換至AI' }}
+            @if (isGeminiEnabled()) { Gemini 已啟用 }@else { 本地端 ({{ getAIDifficultyText() }})}
           </div>
-        </button> -->
+        </div>
+
         <div
           class="w-full text-center text-sm mt-2 h-4 bg-neutral-700/80 rounded overflow-hidden relative animate-pulse text-white"
         >
@@ -451,3 +539,16 @@
     <p>紅方先行，將軍對方即獲勝</p>
   </footer>
 </div>
+
+<!-- API Key Modal -->
+@if (isApiKeyModalOpen()) {
+<div class="api-key-modal-overlay" (click)="closeApiKeyModal()">
+  <div class="api-key-modal-content" (click)="$event.stopPropagation()">
+    <button class="close-button" (click)="closeApiKeyModal()">×</button>
+    <app-gemini-api-key
+      (onApiKeySaved)="onApiKeySaved()"
+      (onApiKeyClear)="onApiKeyCleared()"
+    ></app-gemini-api-key>
+  </div>
+</div>
+}
