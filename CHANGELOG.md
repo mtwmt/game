@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/mtwmt/game/compare/v1.2.0...v1.3.0) (2025-09-25)
+
+
+### Features
+
+* integrate Gemini AI with Chinese Chess game ([52ab051](https://github.com/mtwmt/game/commit/52ab05139a439f9ce844fdc61a2f43cf5ed86355))
+
 # [1.2.0](https://github.com/mtwmt/game/compare/v1.1.0...v1.2.0) (2025-09-25)
 
 
