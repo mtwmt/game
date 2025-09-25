@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/mtwmt/game/compare/v1.0.0...v1.1.0) (2025-09-25)
+
+
+### Features
+
+* implement hybrid AI strategy combining opening book and Minimax evaluation ([3ee0403](https://github.com/mtwmt/game/commit/3ee0403fa8959a9b6b090748be21db9e7ac76158))
+
 # 1.0.0 (2025-09-24)
 
 
