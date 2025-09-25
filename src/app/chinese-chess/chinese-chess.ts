@@ -3,7 +3,13 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ChessGameService, initialState } from './chess-game.service';
 import { ChessAIService } from './chess-ai.service';
-import { ChessPiece, PlayerColor, Position, GameState, MoveResult } from './chess-piece.interface';
+import {
+  ChessPiece,
+  PlayerColor,
+  Position,
+  GameState,
+  MoveResult,
+} from './chess-piece.interface';
 
 @Component({
   selector: 'app-chinese-chess',
@@ -40,7 +46,10 @@ export class ChineseChess implements OnInit {
 
   // 檢查是否是AI回合
   protected isAITurn = computed(
-    () => this.isVsAI() && this.currentPlayer() === PlayerColor.BLACK && !this.gameOver()
+    () =>
+      this.isVsAI() &&
+      this.currentPlayer() === PlayerColor.BLACK &&
+      !this.gameOver()
   );
 
   // 檢查是否可以點擊棋盤（不是AI回合）
@@ -98,7 +107,10 @@ export class ChineseChess implements OnInit {
 
     // 設定新選擇
     piece.isSelected = true;
-    const validMoves = this.chessGameService.getPossibleMoves(piece, currentState.board);
+    const validMoves = this.chessGameService.getPossibleMoves(
+      piece,
+      currentState.board
+    );
 
     this.gameState.set({
       ...currentState,
@@ -130,22 +142,36 @@ export class ChineseChess implements OnInit {
     const piece = currentState.board[from.y][from.x];
     if (!piece) return;
 
-    const result: MoveResult = this.chessGameService.makeMove(currentState, from, to);
+    const result: MoveResult = this.chessGameService.makeMove(
+      currentState,
+      from,
+      to
+    );
 
     if (result.success) {
       // 更新移動歷史
-      const moveNotation = this.generateMoveNotation(piece, from, to, result.captured);
+      const moveNotation = this.generateMoveNotation(
+        piece,
+        from,
+        to,
+        result.captured
+      );
       const newHistory = [...currentState.moveHistory, moveNotation];
 
       // 切換玩家
       const nextPlayer =
-        currentState.currentPlayer === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED;
+        currentState.currentPlayer === PlayerColor.RED
+          ? PlayerColor.BLACK
+          : PlayerColor.RED;
 
       // 檢查遊戲狀態
       const isInCheck = result.isCheck || false;
       const isSelfInCheck = result.isSelfInCheck || false;
-      const gameOver = result.isCheckmate || result.isStalemate || result.gameOver || false;
-      const winner = result.winner || (result.isCheckmate ? currentState.currentPlayer : null);
+      const gameOver =
+        result.isCheckmate || result.isStalemate || result.gameOver || false;
+      const winner =
+        result.winner ||
+        (result.isCheckmate ? currentState.currentPlayer : null);
 
       // 清除選擇狀態
       currentState.board.flat().forEach((p) => {
@@ -169,9 +195,14 @@ export class ChineseChess implements OnInit {
         gameOver,
         isVsAI: currentState.isVsAI,
         nextPlayer,
-        shouldTrigger: !gameOver && currentState.isVsAI && nextPlayer === PlayerColor.BLACK,
+        shouldTrigger:
+          !gameOver && currentState.isVsAI && nextPlayer === PlayerColor.BLACK,
       });
-      if (!gameOver && currentState.isVsAI && nextPlayer === PlayerColor.BLACK) {
+      if (
+        !gameOver &&
+        currentState.isVsAI &&
+        nextPlayer === PlayerColor.BLACK
+      ) {
         console.log('準備觸發AI移動...');
         this.triggerAIMove();
       }
@@ -184,11 +215,17 @@ export class ChineseChess implements OnInit {
     to: Position,
     captured?: ChessPiece
   ): string {
-    // const piece = this.board()[from.y][from.x];
     if (!piece) return '';
 
+    const toChineseNum = (n: number): string => {
+      const chineseNum = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+      if (n >= 1 && n <= 9) {
+        return chineseNum[n - 1];
+      }
+      return n.toString();
+    };
+
     const pieceSymbol = this.chessGameService.getPieceSymbol(piece);
-    // const captureSymbol = captured ? '吃' : '到';
 
     // 傳統中國象棋棋譜格式（例如：炮二平五、馬八進七）
     const file = piece.color === PlayerColor.RED ? 9 - from.x : from.x + 1;
@@ -196,16 +233,17 @@ export class ChineseChess implements OnInit {
 
     let action = '';
     if (rank === 0) {
-      action = '平' + (piece.color === PlayerColor.RED ? 9 - to.x : to.x + 1);
+      const toFile = piece.color === PlayerColor.RED ? 9 - to.x : to.x + 1;
+      action = '平' + toChineseNum(toFile);
     } else {
       // 修改進退邏輯，考慮紅黑雙方的方向差異
       const isForward =
         (piece.color === PlayerColor.RED && rank < 0) ||
         (piece.color === PlayerColor.BLACK && rank > 0);
-      action = (isForward ? '進' : '退') + Math.abs(rank);
+      action = (isForward ? '進' : '退') + toChineseNum(Math.abs(rank));
     }
 
-    return `${pieceSymbol}${file}${action}`;
+    return `${pieceSymbol}${toChineseNum(file)}${action}`;
   }
 
   getSquareClass(x: number, y: number): string {
@@ -258,8 +296,6 @@ export class ChineseChess implements OnInit {
   }
 
   // ============ AI相關方法 ============
-
-
   toggleGameMode(): void {
     const currentState = this.gameState();
     const newIsVsAI = !currentState.isVsAI;
@@ -272,7 +308,11 @@ export class ChineseChess implements OnInit {
     });
 
     // If switching to AI mode and it's currently black's turn, trigger AI move
-    if (newIsVsAI && currentState.currentPlayer === PlayerColor.BLACK && !currentState.gameOver) {
+    if (
+      newIsVsAI &&
+      currentState.currentPlayer === PlayerColor.BLACK &&
+      !currentState.gameOver
+    ) {
       this.triggerAIMove();
     }
   }
@@ -321,11 +361,20 @@ export class ChineseChess implements OnInit {
     if (!piece) return;
 
     // 執行移動（復用現有邏輯）
-    const result: MoveResult = this.chessGameService.makeMove(currentState, from, to);
+    const result: MoveResult = this.chessGameService.makeMove(
+      currentState,
+      from,
+      to
+    );
 
     if (result.success) {
       // 更新移動歷史
-      const moveNotation = this.generateMoveNotation(piece, from, to, result.captured);
+      const moveNotation = this.generateMoveNotation(
+        piece,
+        from,
+        to,
+        result.captured
+      );
       const newHistory = [...currentState.moveHistory, moveNotation];
 
       // 切換回玩家
@@ -334,8 +383,10 @@ export class ChineseChess implements OnInit {
       // 檢查遊戲狀態
       const isInCheck = result.isCheck || false;
       const isSelfInCheck = result.isSelfInCheck || false;
-      const gameOver = result.isCheckmate || result.isStalemate || result.gameOver || false;
-      const winner = result.winner || (result.isCheckmate ? PlayerColor.BLACK : null);
+      const gameOver =
+        result.isCheckmate || result.isStalemate || result.gameOver || false;
+      const winner =
+        result.winner || (result.isCheckmate ? PlayerColor.BLACK : null);
 
       // 清除選擇狀態
       currentState.board.flat().forEach((p) => {
@@ -381,10 +432,14 @@ export class ChineseChess implements OnInit {
   getAIDifficultyText(): string {
     const difficulty = this.aiDifficulty();
     switch (difficulty) {
-      case 'easy': return '簡單';
-      case 'medium': return '中等';
-      case 'hard': return '困難';
-      default: return '中等';
+      case 'easy':
+        return '簡單';
+      case 'medium':
+        return '中等';
+      case 'hard':
+        return '困難';
+      default:
+        return '中等';
     }
   }
 }
