@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/mtwmt/game/compare/v1.3.0...v1.4.0) (2025-09-25)
+
+
+### Features
+
+* add Google Generative AI dependency and bump version to 1.2.0 ([5848e0a](https://github.com/mtwmt/game/commit/5848e0a9b70a95b3aab78978c276b2fde6bcdc00))
+
 # [1.3.0](https://github.com/mtwmt/game/compare/v1.2.0...v1.3.0) (2025-09-25)
 
 
