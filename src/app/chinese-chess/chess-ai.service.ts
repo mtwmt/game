@@ -29,6 +29,7 @@ interface TranspositionEntry {
 })
 export class ChessAIService {
   private chessGameService = inject(ChessGameService);
+
   private transpositionTable = new Map<string, TranspositionEntry>();
   private maxSearchTime = 3000; // 3秒思考時間
   private searchStartTime = 0;
@@ -43,16 +44,16 @@ export class ChessAIService {
     this.nodesSearched = 0;
 
     try {
-      // 檢查開局庫 - 擴展到前15步
-      if (gameState.moveHistory.length > 0 && gameState.moveHistory.length <= 15) {
-        const openingMove = this.getOpeningMove(gameState);
-        if (openingMove) {
-          console.log('🤖 使用開局回應:', openingMove);
-          return openingMove;
+      // 使用整合式策略：開局庫 + Minimax 混合評估
+      if (gameState.moveHistory.length > 0 && gameState.moveHistory.length <= 20) {
+        const hybridMove = this.getHybridMove(gameState);
+        if (hybridMove) {
+          console.log('🤖 使用混合策略移動:', hybridMove);
+          return hybridMove;
         }
       }
 
-      // 使用迭代加深搜尋
+      // 純 Minimax 搜尋（20步後）
       let bestMove: { from: Position; to: Position } | null = null;
 
       for (let depth = 1; depth <= this.maxDepth; depth++) {
@@ -74,6 +75,183 @@ export class ChessAIService {
       // 退回到簡單策略
       return this.getSimpleMove(gameState);
     }
+  }
+
+  // 新增：混合策略 - 開局庫候選 + Minimax評估
+  private getHybridMove(gameState: GameState): { from: Position; to: Position } | null {
+    console.log('🤖 使用混合策略分析...');
+
+    // 1. 從開局庫獲取候選移動
+    const openingCandidates = this.getOpeningCandidates(gameState);
+
+    // 2. 從Minimax獲取候選移動
+    const minimaxCandidates = this.getMinimaxCandidates(gameState, 2); // 淺搜尋獲取候選
+
+    // 3. 合併候選移動（去重）
+    const allCandidates = this.mergeCandidates(openingCandidates, minimaxCandidates);
+
+    if (allCandidates.length === 0) {
+      console.log('🤖 混合策略未找到候選移動');
+      return null;
+    }
+
+    // 4. 對所有候選移動進行混合評估
+    const evaluatedMoves = allCandidates.map(move => ({
+      ...move,
+      hybridScore: this.evaluateHybridMove(gameState, move)
+    }));
+
+    // 5. 選擇最佳移動
+    evaluatedMoves.sort((a, b) => b.hybridScore - a.hybridScore);
+    const bestMove = evaluatedMoves[0];
+
+    console.log(`🤖 混合策略評估了 ${allCandidates.length} 個候選，最佳分數: ${bestMove.hybridScore}`);
+
+    return { from: bestMove.from, to: bestMove.to };
+  }
+
+  // 獲取開局庫候選移動
+  private getOpeningCandidates(gameState: GameState): { from: Position; to: Position }[] {
+    const candidates: { from: Position; to: Position }[] = [];
+    const board = gameState.board;
+    const moveHistory = gameState.moveHistory;
+
+    if (moveHistory.length === 0) return candidates;
+
+    // 從棋譜庫找最佳應對
+    const bestResponse = findBestOpeningResponse(moveHistory);
+    if (bestResponse) {
+      const move = findMoveFromNotation(bestResponse, board, PlayerColor.BLACK);
+      if (move && this.isSafeMove(gameState, move.from, move.to)) {
+        candidates.push(move);
+      }
+    }
+
+    // 從標準回應中獲取候選
+    const lastMove = moveHistory[moveHistory.length - 1];
+    const responses = this.OPENING_RESPONSES[lastMove] || this.OPENING_RESPONSES['default'];
+
+    for (const response of responses.slice(0, 3)) { // 只取前3個最佳回應
+      const piece = board[response.from.y][response.from.x];
+      if (!piece || piece.color !== PlayerColor.BLACK) continue;
+
+      const possibleMoves = this.chessGameService.getPossibleMoves(piece, board);
+      const isValid = possibleMoves.some((pos) => pos.x === response.to.x && pos.y === response.to.y);
+
+      if (isValid && this.isSafeMove(gameState, response.from, response.to)) {
+        candidates.push({ from: response.from, to: response.to });
+      }
+    }
+
+    return candidates;
+  }
+
+  // 獲取Minimax候選移動
+  private getMinimaxCandidates(gameState: GameState, depth: number): { from: Position; to: Position }[] {
+    const allMoves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
+    const safeMoves = allMoves.filter(move => this.isSafeMove(gameState, move.from, move.to));
+
+    // 快速評估並排序，取前5個候選
+    const evaluatedMoves = safeMoves.map(move => ({
+      ...move,
+      score: this.quickEvaluateMove(gameState, move)
+    }));
+
+    evaluatedMoves.sort((a, b) => b.score - a.score);
+    return evaluatedMoves.slice(0, 5).map(move => ({ from: move.from, to: move.to }));
+  }
+
+  // 合併候選移動（去重）
+  private mergeCandidates(
+    opening: { from: Position; to: Position }[],
+    minimax: { from: Position; to: Position }[]
+  ): { from: Position; to: Position }[] {
+    const merged: { from: Position; to: Position }[] = [...opening];
+
+    for (const move of minimax) {
+      const isDuplicate = merged.some(existing =>
+        existing.from.x === move.from.x && existing.from.y === move.from.y &&
+        existing.to.x === move.to.x && existing.to.y === move.to.y
+      );
+
+      if (!isDuplicate) {
+        merged.push(move);
+      }
+    }
+
+    return merged;
+  }
+
+  // 混合評估單個移動
+  private evaluateHybridMove(gameState: GameState, move: { from: Position; to: Position }): number {
+    const moveCount = gameState.moveHistory.length;
+
+    // 計算開局庫權重（隨步數遞減）
+    const openingWeight = Math.max(0, (20 - moveCount) / 20); // 20步內從1.0遞減到0
+    const minimaxWeight = 1 - openingWeight;
+
+    // 開局庫評分（基於開局理論）
+    const openingScore = this.evaluateOpeningMove(gameState, move);
+
+    // Minimax評分（基於戰術計算）
+    const minimaxScore = this.evaluateMinimaxMove(gameState, move, 3); // 深度3搜尋
+
+    // 混合分數
+    const hybridScore = openingScore * openingWeight + minimaxScore * minimaxWeight;
+
+    console.log(`🔍 移動 (${move.from.x},${move.from.y})->(${move.to.x},${move.to.y}): 開局${openingScore.toFixed(1)}(${(openingWeight*100).toFixed(0)}%) + Minimax${minimaxScore.toFixed(1)}(${(minimaxWeight*100).toFixed(0)}%) = ${hybridScore.toFixed(1)}`);
+
+    return hybridScore;
+  }
+
+  // 評估開局移動（基於開局原則）
+  private evaluateOpeningMove(gameState: GameState, move: { from: Position; to: Position }): number {
+    let score = 0;
+    const piece = gameState.board[move.from.y][move.from.x];
+    const target = gameState.board[move.to.y][move.to.x];
+
+    if (!piece) return score;
+
+    // 開局原則評分
+
+    // 1. 快速出子（馬、炮優先）
+    if (piece.type === PieceType.HORSE || piece.type === PieceType.CANNON) {
+      score += 50;
+    }
+
+    // 2. 控制中心
+    const centerDistance = Math.abs(move.to.x - 4) + Math.abs(move.to.y - 4.5);
+    score += (9 - centerDistance) * 10;
+
+    // 3. 不要過早出動大子
+    if (piece.type === PieceType.ROOK && gameState.moveHistory.length < 6) {
+      score -= 30;
+    }
+
+    // 4. 保護王的安全
+    if (piece.type === PieceType.ADVISOR || piece.type === PieceType.ELEPHANT) {
+      score += 20;
+    }
+
+    // 5. 吃子獎勵
+    if (target) {
+      score += PIECE_VALUES[target.type] / 10;
+    }
+
+    return score;
+  }
+
+  // 評估Minimax移動
+  private evaluateMinimaxMove(gameState: GameState, move: { from: Position; to: Position }, depth: number): number {
+    const newGameState = this.simulateMove(gameState, move.from, move.to);
+    const result = this.minimax(newGameState, depth - 1, -Infinity, Infinity, false);
+    return result.score;
+  }
+
+  // 快速評估移動（用於候選生成）
+  private quickEvaluateMove(gameState: GameState, move: { from: Position; to: Position }): number {
+    const newGameState = this.simulateMove(gameState, move.from, move.to);
+    return this.evaluatePosition(newGameState);
   }
 
   private getOpeningMove(gameState: GameState): { from: Position; to: Position } | null {
@@ -530,9 +708,9 @@ export class ChessAIService {
     if (moveCount === 0) {
       return '🤖 AI等待紅方先走...';
     } else if (moveCount <= 8 && moveCount > 0) {
-      return '🤖 AI正在分析開局回應...';
-    } else if (moveCount < 20) {
-      return '🤖 AI正在布局發展...';
+      return '🤖 AI正在分析開局理論與戰術結合...';
+    } else if (moveCount <= 20) {
+      return '🤖 AI正在使用混合策略布局...';
     } else if (moveCount < 40) {
       return '🤖 AI正在制定中盤戰略...';
     } else {
