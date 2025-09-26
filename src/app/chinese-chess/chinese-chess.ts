@@ -5,13 +5,11 @@ import { FormsModule } from '@angular/forms';
 import { ChessGameService, initialState } from './chess-game.service';
 import { ChessAIService } from './chess-ai.service';
 import { ChessPiece, PlayerColor, Position, GameState, MoveResult } from './chess-piece.interface';
-import { GeminiApiKeyComponent } from '../components/gemini-api-key/gemini-api-key.component';
-import { AIConfigComponent } from './ai-config.component';
 
 @Component({
   selector: 'app-chinese-chess',
   standalone: true,
-  imports: [CommonModule, RouterLink, GeminiApiKeyComponent, FormsModule, AIConfigComponent],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './chinese-chess.html',
   styleUrl: './chinese-chess.scss',
 })
@@ -43,13 +41,10 @@ export class ChineseChess implements OnInit, OnDestroy {
 
   protected aiDifficulty = signal<'easy' | 'medium' | 'hard'>('hard');
 
-  // API Key Modal
+  // API Key Modal - 保留以後可能用到
   protected hasApiKey = computed(() => this.chessGameService.hasApiKey());
   protected isGeminiEnabled = computed(() => this.hasApiKey() && this.isVsAI());
   protected isApiKeyModalOpen = signal(false);
-
-  // AI Configuration Panel
-  protected isAIConfigOpen = signal(false);
 
   // 檢查是否是AI回合
   protected isAITurn = computed(
@@ -68,12 +63,10 @@ export class ChineseChess implements OnInit, OnDestroy {
     this.resetGame();
     this.chessGameService.updateApiKeyStatus();
 
-    // 根據 API key 狀態初始化 AI 類型
-    if (this.hasApiKey()) {
-      this.setAIType('service');
-    }
+    // 初始化 UCI 引擎為默認 AI
+    this.chessAIService.setAIMode('uci-only');
 
-    // 恢復事件監聽器
+    // 恢復事件監聽器 - 保留以後可能用到
     if (typeof window !== 'undefined') {
       this.apiKeyUpdateListener = () => {
         this.chessGameService.updateApiKeyStatus();
@@ -434,6 +427,7 @@ export class ChineseChess implements OnInit, OnDestroy {
     }
   }
 
+  // === Gemini API 相關方法 - 保留以後可能用到 ===
   openApiKeyModal(): void {
     this.isApiKeyModalOpen.set(true);
   }
@@ -443,7 +437,6 @@ export class ChineseChess implements OnInit, OnDestroy {
   }
 
   clearApiKey(): void {
-    // 確認對話框
     // 從 localStorage 中移除 API Key
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('gemini-api-key');
@@ -458,7 +451,6 @@ export class ChineseChess implements OnInit, OnDestroy {
     }
 
     console.log('Gemini API Key 已清除');
-
   }
 
   onApiKeySaved(): void {
@@ -500,18 +492,5 @@ export class ChineseChess implements OnInit, OnDestroy {
     this.chessAIService.setUseGeminiAI(type === 'service');
 
     console.log(`🤖 已切換 AI 類型: ${type}`);
-  }
-
-  // AI Configuration methods
-  protected openAIConfig(): void {
-    this.isAIConfigOpen.set(true);
-  }
-
-  protected closeAIConfig(): void {
-    this.isAIConfigOpen.set(false);
-  }
-
-  protected toggleAIConfig(): void {
-    this.isAIConfigOpen.set(!this.isAIConfigOpen());
   }
 }

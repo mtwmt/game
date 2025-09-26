@@ -1,0 +1,208 @@
+// AI Config Component Styles
+.ai-config-container {
+  background-color: #1f2937;
+  color: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+}
+
+.ai-config-title {
+  font-size: 1.125rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  color: #fbbf24;
+}
+
+.status-section {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background-color: #374151;
+  border-radius: 0.5rem;
+
+  h4 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+
+    .status-label {
+      width: 5rem;
+    }
+
+    .status-active {
+      color: #4ade80;
+    }
+
+    .status-inactive {
+      color: #f87171;
+    }
+
+    .status-pending {
+      color: #fbbf24;
+    }
+
+    .engine-name {
+      margin-left: 0.5rem;
+      color: #93c5fd;
+    }
+  }
+}
+
+.mode-section {
+  margin-bottom: 1rem;
+
+  h4 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .mode-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+
+    @media (min-width: 768px) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+}
+
+// Button styles
+.btn-active {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 0.25rem;
+  transition: colors 0.15s;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-inactive {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 0.25rem;
+  transition: colors 0.15s;
+  background-color: #4b5563;
+  color: #d1d5db;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #6b7280;
+  }
+}
+
+.engines-section {
+  margin-bottom: 1rem;
+
+  h4 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .engine-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .engine-item {
+    padding: 0.5rem;
+    background-color: #4b5563;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+
+    .engine-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .engine-name {
+        font-weight: 500;
+      }
+
+      .engine-difficulty {
+        color: #fbbf24;
+      }
+    }
+
+    .engine-description {
+      color: #d1d5db;
+      font-size: 0.75rem;
+    }
+
+    .engine-button {
+      margin-top: 0.25rem;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 0.25rem;
+      cursor: pointer;
+
+      &:hover {
+        background-color: #1d4ed8;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+.actions-section {
+  .action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .quick-setup-btn {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+    background-color: #059669;
+    color: white;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #047857;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .reset-btn {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+    background-color: #dc2626;
+    color: white;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #b91c1c;
+    }
+  }
+}
+
+.initializing-status {
+  margin-top: 0.75rem;
+  text-align: center;
+  color: #fbbf24;
+}

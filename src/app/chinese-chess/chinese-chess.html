@@ -34,62 +34,17 @@
       </button>
     </div>
 
-    <!-- AI 設定按鈕 -->
-    @if (isVsAI()) {
-    <button
-      (click)="toggleAIConfig()"
-      class="w-full h-12 rounded-md bg-gray-700 border border-gray-500 text-gray-50 font-semibold text-base shadow hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all"
-      [ngClass]="{ 'bg-blue-700 border-blue-500': isAIConfigOpen() }"
-    >
-      🤖 AI 引擎設定 {{ isAIConfigOpen() ? '▲' : '▼' }}
-    </button>
-    }
 
-    <!-- AI 配置面板 -->
-    @if (isVsAI() && isAIConfigOpen()) {
-    <app-ai-config></app-ai-config>
-    }
-
-    <!-- AI 相關設置 (only show when AI mode is enabled) -->
+    <!-- UCI 引擎難度設置 (only show when AI mode is enabled) -->
     @if (isVsAI()) {
     <div class="flex gap-2">
-      <!-- AI 類型選擇 -->
+      <!-- UCI 引擎難度選擇 -->
       <div
-        class="w-3/5 flex items-center gap-2 bg-neutral-800/50 rounded-lg p-2 border border-neutral-600 justify-center"
+        class="w-full flex items-center gap-2 bg-neutral-800/50 rounded-lg p-2 border border-neutral-600 justify-center"
       >
-        <span class="text-amber-300 text-sm font-medium">🤖AI類型:</span>
+        <span class="text-amber-300 text-sm font-medium">⚡ UCI 引擎難度:</span>
         <button
           class="px-2 py-1 text-xs rounded transition-colors"
-          [ngClass]="
-            aiType() === 'local'
-              ? 'bg-blue-600 text-white'
-              : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-          "
-          (click)="setAIType('local')"
-        >
-          本地端
-        </button>
-        <button
-          class="px-2 py-1 text-xs rounded transition-colors"
-          [ngClass]="
-            aiType() === 'service'
-              ? 'bg-purple-600 text-white'
-              : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-          "
-          (click)="setAIType('service')"
-        >
-          Gemini AI
-        </button>
-      </div>
-
-      <!-- 本地端 AI 難度設置 -->
-      @if (aiType() === 'local') {
-      <div
-        class="w-2/5 flex items-center gap-2 bg-neutral-800/50 rounded-lg p-2 border border-neutral-600 justify-center"
-      >
-        <!-- <span class="text-amber-300 text-sm font-medium text-nowrap">🧠 難度:</span> -->
-        <button
-          class="px-1 py-1 text-xs rounded transition-colors"
           [ngClass]="
             aiDifficulty() === 'easy'
               ? 'bg-green-600 text-white'
@@ -100,7 +55,7 @@
           簡單
         </button>
         <button
-          class="px-1 py-1 text-xs rounded transition-colors"
+          class="px-2 py-1 text-xs rounded transition-colors"
           [ngClass]="
             aiDifficulty() === 'medium'
               ? 'bg-yellow-600 text-white'
@@ -111,7 +66,7 @@
           中等
         </button>
         <button
-          class="px-1 py-1 text-xs rounded transition-colors"
+          class="px-2 py-1 text-xs rounded transition-colors"
           [ngClass]="
             aiDifficulty() === 'hard'
               ? 'bg-red-600 text-white'
@@ -122,40 +77,6 @@
           困難
         </button>
       </div>
-      }
-
-      <!-- Gemini AI 設定 -->
-      @if (aiType() === 'service') {
-      <div
-        class="w-2/5 flex items-center gap-2 bg-neutral-800/50 rounded-lg p-2 border border-neutral-600 justify-center"
-      >
-        <!-- <span class="text-purple-300 text-sm font-medium text-nowrap">Gemini:</span> -->
-        <!-- @if (hasApiKey()) {
-        <span class="text-green-400 text-xs">已設置 API Key</span>
-        } @else {
-        <span class="text-yellow-400 text-xs">未設置 API Key</span>
-        } -->
-
-        @if (hasApiKey()) {
-        <div class="flex gap-2 items-center">
-          <span class="text-green-400 text-xs">API Key 已設置</span>
-          <button
-            class="px-2 py-1 text-xs rounded transition-colors bg-red-700 hover:bg-red-600 text-white"
-            (click)="clearApiKey()"
-          >
-            清除
-          </button>
-        </div>
-        } @else {
-        <button
-          class="px-3 py-1 text-xs rounded transition-colors bg-purple-700 hover:bg-purple-600 text-white"
-          (click)="openApiKeyModal()"
-        >
-          Gemini API Key
-        </button>
-        }
-      </div>
-      }
     </div>
     }
 
@@ -198,14 +119,13 @@
         </div>
         <!-- } -->
 
-        <!-- 串 AI  -->
+        <!-- UCI 引擎狀態 -->
         <div
           class="border border-green-400 bg-green-400/20 px-2 py-1 text-green-300 font-bold text-center"
-          (click)="openApiKeyModal()"
         >
-          <div class="text-green-400 text-xs">🤖 AI 設定</div>
+          <div class="text-green-400 text-xs">⚡ UCI 引擎</div>
           <div class="text-center text-xs">
-            @if (isGeminiEnabled()) { Gemini 已啟用 }@else { 本地端 ({{ getAIDifficultyText() }})}
+            {{ getAIDifficultyText() }}
           </div>
         </div>
 
@@ -548,15 +468,3 @@
   </footer>
 </div>
 
-<!-- API Key Modal -->
-@if (isApiKeyModalOpen()) {
-<div class="api-key-modal-overlay" (click)="closeApiKeyModal()">
-  <div class="api-key-modal-content" (click)="$event.stopPropagation()">
-    <button class="close-button" (click)="closeApiKeyModal()">×</button>
-    <app-gemini-api-key
-      (onApiKeySaved)="onApiKeySaved()"
-      (onApiKeyClear)="onApiKeyCleared()"
-    ></app-gemini-api-key>
-  </div>
-</div>
-}
