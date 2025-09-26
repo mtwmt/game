@@ -6,11 +6,12 @@ import { ChessGameService, initialState } from './chess-game.service';
 import { ChessAIService } from './chess-ai.service';
 import { ChessPiece, PlayerColor, Position, GameState, MoveResult } from './chess-piece.interface';
 import { GeminiApiKeyComponent } from '../components/gemini-api-key/gemini-api-key.component';
+import { AIConfigComponent } from './ai-config.component';
 
 @Component({
   selector: 'app-chinese-chess',
   standalone: true,
-  imports: [CommonModule, RouterLink, GeminiApiKeyComponent, FormsModule],
+  imports: [CommonModule, RouterLink, GeminiApiKeyComponent, FormsModule, AIConfigComponent],
   templateUrl: './chinese-chess.html',
   styleUrl: './chinese-chess.scss',
 })
@@ -46,6 +47,9 @@ export class ChineseChess implements OnInit, OnDestroy {
   protected hasApiKey = computed(() => this.chessGameService.hasApiKey());
   protected isGeminiEnabled = computed(() => this.hasApiKey() && this.isVsAI());
   protected isApiKeyModalOpen = signal(false);
+
+  // AI Configuration Panel
+  protected isAIConfigOpen = signal(false);
 
   // 檢查是否是AI回合
   protected isAITurn = computed(
@@ -496,5 +500,18 @@ export class ChineseChess implements OnInit, OnDestroy {
     this.chessAIService.setUseGeminiAI(type === 'service');
 
     console.log(`🤖 已切換 AI 類型: ${type}`);
+  }
+
+  // AI Configuration methods
+  protected openAIConfig(): void {
+    this.isAIConfigOpen.set(true);
+  }
+
+  protected closeAIConfig(): void {
+    this.isAIConfigOpen.set(false);
+  }
+
+  protected toggleAIConfig(): void {
+    this.isAIConfigOpen.set(!this.isAIConfigOpen());
   }
 }

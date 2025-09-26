@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { PlayerColor, Position, GameState } from './chess-piece.interface';
 import { ChessGameService } from './chess-game.service';
+import { UCIEngineService, UCIEngineMove } from './uci-engine.service';
 import { PIECE_VALUES, getPositionBonus } from './chess-values';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -14,11 +15,14 @@ interface MoveEval {
 })
 export class ChessAIService {
   private chessGameService = inject(ChessGameService);
+  private uciEngineService = inject(UCIEngineService);
   private maxDepth = 4;
   private searchTime = 3000;
   private startTime = 0;
   private nodes = 0;
-  private useGeminiAI = true; // 是否使用 Gemini AI
+  private useGeminiAI = false; // Gemini AI 作為備用
+  private useUCIEngine = true; // 優先使用 UCI 引擎
+  private useLegacyMinimax = false; // 傳統算法作為最後備案
 
   async makeAIMove(gameState: GameState): Promise<{ from: Position; to: Position } | null> {
     console.log(`🧠 AI開始思考...`);
@@ -26,7 +30,23 @@ export class ChessAIService {
     this.nodes = 0;
 
     try {
-      // 檢查是否可以使用 Gemini AI
+      // 1. 優先使用 UCI 引擎 (Pikafish 等專業引擎)
+      if (this.useUCIEngine) {
+        console.log('⚡ 使用 UCI 引擎進行分析...');
+        const uciMove = await this.getUCIEngineMove(gameState);
+        if (uciMove) {
+          const elapsed = Date.now() - this.startTime;
+          console.log(`🎯 UCI 引擎決策完成: ${elapsed}ms`);
+          console.log(`🏆 UCI 引擎選擇移動: (${uciMove.from.x},${uciMove.from.y}) -> (${uciMove.to.x},${uciMove.to.y})`);
+          if (uciMove.score !== undefined) {
+            console.log(`📊 引擎評分: ${uciMove.score}, 搜索深度: ${uciMove.depth || 'N/A'}`);
+          }
+          return uciMove;
+        }
+        console.log('⚠️ UCI 引擎未能提供有效移動，嘗試備用方案...');
+      }
+
+      // 2. 備用: Gemini AI
       if (this.useGeminiAI) {
         console.log('🤖 使用 Gemini AI 進行決策...');
         const geminiMove = await this.getGeminiMove(gameState);
@@ -38,30 +58,73 @@ export class ChessAIService {
           );
           return geminiMove;
         }
-        console.log('⚠️ Gemini AI 未能提供有效移動，使用傳統算法...');
+        console.log('⚠️ Gemini AI 未能提供有效移動，嘗試傳統算法...');
       }
 
-      // 使用傳統 Minimax 算法
-      console.log(`🧠 使用 Minimax 算法 (深度${this.maxDepth}層)...`);
-      const result = this.minimax(gameState, this.maxDepth, -Infinity, Infinity, true);
+      // 3. 最後備案: 傳統 Minimax 算法
+      if (this.useLegacyMinimax) {
+        console.log(`🧠 使用 Minimax 算法 (深度${this.maxDepth}層)...`);
+        const result = this.minimax(gameState, this.maxDepth, -Infinity, Infinity, true);
 
-      const elapsed = Date.now() - this.startTime;
-      console.log(`🎯 AI決策完成: ${elapsed}ms, 搜索${this.nodes}個節點`);
+        const elapsed = Date.now() - this.startTime;
+        console.log(`🎯 Minimax 決策完成: ${elapsed}ms, 搜索${this.nodes}個節點`);
 
-      if (result && result.move) {
-        console.log(
-          `🤖 選擇移動: (${result.move.from.x},${result.move.from.y}) -> (${result.move.to.x},${result.move.to.y}), 評分: ${result.score}`
-        );
-        return result.move;
+        if (result && result.move) {
+          console.log(
+            `🤖 選擇移動: (${result.move.from.x},${result.move.from.y}) -> (${result.move.to.x},${result.move.to.y}), 評分: ${result.score}`
+          );
+          return result.move;
+        }
       }
 
-      // Fallback: 隨機選擇
+      // 4. 緊急備案: 隨機選擇
+      console.log('🎲 使用隨機移動作為最後備案...');
       const moves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
       return moves.length > 0 ? moves[Math.floor(Math.random() * moves.length)] : null;
     } catch (error) {
       console.error('🤖 AI思考出錯:', error);
       const moves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
       return moves.length > 0 ? moves[0] : null;
+    }
+  }
+
+  // 使用 UCI 引擎獲取最佳移動
+  private async getUCIEngineMove(gameState: GameState): Promise<UCIEngineMove | null> {
+    try {
+      // 檢查引擎是否已初始化
+      const engineInfo = this.uciEngineService.getEngineInfo();
+      if (!engineInfo || !engineInfo.isReady) {
+        console.log('🔧 初始化 Pikafish 引擎...');
+        const success = await this.uciEngineService.initializeEngine('Pikafish');
+        if (!success) {
+          console.log('❌ UCI 引擎初始化失敗');
+          return null;
+        }
+      }
+
+      // 獲取引擎移動，使用動態時間限制
+      const timeLimit = this.searchTime;
+      console.log(`⏱️ 引擎分析時間限制: ${timeLimit}ms`);
+
+      const engineMove = await this.uciEngineService.getEngineMove(gameState, timeLimit);
+
+      if (engineMove) {
+        // 驗證引擎移動是否有效
+        const possibleMoves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
+        const isValid = this.isValidMove(engineMove, possibleMoves);
+
+        if (isValid) {
+          console.log(`✅ UCI 引擎移動有效`);
+          return engineMove;
+        } else {
+          console.log(`❌ UCI 引擎返回無效移動`);
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('❌ UCI 引擎調用失敗:', error);
+      return null;
     }
   }
 
@@ -203,9 +266,90 @@ Important notes:
     );
   }
 
-  // 設置是否使用 Gemini AI
+  // AI 模式控制方法
+  setUseUCIEngine(use: boolean): void {
+    this.useUCIEngine = use;
+    console.log(`🔧 UCI 引擎模式: ${use ? '啟用' : '停用'}`);
+  }
+
   setUseGeminiAI(use: boolean): void {
     this.useGeminiAI = use;
+    console.log(`🤖 Gemini AI 模式: ${use ? '啟用' : '停用'}`);
+  }
+
+  setUseLegacyMinimax(use: boolean): void {
+    this.useLegacyMinimax = use;
+    console.log(`🧠 傳統 Minimax 模式: ${use ? '啟用' : '停用'}`);
+  }
+
+  // 設置 AI 優先級模式
+  setAIMode(mode: 'uci-only' | 'gemini-only' | 'minimax-only' | 'mixed' | 'auto'): void {
+    switch (mode) {
+      case 'uci-only':
+        this.useUCIEngine = true;
+        this.useGeminiAI = false;
+        this.useLegacyMinimax = false;
+        console.log('🏆 AI 模式: 僅使用 UCI 引擎');
+        break;
+      case 'gemini-only':
+        this.useUCIEngine = false;
+        this.useGeminiAI = true;
+        this.useLegacyMinimax = false;
+        console.log('🤖 AI 模式: 僅使用 Gemini AI');
+        break;
+      case 'minimax-only':
+        this.useUCIEngine = false;
+        this.useGeminiAI = false;
+        this.useLegacyMinimax = true;
+        console.log('🧠 AI 模式: 僅使用 Minimax 算法');
+        break;
+      case 'mixed':
+        this.useUCIEngine = true;
+        this.useGeminiAI = true;
+        this.useLegacyMinimax = true;
+        console.log('🔀 AI 模式: 混合模式 (UCI → Gemini → Minimax)');
+        break;
+      case 'auto':
+      default:
+        this.useUCIEngine = true;
+        this.useGeminiAI = false;
+        this.useLegacyMinimax = false;
+        console.log('⚡ AI 模式: 自動 (優先 UCI 引擎)');
+        break;
+    }
+  }
+
+  // 初始化並設置引擎
+  async initializeAI(engineName: string = 'Pikafish'): Promise<boolean> {
+    console.log(`🚀 初始化 AI 系統，使用引擎: ${engineName}`);
+    try {
+      const success = await this.uciEngineService.initializeEngine(engineName);
+      if (success) {
+        console.log(`✅ AI 系統初始化完成`);
+        this.setAIMode('auto'); // 設置為自動模式
+      }
+      return success;
+    } catch (error) {
+      console.error('❌ AI 系統初始化失敗:', error);
+      return false;
+    }
+  }
+
+  // 獲取當前 AI 狀態
+  getAIStatus(): {
+    uciEngine: boolean;
+    geminiAI: boolean;
+    legacyMinimax: boolean;
+    currentEngine: string | null;
+    engineReady: boolean;
+  } {
+    return {
+      uciEngine: this.useUCIEngine,
+      geminiAI: this.useGeminiAI,
+      legacyMinimax: this.useLegacyMinimax,
+      currentEngine: this.uciEngineService.currentEngineName,
+      engineReady: this.uciEngineService.getEngineInfo()?.isReady || false
+    };
   }
 
   // Minimax with Alpha-Beta Pruning
@@ -447,6 +591,48 @@ Important notes:
   }
 
   getThinkingDescription(): string {
-    return '🧠 AI正在使用Minimax算法深度分析...';
+    if (this.useUCIEngine) {
+      const engineName = this.uciEngineService.currentEngineName || 'UCI引擎';
+      return `⚡ ${engineName} 正在進行深度分析...`;
+    } else if (this.useGeminiAI) {
+      return '🤖 Gemini AI 正在分析棋局...';
+    } else if (this.useLegacyMinimax) {
+      return '🧠 AI正在使用Minimax算法深度分析...';
+    } else {
+      return '🎲 AI正在選擇移動...';
+    }
+  }
+
+  // 獲取詳細的思考狀態
+  getDetailedThinkingStatus(): {
+    description: string;
+    mode: string;
+    engine?: string;
+    isThinking: boolean;
+  } {
+    const aiStatus = this.getAIStatus();
+    let mode = 'unknown';
+    let description = '';
+
+    if (aiStatus.uciEngine) {
+      mode = 'uci';
+      description = `${aiStatus.currentEngine || 'UCI引擎'} 分析中...`;
+    } else if (aiStatus.geminiAI) {
+      mode = 'gemini';
+      description = 'Gemini AI 思考中...';
+    } else if (aiStatus.legacyMinimax) {
+      mode = 'minimax';
+      description = 'Minimax 算法計算中...';
+    } else {
+      mode = 'random';
+      description = '隨機選擇中...';
+    }
+
+    return {
+      description,
+      mode,
+      engine: aiStatus.currentEngine || undefined,
+      isThinking: true // 可以從 uciEngineService 獲取實際狀態
+    };
   }
 }

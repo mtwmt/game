@@ -35,12 +35,20 @@
     </div>
 
     <!-- AI 設定按鈕 -->
-    <!-- <button
-      (click)="openApiKeyModal()"
-      class="w-full h-12 rounded-md bg-gray-700 border border-gray-500 text-gray-50 font-semibold text-base shadow hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300"
+    @if (isVsAI()) {
+    <button
+      (click)="toggleAIConfig()"
+      class="w-full h-12 rounded-md bg-gray-700 border border-gray-500 text-gray-50 font-semibold text-base shadow hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all"
+      [ngClass]="{ 'bg-blue-700 border-blue-500': isAIConfigOpen() }"
     >
-      🤖 AI 設定
-    </button> -->
+      🤖 AI 引擎設定 {{ isAIConfigOpen() ? '▲' : '▼' }}
+    </button>
+    }
+
+    <!-- AI 配置面板 -->
+    @if (isVsAI() && isAIConfigOpen()) {
+    <app-ai-config></app-ai-config>
+    }
 
     <!-- AI 相關設置 (only show when AI mode is enabled) -->
     @if (isVsAI()) {
