@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/mtwmt/game/compare/v1.5.0...v1.6.0) (2025-09-26)
+
+
+### Features
+
+* integrate XQWLight professional engine to replace homemade AI ([49d5283](https://github.com/mtwmt/game/commit/49d5283bfbfa4abb9d349b7f22790ac8ef49d7f0))
+
 # [1.5.0](https://github.com/mtwmt/game/compare/v1.4.0...v1.5.0) (2025-09-26)
 
 
