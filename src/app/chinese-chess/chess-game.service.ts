@@ -7,13 +7,14 @@ import {
   MoveResult,
   GameState,
 } from './chess-piece.interface';
+import { GAME_CONSTANTS } from './chess-values';
 
 // 簡單的 LRU 快取實現
 class LRUCache<K, V> {
   private cache = new Map<K, V>();
   private readonly maxSize: number;
 
-  constructor(maxSize: number = 1000) {
+  constructor(maxSize: number = GAME_CONSTANTS.CACHE_SIZE) {
     this.maxSize = maxSize;
   }
 
@@ -60,29 +61,25 @@ export const initialState: GameState = {
   currentPlayer: PlayerColor.RED,
   selectedPiece: null,
   validMoves: [],
-  gameOver: false,
-  winner: null,
+  status: {
+    gameOver: false,
+    winner: null,
+    isInCheck: false,
+    isCheckmate: false,
+    isStalemate: false,
+  },
   moveHistory: [],
-  isInCheck: false,
-  isSelfInCheck: false,
   isVsAI: true,
-  aiIsThinking: false,
-  aiThinkingText: '',
+  aiState: {
+    isThinking: false,
+    thinkingText: '',
+  },
   hasApiKey: false,
 };
 @Injectable({
   providedIn: 'root',
 })
 export class ChessGameService {
-  // 棋盤尺寸常數
-  static readonly BOARD_WIDTH = 9;
-  static readonly BOARD_HEIGHT = 10;
-  static readonly PALACE_LEFT = 3;
-  static readonly PALACE_RIGHT = 5;
-  static readonly RED_PALACE_TOP = 7;
-  static readonly RED_PALACE_BOTTOM = 9;
-  static readonly BLACK_PALACE_TOP = 0;
-  static readonly BLACK_PALACE_BOTTOM = 2;
 
   // 統一的 API Key 狀態管理
   hasApiKey = signal(false);
@@ -97,8 +94,8 @@ export class ChessGameService {
     this.updateApiKeyStatus();
   }
 
-  private moveCache = new LRUCache<string, Position[]>(1000);
-  
+  private moveCache = new LRUCache<string, Position[]>(GAME_CONSTANTS.CACHE_SIZE);
+
   // 添加邊界檢查工具方法
   private validatePosition(x: number, y: number, context: string = 'position'): void {
     if (!this.isValidPosition(x, y)) {
@@ -107,12 +104,14 @@ export class ChessGameService {
   }
 
   private validateBoard(board: (ChessPiece | null)[][]): void {
-    if (!board || board.length !== ChessGameService.BOARD_HEIGHT) {
-      throw new Error(`Invalid board height: expected ${ChessGameService.BOARD_HEIGHT}`);
+    if (!board || board.length !== GAME_CONSTANTS.BOARD_HEIGHT) {
+      throw new Error(`Invalid board height: expected ${GAME_CONSTANTS.BOARD_HEIGHT}`);
     }
     for (let y = 0; y < board.length; y++) {
-      if (!board[y] || board[y].length !== ChessGameService.BOARD_WIDTH) {
-        throw new Error(`Invalid board width at row ${y}: expected ${ChessGameService.BOARD_WIDTH}`);
+      if (!board[y] || board[y].length !== GAME_CONSTANTS.BOARD_WIDTH) {
+        throw new Error(
+          `Invalid board width at row ${y}: expected ${GAME_CONSTANTS.BOARD_WIDTH}`
+        );
       }
     }
   }
@@ -132,9 +131,9 @@ export class ChessGameService {
     { dx: 1, dy: 1 },
   ];
   initializeBoard(): (ChessPiece | null)[][] {
-    const board: (ChessPiece | null)[][] = Array(10)
+    const board: (ChessPiece | null)[][] = Array(GAME_CONSTANTS.BOARD_HEIGHT)
       .fill(null)
-      .map(() => Array(9).fill(null));
+      .map(() => Array(GAME_CONSTANTS.BOARD_WIDTH).fill(null));
 
     this.setupInitialPieces(board);
     return board;
@@ -217,21 +216,31 @@ export class ChessGameService {
     return {
       ...initialState,
       board: this.initializeBoard(),
-      hasApiKey: this.checkHasApiKey()
+      hasApiKey: this.checkHasApiKey(),
     };
   }
 
   isValidPosition(x: number, y: number): boolean {
-    return x >= 0 && x < ChessGameService.BOARD_WIDTH && y >= 0 && y < ChessGameService.BOARD_HEIGHT;
+    return (
+      x >= 0 && x < GAME_CONSTANTS.BOARD_WIDTH && y >= 0 && y < GAME_CONSTANTS.BOARD_HEIGHT
+    );
   }
 
   isInPalace(x: number, y: number, color: PlayerColor): boolean {
     if (color === PlayerColor.RED) {
-      return x >= ChessGameService.PALACE_LEFT && x <= ChessGameService.PALACE_RIGHT &&
-             y >= ChessGameService.RED_PALACE_TOP && y <= ChessGameService.RED_PALACE_BOTTOM;
+      return (
+        x >= GAME_CONSTANTS.PALACE_LEFT &&
+        x <= GAME_CONSTANTS.PALACE_RIGHT &&
+        y >= GAME_CONSTANTS.RED_PALACE_TOP &&
+        y <= GAME_CONSTANTS.RED_PALACE_BOTTOM
+      );
     } else {
-      return x >= ChessGameService.PALACE_LEFT && x <= ChessGameService.PALACE_RIGHT &&
-             y >= ChessGameService.BLACK_PALACE_TOP && y <= ChessGameService.BLACK_PALACE_BOTTOM;
+      return (
+        x >= GAME_CONSTANTS.PALACE_LEFT &&
+        x <= GAME_CONSTANTS.PALACE_RIGHT &&
+        y >= GAME_CONSTANTS.BLACK_PALACE_TOP &&
+        y <= GAME_CONSTANTS.BLACK_PALACE_BOTTOM
+      );
     }
   }
 
@@ -276,8 +285,8 @@ export class ChessGameService {
     this.boardCache.piecesByColor.set(PlayerColor.RED, []);
     this.boardCache.piecesByColor.set(PlayerColor.BLACK, []);
 
-    for (let y = 0; y < ChessGameService.BOARD_HEIGHT; y++) {
-      for (let x = 0; x < ChessGameService.BOARD_WIDTH; x++) {
+    for (let y = 0; y < GAME_CONSTANTS.BOARD_HEIGHT; y++) {
+      for (let x = 0; x < GAME_CONSTANTS.BOARD_WIDTH; x++) {
         const piece = board[y][x];
         if (piece) {
           this.boardCache.piecesByColor.get(piece.color)!.push(piece);
@@ -298,8 +307,8 @@ export class ChessGameService {
 
   private getBoardHash(board: (ChessPiece | null)[][]): string {
     let hash = '';
-    for (let y = 0; y < ChessGameService.BOARD_HEIGHT; y++) {
-      for (let x = 0; x < ChessGameService.BOARD_WIDTH; x++) {
+    for (let y = 0; y < GAME_CONSTANTS.BOARD_HEIGHT; y++) {
+      for (let x = 0; x < GAME_CONSTANTS.BOARD_WIDTH; x++) {
         const piece = board[y][x];
         hash += piece ? `${piece.type}${piece.color}${x}${y}` : 'e';
       }
@@ -352,7 +361,7 @@ export class ChessGameService {
     }
     this.validateBoard(board);
     this.validatePosition(piece.position.x, piece.position.y, 'piece position');
-    
+
     const cacheKey = `${piece.id}-${piece.position.x}-${piece.position.y}-true`;
 
     if (this.moveCache.has(cacheKey)) {
@@ -370,7 +379,7 @@ export class ChessGameService {
     }
     this.validateBoard(board);
     this.validatePosition(piece.position.x, piece.position.y, 'piece position');
-    
+
     const cacheKey = `${piece.id}-${piece.position.x}-${piece.position.y}-false`;
 
     if (this.moveCache.has(cacheKey)) {
@@ -592,12 +601,21 @@ export class ChessGameService {
     this.validatePosition(from.x, from.y, 'source position');
     this.validatePosition(to.x, to.y, 'target position');
     this.validateBoard(gameState.board);
-    
+
     const { board, moveHistory } = gameState;
     const piece = board[from.y][from.x];
 
     if (!piece) {
-      return { success: false };
+      return {
+        success: false,
+        status: {
+          gameOver: false,
+          winner: null,
+          isInCheck: false,
+          isCheckmate: false,
+          isStalemate: false,
+        },
+      };
     }
 
     const targetPiece = board[to.y][to.x];
@@ -617,9 +635,13 @@ export class ChessGameService {
       return {
         success: true,
         captured: targetPiece,
-        isCheck: false,
-        gameOver: true,
-        winner: piece.color,
+        status: {
+          gameOver: true,
+          winner: piece.color,
+          isInCheck: false,
+          isCheckmate: true,
+          isStalemate: false,
+        },
       };
     }
 
@@ -629,9 +651,13 @@ export class ChessGameService {
       return {
         success: true,
         captured: targetPiece || undefined,
-        isCheck: false,
-        gameOver: true,
-        winner: piece.color === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED,
+        status: {
+          gameOver: true,
+          winner: piece.color === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED,
+          isInCheck: false,
+          isCheckmate: true,
+          isStalemate: false,
+        },
       };
     }
 
@@ -644,11 +670,20 @@ export class ChessGameService {
 
     piece.hasMoved = true;
 
+    // 檢查是否將死或困斃
+    const isCheckmate = isCheck ? this.isCheckmate(board, oppositeColor) : false;
+    const isStalemate = !isCheck ? this.isStalemate(board, oppositeColor) : false;
+
     return {
       success: true,
       captured: targetPiece || undefined,
-      isCheck,
-      isSelfInCheck,
+      status: {
+        gameOver: isCheckmate || isStalemate,
+        winner: isCheckmate ? piece.color : null,
+        isInCheck: isCheck,
+        isCheckmate,
+        isStalemate,
+      },
     };
   }
 
@@ -677,5 +712,92 @@ export class ChessGameService {
   updateApiKeyStatus(): void {
     const hasKey = this.checkHasApiKey();
     this.hasApiKey.set(hasKey);
+  }
+
+  /**
+   * 檢查是否為平局（無子可動）
+   */
+  isStalemate(board: (ChessPiece | null)[][], color: PlayerColor): boolean {
+    // 如果處於將軍狀態，不是平局而是將死
+    if (this.isInCheck(board, color)) {
+      return false;
+    }
+
+    // 檢查是否有任何合法移動
+    for (let y = 0; y < GAME_CONSTANTS.BOARD_HEIGHT; y++) {
+      for (let x = 0; x < GAME_CONSTANTS.BOARD_WIDTH; x++) {
+        const piece = board[y][x];
+        if (piece && piece.color === color) {
+          const moves = this.getPossibleMoves(piece, board);
+          if (moves.length > 0) {
+            return false; // 有合法移動，不是平局
+          }
+        }
+      }
+    }
+
+    return true; // 無子可動，平局
+  }
+
+  /**
+   * 檢查是否為將死
+   */
+  isCheckmate(board: (ChessPiece | null)[][], color: PlayerColor): boolean {
+    // 必須處於將軍狀態
+    if (!this.isInCheck(board, color)) {
+      return false;
+    }
+
+    // 檢查是否有任何合法移動能解除將軍
+    for (let y = 0; y < GAME_CONSTANTS.BOARD_HEIGHT; y++) {
+      for (let x = 0; x < GAME_CONSTANTS.BOARD_WIDTH; x++) {
+        const piece = board[y][x];
+        if (piece && piece.color === color) {
+          const moves = this.getPossibleMoves(piece, board);
+          for (const move of moves) {
+            // 模擬移動
+            const originalPiece = board[move.y][move.x];
+            board[move.y][move.x] = piece;
+            board[y][x] = null;
+            piece.position = move;
+
+            // 檢查移動後是否仍然被將軍
+            const stillInCheck = this.isInCheck(board, color);
+
+            // 還原移動
+            board[y][x] = piece;
+            board[move.y][move.x] = originalPiece;
+            piece.position = { x, y };
+
+            if (!stillInCheck) {
+              return false; // 找到解除將軍的移動
+            }
+          }
+        }
+      }
+    }
+
+    return true; // 無法解除將軍，將死
+  }
+
+  /**
+   * 檢查長將（連續將軍）規則
+   */
+  isPerpetualCheck(moveHistory: string[], maxRepeats: number = 3): boolean {
+    if (moveHistory.length < maxRepeats * 2) {
+      return false;
+    }
+
+    const recentMoves = moveHistory.slice(-maxRepeats * 2);
+    const pattern = recentMoves.slice(0, 2);
+
+    // 檢查是否重複相同的兩步移動
+    for (let i = 2; i < recentMoves.length; i += 2) {
+      if (recentMoves[i] !== pattern[0] || recentMoves[i + 1] !== pattern[1]) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

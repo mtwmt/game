@@ -56,7 +56,14 @@ export class GeminiAIStrategy extends BaseAIStrategy {
       // 嘗試解析 JSON 回應
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        const geminiResponse = JSON.parse(jsonMatch[0]);
+        try {
+          const geminiResponse = JSON.parse(jsonMatch[0]);
+
+          // 驗證回應結構
+          if (!this.isValidGeminiResponse(geminiResponse)) {
+            console.warn('❌ Gemini 回應格式無效');
+            return null;
+          }
         console.log('🤖 Gemini 分析:', geminiResponse.analysis);
         console.log('🤖 選擇理由:', geminiResponse.reasoning);
 
@@ -71,6 +78,10 @@ export class GeminiAIStrategy extends BaseAIStrategy {
           };
         } else {
           console.log('❌ Gemini 提供的移動無效');
+        }
+        } catch (parseError) {
+          console.error('❌ 無法解析 Gemini JSON 回應:', parseError);
+          return null;
         }
       }
     } catch (error) {
@@ -141,5 +152,24 @@ Important notes:
           `${index + 1}. Move from (${move.from.x},${move.from.y}) to (${move.to.x},${move.to.y})`
       )
       .join('\n');
+  }
+
+  private isValidGeminiResponse(response: any): boolean {
+    return (
+      response &&
+      typeof response === 'object' &&
+      response.move &&
+      typeof response.move === 'object' &&
+      response.move.from &&
+      typeof response.move.from === 'object' &&
+      typeof response.move.from.x === 'number' &&
+      typeof response.move.from.y === 'number' &&
+      response.move.to &&
+      typeof response.move.to === 'object' &&
+      typeof response.move.to.x === 'number' &&
+      typeof response.move.to.y === 'number' &&
+      typeof response.analysis === 'string' &&
+      typeof response.reasoning === 'string'
+    );
   }
 }

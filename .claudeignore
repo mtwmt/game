@@ -1,0 +1,38 @@
+# 依賴套件
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 建置輸出
+dist/
+build/
+.angular/
+
+# 測試覆蓋率
+coverage/
+
+# IDE 設定檔
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系統檔案
+.DS_Store
+Thumbs.db
+
+# 日誌檔案
+*.log
+
+# 暫存檔案
+*.tmp
+*.temp
+
+# Git 資料夾
+.git/
+
+# 環境變數檔案
+.env
+.env.local
+.env.production

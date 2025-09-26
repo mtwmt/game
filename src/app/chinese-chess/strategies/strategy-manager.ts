@@ -2,21 +2,21 @@ import { Injectable, inject } from '@angular/core';
 import { GameState, PlayerColor, Position } from '../chess-piece.interface';
 import { BaseAIStrategy } from './base-ai-strategy';
 import { GeminiAIStrategy } from './gemini-ai-strategy';
-import { MinimaxStrategy } from './minimax-strategy';
+import { XQWLightStrategy } from './xqwlight-strategy';
 import { ChessGameService } from '../chess-game.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class StrategyManager {
   private chessGameService = inject(ChessGameService);
   private geminiStrategy = inject(GeminiAIStrategy);
-  private minimaxStrategy = inject(MinimaxStrategy);
+  private xqwlightStrategy = inject(XQWLightStrategy);
 
   private strategies: BaseAIStrategy[] = [];
   private enabledStrategies = {
+    xqwlight: true,
     gemini: false,
-    minimax: true  // 預設使用 Minimax
   };
 
   constructor() {
@@ -25,8 +25,8 @@ export class StrategyManager {
 
   private initializeStrategies(): void {
     this.strategies = [
+      this.xqwlightStrategy, // 最高優先級
       this.geminiStrategy,
-      this.minimaxStrategy
     ];
   }
 
@@ -36,8 +36,9 @@ export class StrategyManager {
 
     try {
       // 獲取啟用的策略並按優先級排序
-      const enabledStrategies = this.getEnabledStrategiesList()
-        .sort((a, b) => a.priority - b.priority);
+      const enabledStrategies = this.getEnabledStrategiesList().sort(
+        (a, b) => a.priority - b.priority
+      );
 
       for (const strategy of enabledStrategies) {
         console.log(`🎯 嘗試策略: ${strategy.name}`);
@@ -52,7 +53,9 @@ export class StrategyManager {
         if (result) {
           const elapsed = Date.now() - startTime;
           console.log(`✅ 策略 ${strategy.name} 決策成功: ${elapsed}ms`);
-          console.log(`🏆 選擇移動: (${result.from.x},${result.from.y}) -> (${result.to.x},${result.to.y})`);
+          console.log(
+            `🏆 選擇移動: (${result.from.x},${result.from.y}) -> (${result.to.x},${result.to.y})`
+          );
 
           if (result.analysis) {
             console.log(`📊 分析: ${result.analysis}`);
@@ -68,7 +71,6 @@ export class StrategyManager {
       console.log('🎲 使用隨機移動作為最後備案...');
       const moves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
       return moves.length > 0 ? moves[Math.floor(Math.random() * moves.length)] : null;
-
     } catch (error) {
       console.error('🤖 AI思考出錯:', error);
       const moves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
@@ -78,8 +80,8 @@ export class StrategyManager {
 
   private getEnabledStrategiesList(): BaseAIStrategy[] {
     return this.strategies.filter((strategy) => {
+      if (strategy instanceof XQWLightStrategy) return this.enabledStrategies.xqwlight;
       if (strategy instanceof GeminiAIStrategy) return this.enabledStrategies.gemini;
-      if (strategy instanceof MinimaxStrategy) return this.enabledStrategies.minimax;
       return false;
     });
   }
@@ -112,44 +114,45 @@ export class StrategyManager {
     console.log(`🤖 Gemini AI 策略: ${enabled ? '啟用' : '停用'}`);
   }
 
-  setMinimaxEnabled(enabled: boolean): void {
-    this.enabledStrategies.minimax = enabled;
-    console.log(`🧠 Minimax 策略: ${enabled ? '啟用' : '停用'}`);
+  setXQWLightEnabled(enabled: boolean): void {
+    this.enabledStrategies.xqwlight = enabled;
+    console.log(`🔥 XQWLight 專業引擎: ${enabled ? '啟用' : '停用'}`);
   }
 
   // 設置 AI 模式
-  setAIMode(mode: 'gemini-only' | 'minimax-only' | 'mixed' | 'auto'): void {
+  setAIMode(mode: 'xqwlight-only' | 'gemini-only' | 'mixed' | 'auto'): void {
     switch (mode) {
+      case 'xqwlight-only':
+        this.enabledStrategies = { xqwlight: true, gemini: false };
+        console.log('🔥 AI 模式: 僅使用 XQWLight 專業引擎');
+        break;
       case 'gemini-only':
-        this.enabledStrategies = { gemini: true, minimax: false };
+        this.enabledStrategies = { xqwlight: false, gemini: true };
         console.log('🤖 AI 模式: 僅使用 Gemini AI');
         break;
-      case 'minimax-only':
-        this.enabledStrategies = { gemini: false, minimax: true };
-        console.log('🧠 AI 模式: 僅使用 Minimax 算法');
-        break;
       case 'mixed':
-        this.enabledStrategies = { gemini: true, minimax: true };
-        console.log('🔀 AI 模式: 混合模式 (Gemini → Minimax)');
+        this.enabledStrategies = { xqwlight: true, gemini: true };
+        console.log('🔀 AI 模式: 混合模式 (XQWLight → Gemini)');
         break;
       case 'auto':
       default:
-        this.enabledStrategies = { gemini: false, minimax: true };
-        console.log('⚡ AI 模式: 自動 (優先 Minimax 算法)');
+        this.enabledStrategies = { xqwlight: true, gemini: false };
+        console.log('⚡ AI 模式: 自動 (優先 XQWLight 專業引擎)');
         break;
     }
   }
 
-  // 設置難度 (影響 Minimax)
+  // 設置難度 (影響 XQWLight 引擎)
   setDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
-    this.minimaxStrategy.setDifficulty(difficulty);
-    console.log(`🎯 AI 策略難度設置為: ${difficulty}`);
+    this.xqwlightStrategy.setDifficulty(difficulty);
+    console.log(`🎯 XQWLight 引擎難度設置為: ${difficulty}`);
   }
 
   // 獲取當前思考狀態
   getThinkingDescription(): string {
-    const enabledStrategies = this.getEnabledStrategiesList()
-      .sort((a, b) => a.priority - b.priority);
+    const enabledStrategies = this.getEnabledStrategiesList().sort(
+      (a, b) => a.priority - b.priority
+    );
 
     const activeStrategy = enabledStrategies[0];
     return activeStrategy?.getThinkingDescription() || '🎲 AI正在選擇移動...';
@@ -157,8 +160,8 @@ export class StrategyManager {
 
   // 獲取策略狀態
   getStrategyStatus(): {
+    xqwlight: boolean;
     gemini: boolean;
-    minimax: boolean;
   } {
     return { ...this.enabledStrategies };
   }

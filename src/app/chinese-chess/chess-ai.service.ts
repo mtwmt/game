@@ -17,24 +17,25 @@ export class ChessAIService {
     this.strategyManager.setGeminiEnabled(use);
   }
 
-  setUseMinimax(use: boolean): void {
-    this.strategyManager.setMinimaxEnabled(use);
+  // 設置 AI 模式
+  setAIMode(mode: 'xqwlight-only' | 'gemini-only' | 'mixed' | 'auto'): void {
+    this.strategyManager.setAIMode(mode);
   }
 
-  // 設置 AI 模式
-  setAIMode(mode: 'gemini-only' | 'minimax-only' | 'mixed' | 'auto'): void {
-    this.strategyManager.setAIMode(mode);
+  // XQWLight 控制方法
+  setUseXQWLight(use: boolean): void {
+    this.strategyManager.setXQWLightEnabled(use);
   }
 
   // 獲取當前 AI 狀態
   getAIStatus(): {
+    xqwlight: boolean;
     geminiAI: boolean;
-    minimax: boolean;
   } {
     const strategyStatus = this.strategyManager.getStrategyStatus();
     return {
-      geminiAI: strategyStatus.gemini,
-      minimax: strategyStatus.minimax
+      xqwlight: strategyStatus.xqwlight,
+      geminiAI: strategyStatus.gemini
     };
   }
 
@@ -57,12 +58,12 @@ export class ChessAIService {
     let mode = 'unknown';
     let description = '';
 
-    if (aiStatus.geminiAI) {
+    if (aiStatus.xqwlight) {
+      mode = 'xqwlight';
+      description = 'XQWLight 專業引擎思考中...';
+    } else if (aiStatus.geminiAI) {
       mode = 'gemini';
       description = 'Gemini AI 思考中...';
-    } else if (aiStatus.minimax) {
-      mode = 'minimax';
-      description = 'Minimax 算法計算中...';
     } else {
       mode = 'random';
       description = '隨機選擇中...';

@@ -27,15 +27,23 @@ export interface ChessPiece {
   hasMoved: boolean;
 }
 
+export interface GameStatus {
+  gameOver: boolean;
+  winner: PlayerColor | null;
+  isInCheck: boolean;
+  isCheckmate: boolean;
+  isStalemate: boolean;
+}
+
 export interface MoveResult {
   success: boolean;
   captured?: ChessPiece;
-  isCheck?: boolean;
-  isCheckmate?: boolean;
-  isStalemate?: boolean;
-  gameOver?: boolean;
-  winner?: PlayerColor;
-  isSelfInCheck?: boolean;
+  status: GameStatus;
+}
+
+export interface AIState {
+  isThinking: boolean;
+  thinkingText: string;
 }
 
 export interface GameState {
@@ -43,13 +51,9 @@ export interface GameState {
   currentPlayer: PlayerColor;
   selectedPiece: ChessPiece | null;
   validMoves: Position[];
-  gameOver: boolean;
-  winner: PlayerColor | null;
+  status: GameStatus;
   moveHistory: string[];
-  isInCheck: boolean;
-  isSelfInCheck: boolean;
   isVsAI: boolean;
-  aiIsThinking: boolean;
-  aiThinkingText: string;
+  aiState: AIState;
   hasApiKey: boolean;
 }

@@ -4,7 +4,8 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ChessGameService, initialState } from './chess-game.service';
 import { ChessAIService } from './chess-ai.service';
-import { ChessPiece, PlayerColor, Position, GameState, MoveResult } from './chess-piece.interface';
+import { ChessPiece, PlayerColor, Position, GameState, MoveResult, GameStatus, AIState } from './chess-piece.interface';
+import { GAME_CONSTANTS } from './chess-values';
 
 @Component({
   selector: 'app-chinese-chess',
@@ -21,40 +22,50 @@ export class ChineseChess implements OnInit, OnDestroy {
   protected gameState = signal<GameState>(initialState);
   protected aiType = signal<'local' | 'service'>('local');
 
-  protected board = computed(() => this.gameState().board);
-  protected currentPlayer = computed(() => this.gameState().currentPlayer);
-  protected selectedPiece = computed(() => this.gameState().selectedPiece);
-  protected validMoves = computed(() => this.gameState().validMoves);
-  protected gameOver = computed(() => this.gameState().gameOver);
-  protected winner = computed(() => this.gameState().winner);
-  protected moveHistory = computed(() => this.gameState().moveHistory);
-  protected isInCheck = computed(() => this.gameState().isInCheck);
-  protected isSelfInCheck = computed(() => this.gameState().isSelfInCheck);
+  // 遊戲狀態相關
+  protected board = computed(() => this.gameState().board); // 9x10 棋盤陣列，存放所有棋子位置
+  protected currentPlayer = computed(() => this.gameState().currentPlayer); // 當前輪到的玩家 (紅方/黑方)
+  protected selectedPiece = computed(() => this.gameState().selectedPiece); // 目前選中的棋子
+  protected validMoves = computed(() => this.gameState().validMoves); // 選中棋子的有效移動位置
+  protected moveHistory = computed(() => this.gameState().moveHistory); // 移動歷史記錄 (棋譜)
 
+  // 遊戲結束狀態
+  protected gameOver = computed(() => this.gameState().status.gameOver); // 遊戲是否結束
+  protected winner = computed(() => this.gameState().status.winner); // 獲勝者 (紅方/黑方/null)
+
+  // 將軍相關狀態
+  protected isInCheck = computed(() => this.gameState().status.isInCheck); // 對方是否被將軍
+  protected isCheckmate = computed(() => this.gameState().status.isCheckmate); // 是否將死
+  protected isStalemate = computed(() => this.gameState().status.isStalemate); // 是否困斃/和棋
+  protected isSelfInCheck = computed(() => {
+    // 自己是否被將軍 (簡化為 false，邏輯已整合到 status 中)
+    return false;
+  });
+
+  // 顯示相關
   protected currentPlayerDisplay = computed(() =>
     this.currentPlayer() === PlayerColor.RED ? '紅方' : '黑方'
-  );
+  ); // 當前玩家的中文顯示
 
-  protected isVsAI = computed(() => this.gameState().isVsAI);
-  protected aiIsThinking = computed(() => this.gameState().aiIsThinking);
-  protected aiThinkingText = computed(() => this.gameState().aiThinkingText);
+  // AI 相關狀態
+  protected isVsAI = computed(() => this.gameState().isVsAI); // 是否為人機對戰模式
+  protected aiIsThinking = computed(() => this.gameState().aiState.isThinking); // AI 是否正在思考
+  protected aiThinkingText = computed(() => this.gameState().aiState.thinkingText); // AI 思考狀態文字
+  protected aiDifficulty = signal<'easy' | 'medium' | 'hard'>('hard'); // AI 難度設定
 
-  protected aiDifficulty = signal<'easy' | 'medium' | 'hard'>('hard');
+  // API Key Modal (保留以後可能用到)
+  protected hasApiKey = computed(() => this.chessGameService.hasApiKey()); // 是否有 Gemini API Key
+  protected isGeminiEnabled = computed(() => this.hasApiKey() && this.isVsAI()); // 是否啟用 Gemini AI
+  protected isApiKeyModalOpen = signal(false); // API Key 設定彈窗是否開啟
 
-  // API Key Modal - 保留以後可能用到
-  protected hasApiKey = computed(() => this.chessGameService.hasApiKey());
-  protected isGeminiEnabled = computed(() => this.hasApiKey() && this.isVsAI());
-  protected isApiKeyModalOpen = signal(false);
-
-  // 檢查是否是AI回合
+  // 互動控制
   protected isAITurn = computed(
     () => this.isVsAI() && this.currentPlayer() === PlayerColor.BLACK && !this.gameOver()
-  );
+  ); // 是否輪到 AI 下棋
 
-  // 檢查是否可以點擊棋盤（不是AI回合）
   protected canInteract = computed(
     () => !this.isVsAI() || this.currentPlayer() === PlayerColor.RED
-  );
+  ); // 玩家是否可以點擊棋盤 (非 AI 回合)
 
   protected readonly PlayerColor = PlayerColor;
   protected readonly Math = Math;
@@ -63,8 +74,8 @@ export class ChineseChess implements OnInit, OnDestroy {
     this.resetGame();
     this.chessGameService.updateApiKeyStatus();
 
-    // 初始化為 Minimax 算法
-    this.chessAIService.setAIMode('minimax-only');
+    // 初始化為 XQWLight 引擎
+    this.chessAIService.setAIMode('xqwlight-only');
 
     // 恢復事件監聽器 - 保留以後可能用到
     if (typeof window !== 'undefined') {
@@ -174,10 +185,10 @@ export class ChineseChess implements OnInit, OnDestroy {
   }
 
   private processMoveResult(
-    result: MoveResult, 
-    piece: ChessPiece, 
-    from: Position, 
-    to: Position, 
+    result: MoveResult,
+    piece: ChessPiece,
+    from: Position,
+    to: Position,
     currentState: GameState
   ): void {
     // 更新移動歷史
@@ -204,13 +215,8 @@ export class ChineseChess implements OnInit, OnDestroy {
     return currentPlayer === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED;
   }
 
-  private evaluateGameStatus(result: MoveResult, currentState: GameState) {
-    return {
-      isInCheck: result.isCheck || false,
-      isSelfInCheck: result.isSelfInCheck || false,
-      gameOver: result.isCheckmate || result.isStalemate || result.gameOver || false,
-      winner: result.winner || (result.isCheckmate ? currentState.currentPlayer : null)
-    };
+  private evaluateGameStatus(result: MoveResult, currentState: GameState): GameStatus {
+    return result.status;
   }
 
   private clearPieceSelections(currentState: GameState): void {
@@ -220,10 +226,10 @@ export class ChineseChess implements OnInit, OnDestroy {
   }
 
   private updateGameState(
-    currentState: GameState, 
-    nextPlayer: PlayerColor, 
-    newHistory: string[], 
-    gameStatus: any
+    currentState: GameState,
+    nextPlayer: PlayerColor,
+    newHistory: string[],
+    gameStatus: GameStatus
   ): void {
     this.gameState.set({
       ...currentState,
@@ -231,10 +237,7 @@ export class ChineseChess implements OnInit, OnDestroy {
       selectedPiece: null,
       validMoves: [],
       moveHistory: newHistory,
-      isInCheck: gameStatus.isInCheck,
-      isSelfInCheck: gameStatus.isSelfInCheck,
-      gameOver: gameStatus.gameOver,
-      winner: gameStatus.winner,
+      status: gameStatus,
     });
   }
 
@@ -245,7 +248,7 @@ export class ChineseChess implements OnInit, OnDestroy {
       nextPlayer,
       shouldTrigger: !gameOver && isVsAI && nextPlayer === PlayerColor.BLACK,
     });
-    
+
     if (!gameOver && isVsAI && nextPlayer === PlayerColor.BLACK) {
       console.log('準備觸發AI移動...');
       this.triggerAIMove();
@@ -260,33 +263,43 @@ export class ChineseChess implements OnInit, OnDestroy {
   ): string {
     if (!piece) return '';
 
-    const toChineseNum = (n: number): string => {
-      const chineseNum = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
-      if (n >= 1 && n <= 9) {
-        return chineseNum[n - 1];
-      }
-      return n.toString();
-    };
-
     const pieceSymbol = this.chessGameService.getPieceSymbol(piece);
+    const file = this.getFileNumber(piece.color, from.x);
+    const action = this.getMoveAction(piece.color, from, to);
 
-    // 傳統中國象棋棋譜格式（例如：炮二平五、馬八進七）
-    const file = piece.color === PlayerColor.RED ? 9 - from.x : from.x + 1;
+    return `${pieceSymbol}${this.toChineseNum(file)}${action}`;
+  }
+
+  private toChineseNum(n: number): string {
+    const chineseNum = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    if (n >= 1 && n <= 9) {
+      return chineseNum[n - 1];
+    }
+    return n.toString();
+  }
+
+  private getFileNumber(color: PlayerColor, x: number): number {
+    return color === PlayerColor.RED ? 9 - x : x + 1;
+  }
+
+  private getMoveAction(color: PlayerColor, from: Position, to: Position): string {
     const rank = to.y - from.y;
 
-    let action = '';
     if (rank === 0) {
-      const toFile = piece.color === PlayerColor.RED ? 9 - to.x : to.x + 1;
-      action = '平' + toChineseNum(toFile);
+      // 平移
+      const toFile = this.getFileNumber(color, to.x);
+      return '平' + this.toChineseNum(toFile);
     } else {
-      // 修改進退邏輯，考慮紅黑雙方的方向差異
-      const isForward =
-        (piece.color === PlayerColor.RED && rank < 0) ||
-        (piece.color === PlayerColor.BLACK && rank > 0);
-      action = (isForward ? '進' : '退') + toChineseNum(Math.abs(rank));
+      // 進退
+      const isForward = this.isMoveForward(color, rank);
+      const direction = isForward ? '進' : '退';
+      return direction + this.toChineseNum(Math.abs(rank));
     }
+  }
 
-    return `${pieceSymbol}${toChineseNum(file)}${action}`;
+  private isMoveForward(color: PlayerColor, rank: number): boolean {
+    return (color === PlayerColor.RED && rank < 0) ||
+           (color === PlayerColor.BLACK && rank > 0);
   }
 
   getSquareClass(x: number, y: number): string {
@@ -347,11 +360,14 @@ export class ChineseChess implements OnInit, OnDestroy {
     this.gameState.set({
       ...currentState,
       isVsAI: newIsVsAI,
-      aiIsThinking: false, // Reset AI thinking state when switching
+      aiState: {
+        isThinking: false,
+        thinkingText: '',
+      },
     });
 
     // If switching to AI mode and it's currently black's turn, trigger AI move
-    if (newIsVsAI && currentState.currentPlayer === PlayerColor.BLACK && !currentState.gameOver) {
+    if (newIsVsAI && currentState.currentPlayer === PlayerColor.BLACK && !currentState.status.gameOver) {
       this.triggerAIMove();
     }
   }
@@ -370,7 +386,7 @@ export class ChineseChess implements OnInit, OnDestroy {
         console.error('🤖 AI移動出錯:', error);
         this.aiSurrender();
       }
-    }, 500);
+    }, GAME_CONSTANTS.AI_THINKING_DELAY);
   }
 
   private prepareAIThinking(currentState: GameState): void {
@@ -380,8 +396,10 @@ export class ChineseChess implements OnInit, OnDestroy {
     // 設置 AI 思考狀態
     this.gameState.set({
       ...currentState,
-      aiIsThinking: true,
-      aiThinkingText: this.chessAIService.getThinkingDescription(),
+      aiState: {
+        isThinking: true,
+        thinkingText: this.chessAIService.getThinkingDescription(),
+      },
     });
   }
 
@@ -410,10 +428,10 @@ export class ChineseChess implements OnInit, OnDestroy {
   }
 
   private processAIMoveResult(
-    result: MoveResult, 
-    piece: ChessPiece, 
-    from: Position, 
-    to: Position, 
+    result: MoveResult,
+    piece: ChessPiece,
+    from: Position,
+    to: Position,
     currentState: GameState
   ): void {
     // 更新移動歷史
@@ -425,7 +443,7 @@ export class ChineseChess implements OnInit, OnDestroy {
 
     // 檢查遊戲狀態
     const gameStatus = this.evaluateGameStatus(result, currentState);
-    const winner = result.winner || (result.isCheckmate ? PlayerColor.BLACK : null);
+    const winner = result.status.winner;
 
     // 清除選擇狀態
     this.clearPieceSelections(currentState);
@@ -436,11 +454,11 @@ export class ChineseChess implements OnInit, OnDestroy {
       selectedPiece: null,
       validMoves: [],
       moveHistory: newHistory,
-      isInCheck: gameStatus.isInCheck,
-      isSelfInCheck: gameStatus.isSelfInCheck,
-      gameOver: gameStatus.gameOver,
-      winner,
-      aiIsThinking: false, // 重置 AI 思考狀態
+      status: gameStatus,
+      aiState: {
+        isThinking: false,
+        thinkingText: '',
+      },
     });
   }
 
@@ -451,9 +469,17 @@ export class ChineseChess implements OnInit, OnDestroy {
     // 更新遊戲狀態，AI投降，紅方（玩家）獲勝
     this.gameState.set({
       ...currentState,
-      gameOver: true,
-      winner: PlayerColor.RED,
-      aiIsThinking: false,
+      status: {
+        gameOver: true,
+        winner: PlayerColor.RED,
+        isInCheck: false,
+        isCheckmate: false,
+        isStalemate: false,
+      },
+      aiState: {
+        isThinking: false,
+        thinkingText: '',
+      },
       moveHistory: [...currentState.moveHistory, '🤖 AI投降'],
     });
   }
