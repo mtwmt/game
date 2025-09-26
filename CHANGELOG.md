@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/mtwmt/game/compare/v1.4.0...v1.5.0) (2025-09-26)
+
+
+### Features
+
+* integrate UCI chess engines for improved AI performance ([47a9023](https://github.com/mtwmt/game/commit/47a9023ab9c6ea95fa88f76a231ed17db945a7b8))
+
 # [1.4.0](https://github.com/mtwmt/game/compare/v1.3.0...v1.4.0) (2025-09-25)
 
 
