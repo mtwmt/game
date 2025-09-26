@@ -1,4 +1,5 @@
 import { PlayerColor, Position, GameState } from '../chess-piece.interface';
+import { ChessGameService } from '../chess-game.service';
 
 export interface AIStrategyResult {
   from: Position;
@@ -32,7 +33,7 @@ export abstract class BaseAIStrategy {
   protected getAllPossibleMoves(
     gameState: GameState,
     color: PlayerColor,
-    chessGameService: any
+    chessGameService: ChessGameService
   ): { from: Position; to: Position }[] {
     const moves: { from: Position; to: Position }[] = [];
     const board = gameState.board;

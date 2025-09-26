@@ -8,6 +8,47 @@ import {
   GameState,
 } from './chess-piece.interface';
 
+// 簡單的 LRU 快取實現
+class LRUCache<K, V> {
+  private cache = new Map<K, V>();
+  private readonly maxSize: number;
+
+  constructor(maxSize: number = 1000) {
+    this.maxSize = maxSize;
+  }
+
+  get(key: K): V | undefined {
+    const value = this.cache.get(key);
+    if (value !== undefined) {
+      // 重新插入以更新順序
+      this.cache.delete(key);
+      this.cache.set(key, value);
+    }
+    return value;
+  }
+
+  set(key: K, value: V): void {
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.maxSize) {
+      // 刪除最久未使用的項目
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
+    }
+    this.cache.set(key, value);
+  }
+
+  has(key: K): boolean {
+    return this.cache.has(key);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
 interface BoardCache {
   kingPositions: Map<PlayerColor, Position>;
   piecesByColor: Map<PlayerColor, ChessPiece[]>;
@@ -56,7 +97,25 @@ export class ChessGameService {
     this.updateApiKeyStatus();
   }
 
-  private moveCache = new Map<string, Position[]>();
+  private moveCache = new LRUCache<string, Position[]>(1000);
+  
+  // 添加邊界檢查工具方法
+  private validatePosition(x: number, y: number, context: string = 'position'): void {
+    if (!this.isValidPosition(x, y)) {
+      throw new Error(`Invalid chess ${context}: (${x}, ${y}). Valid range: x[0-8], y[0-9]`);
+    }
+  }
+
+  private validateBoard(board: (ChessPiece | null)[][]): void {
+    if (!board || board.length !== ChessGameService.BOARD_HEIGHT) {
+      throw new Error(`Invalid board height: expected ${ChessGameService.BOARD_HEIGHT}`);
+    }
+    for (let y = 0; y < board.length; y++) {
+      if (!board[y] || board[y].length !== ChessGameService.BOARD_WIDTH) {
+        throw new Error(`Invalid board width at row ${y}: expected ${ChessGameService.BOARD_WIDTH}`);
+      }
+    }
+  }
 
   // 常用方向常數
   private readonly ORTHOGONAL_DIRECTIONS = [
@@ -288,6 +347,12 @@ export class ChessGameService {
   }
 
   getPossibleMoves(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
+    if (!piece) {
+      throw new Error('Cannot get possible moves for null piece');
+    }
+    this.validateBoard(board);
+    this.validatePosition(piece.position.x, piece.position.y, 'piece position');
+    
     const cacheKey = `${piece.id}-${piece.position.x}-${piece.position.y}-true`;
 
     if (this.moveCache.has(cacheKey)) {
@@ -300,6 +365,12 @@ export class ChessGameService {
   }
 
   getPossibleMovesForCheck(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
+    if (!piece) {
+      throw new Error('Cannot get possible moves for null piece');
+    }
+    this.validateBoard(board);
+    this.validatePosition(piece.position.x, piece.position.y, 'piece position');
+    
     const cacheKey = `${piece.id}-${piece.position.x}-${piece.position.y}-false`;
 
     if (this.moveCache.has(cacheKey)) {
@@ -518,6 +589,10 @@ export class ChessGameService {
   }
 
   makeMove(gameState: GameState, from: Position, to: Position): MoveResult {
+    this.validatePosition(from.x, from.y, 'source position');
+    this.validatePosition(to.x, to.y, 'target position');
+    this.validateBoard(gameState.board);
+    
     const { board, moveHistory } = gameState;
     const piece = board[from.y][from.x];
 

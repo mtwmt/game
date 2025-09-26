@@ -4,6 +4,23 @@ import { PlayerColor, Position, GameState } from '../chess-piece.interface';
 import { ChessGameService } from '../chess-game.service';
 import { PIECE_VALUES, getPieceValue } from '../chess-values';
 
+// 搜索算法常數
+const SEARCH_CONSTANTS = {
+  INFINITY: 999999 as number,
+  NEGATIVE_INFINITY: -999999 as number,
+  MIN_DEPTH: 2,
+  MAX_DEPTH: 8,
+  MIN_TIME: 1000,
+  MAX_TIME: 8000,
+  DEPTH_MULTIPLIER: 0.8,
+  TIME_MULTIPLIER: 800,
+  CAPTURE_BONUS: 1000,
+  CHECK_BONUS: 500,
+  CHECK_PENALTY: 200,
+  MOBILITY_FACTOR: 5,
+  RANDOM_FACTOR: 20
+};
+
 interface MoveEval {
   move: { from: Position; to: Position };
   score: number;
@@ -41,8 +58,8 @@ export class MinimaxStrategy extends BaseAIStrategy {
       const result = await this.alphaBetaSearch(
         gameState,
         this.maxDepth,
-        -999999,
-        999999,
+        SEARCH_CONSTANTS.NEGATIVE_INFINITY,
+        SEARCH_CONSTANTS.INFINITY,
         true // BLACK 是最大化玩家
       );
       
@@ -73,23 +90,26 @@ export class MinimaxStrategy extends BaseAIStrategy {
     return `🧠 Minimax 算法正在深度分析 (XQWLight增強，${this.maxDepth}層)...`;
   }
 
-  // 設置難度 (整合 XQWLight 的難度設置邏輯)
+  // 設置難度 (使用常數優化的難度設置邏輯)
   setDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
-    switch (difficulty) {
-      case 'easy':
-        this.maxDepth = Math.max(2, Math.min(8, Math.floor(3 * 0.8) + 2)); // ~4
-        this.maxTime = Math.max(1000, Math.min(8000, 3 * 800)); // 2400ms
-        break;
-      case 'medium':
-        this.maxDepth = Math.max(2, Math.min(8, Math.floor(5 * 0.8) + 2)); // ~6
-        this.maxTime = Math.max(1000, Math.min(8000, 5 * 800)); // 4000ms
-        break;
-      case 'hard':
-        this.maxDepth = Math.max(2, Math.min(8, Math.floor(7 * 0.8) + 2)); // ~7
-        this.maxTime = Math.max(1000, Math.min(8000, 7 * 800)); // 5600ms
-        break;
-    }
+    const difficultyParams = this.getDifficultyParameters(difficulty);
+    this.maxDepth = Math.max(
+      SEARCH_CONSTANTS.MIN_DEPTH, 
+      Math.min(SEARCH_CONSTANTS.MAX_DEPTH, Math.floor(difficultyParams.level * SEARCH_CONSTANTS.DEPTH_MULTIPLIER) + 2)
+    );
+    this.maxTime = Math.max(
+      SEARCH_CONSTANTS.MIN_TIME, 
+      Math.min(SEARCH_CONSTANTS.MAX_TIME, difficultyParams.level * SEARCH_CONSTANTS.TIME_MULTIPLIER)
+    );
     console.log(`🧠 Minimax 引擎難度設置: ${difficulty} (深度=${this.maxDepth}, 時間=${this.maxTime}ms)`);
+  }
+
+  private getDifficultyParameters(difficulty: 'easy' | 'medium' | 'hard'): { level: number } {
+    switch (difficulty) {
+      case 'easy': return { level: 3 };
+      case 'medium': return { level: 5 };
+      case 'hard': return { level: 7 };
+    }
   }
 
   // Alpha-Beta 搜索算法 (整合 XQWLight 的優化實現)
@@ -123,9 +143,9 @@ export class MinimaxStrategy extends BaseAIStrategy {
     const moves = this.getAllPossibleMoves(gameState, currentColor, this.chessGameService);
 
     if (moves.length === 0) {
-      // 無移動可走 - 可能是將死或和棋 (使用 XQWLight 的判斷邏輯)
+      // 無移動可走 - 可能是將死或和棋
       const inCheck = this.chessGameService.isInCheck(gameState.board, currentColor);
-      const score = inCheck ? (isMaximizingPlayer ? -999999 : 999999) : 0;
+      const score = inCheck ? (isMaximizingPlayer ? SEARCH_CONSTANTS.NEGATIVE_INFINITY : SEARCH_CONSTANTS.INFINITY) : 0;
       return { 
         move: { from: { x: 0, y: 0 }, to: { x: 0, y: 0 } }, 
         score,
@@ -141,7 +161,7 @@ export class MinimaxStrategy extends BaseAIStrategy {
     let bestMove: { from: Position; to: Position } | null = null;
 
     if (isMaximizingPlayer) {
-      let maxEval = -999999;
+      let maxEval = SEARCH_CONSTANTS.NEGATIVE_INFINITY;
 
       for (const move of sortedMoves) {
         const newState = this.simulateMove(gameState, move.from, move.to);
@@ -160,7 +180,7 @@ export class MinimaxStrategy extends BaseAIStrategy {
 
         alpha = Math.max(alpha, maxEval);
         if (beta <= alpha) {
-          break; // Beta cutoff (XQWLight 的剪枝)
+          break; // Beta cutoff
         }
       }
 
@@ -173,7 +193,7 @@ export class MinimaxStrategy extends BaseAIStrategy {
       } : null;
 
     } else {
-      let minEval = 999999;
+      let minEval = SEARCH_CONSTANTS.INFINITY;
 
       for (const move of sortedMoves) {
         const newState = this.simulateMove(gameState, move.from, move.to);
@@ -192,7 +212,7 @@ export class MinimaxStrategy extends BaseAIStrategy {
 
         beta = Math.min(beta, minEval);
         if (beta <= alpha) {
-          break; // Alpha cutoff (XQWLight 的剪枝)
+          break; // Alpha cutoff
         }
       }
 
@@ -219,26 +239,26 @@ export class MinimaxStrategy extends BaseAIStrategy {
       const targetB = gameState.board[b.to.y][b.to.x];
 
       if (targetA) {
-        scoreA += PIECE_VALUES[targetA.type] + 1000; // XQWLight 的吃子獎勵
+        scoreA += PIECE_VALUES[targetA.type] + SEARCH_CONSTANTS.CAPTURE_BONUS;
       }
       if (targetB) {
-        scoreB += PIECE_VALUES[targetB.type] + 1000;
+        scoreB += PIECE_VALUES[targetB.type] + SEARCH_CONSTANTS.CAPTURE_BONUS;
       }
 
-      // 將軍移動優先 (使用 XQWLight 的將軍獎勵)
+      // 將軍移動優先
       const testStateA = this.simulateMove(gameState, a.from, a.to);
       const testStateB = this.simulateMove(gameState, b.from, b.to);
 
       if (this.chessGameService.isInCheck(testStateA.board, PlayerColor.RED)) {
-        scoreA += 500; // XQWLight 的將軍獎勵
+        scoreA += SEARCH_CONSTANTS.CHECK_BONUS;
       }
       if (this.chessGameService.isInCheck(testStateB.board, PlayerColor.RED)) {
-        scoreB += 500;
+        scoreB += SEARCH_CONSTANTS.CHECK_BONUS;
       }
 
-      // 添加一些隨機性 (XQWLight 的做法)
-      scoreA += Math.floor(Math.random() * 20);
-      scoreB += Math.floor(Math.random() * 20);
+      // 添加一些隨機性
+      scoreA += Math.floor(Math.random() * SEARCH_CONSTANTS.RANDOM_FACTOR);
+      scoreB += Math.floor(Math.random() * SEARCH_CONSTANTS.RANDOM_FACTOR);
 
       return scoreB - scoreA;
     });
@@ -264,17 +284,17 @@ export class MinimaxStrategy extends BaseAIStrategy {
       }
     }
 
-    // 機動性評估 (XQWLight 的機動性因子)
+    // 機動性評估
     const blackMoves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK, this.chessGameService).length;
     const redMoves = this.getAllPossibleMoves(gameState, PlayerColor.RED, this.chessGameService).length;
-    score += (blackMoves - redMoves) * 5;
+    score += (blackMoves - redMoves) * SEARCH_CONSTANTS.MOBILITY_FACTOR;
 
-    // 將軍懲罰/獎勵 (XQWLight 的將軍評估)
+    // 將軍懲罰/獎勵
     if (this.chessGameService.isInCheck(gameState.board, PlayerColor.BLACK)) {
-      score -= 200; // XQWLight 的將軍懲罰
+      score -= SEARCH_CONSTANTS.CHECK_PENALTY;
     }
     if (this.chessGameService.isInCheck(gameState.board, PlayerColor.RED)) {
-      score += 200; // XQWLight 的將軍獎勵
+      score += SEARCH_CONSTANTS.CHECK_PENALTY;
     }
 
     return score;
