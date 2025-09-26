@@ -126,92 +126,10 @@ export const STANDARD_RESPONSES: { [key: string]: Array<{ from: Position, to: Po
   ]
 };
 
-// 從大量棋局中學習的位置評估調整值
+// 從大量棋局中學習的位置評估調整值 (未來可擴展)
 export const LEARNED_POSITION_VALUES: { [key: string]: number } = {
   // 中盤有利布局
   "車馬象士將士象馬車_炮_炮_兵兵兵兵兵_卒卒卒卒卒_砲_砲_車馬象士將士象馬車": 0, // 起始局面
   "車_象士將士象馬車_炮_炮馬兵兵兵兵兵_卒卒卒卒卒_砲_砲_車馬象士將士象_車": 50, // 黑方馬八進七，佔據中心
   "車馬象士將士象_車_炮_炮馬兵兵兵兵兵_卒卒卒卒_砲_砲_車馬象士將士象_車卒": 80, // 黑方卒七進一，威脅中路
 };
-
-/**
- * 根據當前局面和歷史移動查詢最佳開局應對
- * @param moveHistory 移動歷史
- * @returns 推薦的下一步移動描述
- */
-export function findBestOpeningResponse(moveHistory: string[]): string | null {
-  // 只在前15步考慮開局庫
-  if (moveHistory.length >= 15) return null;
-
-  // 尋找匹配的開局
-  for (const [openingName, variations] of Object.entries(OPENING_LIBRARY)) {
-    for (const variation of variations) {
-      // 檢查歷史移動是否匹配這個變化的前綴
-      const matchLength = Math.min(moveHistory.length, variation.moves.length);
-      let matches = true;
-
-      for (let i = 0; i < matchLength; i++) {
-        if (moveHistory[i] !== variation.moves[i]) {
-          matches = false;
-          break;
-        }
-      }
-
-      // 如果匹配並且開局庫中有下一步
-      if (matches && variation.moves.length > moveHistory.length) {
-        return variation.moves[moveHistory.length];
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * 根據中文棋譜表示法查找對應的移動
- * 這是一個簡化版本，實際上需要更複雜的邏輯來解析各種棋譜格式
- */
-export function findMoveFromNotation(notation: string, board: (ChessPiece | null)[][], currentPlayer: PlayerColor): { from: Position, to: Position } | null {
-  // 這裡需要實現將中文棋譜轉換為具體移動的邏輯
-  // 例如："炮二平五" => { from: {x: 1, y: 7}, to: {x: 4, y: 7} }
-  // 由於這非常複雜，這裡只返回null作為示例
-  console.log('需要將棋譜表示法轉換為具體移動:', notation);
-  return null;
-}
-
-/**
- * 生成棋盤的哈希表示，用於查找位置評估
- */
-export function generateBoardHash(board: (ChessPiece | null)[][]): string {
-  let hash = '';
-  for (let y = 0; y < 10; y++) {
-    for (let x = 0; x < 9; x++) {
-      const piece = board[y][x];
-      if (!piece) {
-        hash += '_';
-      } else {
-        // 用中文表示棋子
-        let symbol = '';
-        switch (piece.type) {
-          case PieceType.KING: symbol = piece.color === PlayerColor.RED ? '將' : '帥'; break;
-          case PieceType.ADVISOR: symbol = piece.color === PlayerColor.RED ? '士' : '仕'; break;
-          case PieceType.ELEPHANT: symbol = piece.color === PlayerColor.RED ? '象' : '相'; break;
-          case PieceType.HORSE: symbol = '馬'; break;
-          case PieceType.ROOK: symbol = '車'; break;
-          case PieceType.CANNON: symbol = piece.color === PlayerColor.RED ? '炮' : '砲'; break;
-          case PieceType.SOLDIER: symbol = piece.color === PlayerColor.RED ? '兵' : '卒'; break;
-        }
-        hash += symbol;
-      }
-    }
-  }
-  return hash;
-}
-
-/**
- * 從棋譜中獲取位置評估值
- */
-export function getPositionEvaluation(board: (ChessPiece | null)[][]): number {
-  const hash = generateBoardHash(board);
-  return LEARNED_POSITION_VALUES[hash] || 0;
-}

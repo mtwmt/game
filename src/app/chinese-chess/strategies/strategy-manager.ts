@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { GameState, PlayerColor, Position } from '../chess-piece.interface';
 import { BaseAIStrategy } from './base-ai-strategy';
-import { UCIEngineStrategy } from './uci-engine-strategy';
 import { GeminiAIStrategy } from './gemini-ai-strategy';
 import { MinimaxStrategy } from './minimax-strategy';
 import { ChessGameService } from '../chess-game.service';
@@ -11,15 +10,13 @@ import { ChessGameService } from '../chess-game.service';
 })
 export class StrategyManager {
   private chessGameService = inject(ChessGameService);
-  private uciStrategy = inject(UCIEngineStrategy);
   private geminiStrategy = inject(GeminiAIStrategy);
   private minimaxStrategy = inject(MinimaxStrategy);
 
   private strategies: BaseAIStrategy[] = [];
   private enabledStrategies = {
-    uci: true,
     gemini: false,
-    minimax: false
+    minimax: true  // 預設使用 Minimax
   };
 
   constructor() {
@@ -28,7 +25,6 @@ export class StrategyManager {
 
   private initializeStrategies(): void {
     this.strategies = [
-      this.uciStrategy,
       this.geminiStrategy,
       this.minimaxStrategy
     ];
@@ -82,7 +78,6 @@ export class StrategyManager {
 
   private getEnabledStrategiesList(): BaseAIStrategy[] {
     return this.strategies.filter((strategy) => {
-      if (strategy instanceof UCIEngineStrategy) return this.enabledStrategies.uci;
       if (strategy instanceof GeminiAIStrategy) return this.enabledStrategies.gemini;
       if (strategy instanceof MinimaxStrategy) return this.enabledStrategies.minimax;
       return false;
@@ -112,11 +107,6 @@ export class StrategyManager {
   }
 
   // 策略控制方法
-  setUCIEngineEnabled(enabled: boolean): void {
-    this.enabledStrategies.uci = enabled;
-    console.log(`🔧 UCI 引擎策略: ${enabled ? '啟用' : '停用'}`);
-  }
-
   setGeminiEnabled(enabled: boolean): void {
     this.enabledStrategies.gemini = enabled;
     console.log(`🤖 Gemini AI 策略: ${enabled ? '啟用' : '停用'}`);
@@ -128,42 +118,32 @@ export class StrategyManager {
   }
 
   // 設置 AI 模式
-  setAIMode(mode: 'uci-only' | 'gemini-only' | 'minimax-only' | 'mixed' | 'auto'): void {
+  setAIMode(mode: 'gemini-only' | 'minimax-only' | 'mixed' | 'auto'): void {
     switch (mode) {
-      case 'uci-only':
-        this.enabledStrategies = { uci: true, gemini: false, minimax: false };
-        console.log('🏆 AI 模式: 僅使用 UCI 引擎');
-        break;
       case 'gemini-only':
-        this.enabledStrategies = { uci: false, gemini: true, minimax: false };
+        this.enabledStrategies = { gemini: true, minimax: false };
         console.log('🤖 AI 模式: 僅使用 Gemini AI');
         break;
       case 'minimax-only':
-        this.enabledStrategies = { uci: false, gemini: false, minimax: true };
+        this.enabledStrategies = { gemini: false, minimax: true };
         console.log('🧠 AI 模式: 僅使用 Minimax 算法');
         break;
       case 'mixed':
-        this.enabledStrategies = { uci: true, gemini: true, minimax: true };
-        console.log('🔀 AI 模式: 混合模式 (UCI → Gemini → Minimax)');
+        this.enabledStrategies = { gemini: true, minimax: true };
+        console.log('🔀 AI 模式: 混合模式 (Gemini → Minimax)');
         break;
       case 'auto':
       default:
-        this.enabledStrategies = { uci: true, gemini: false, minimax: false };
-        console.log('⚡ AI 模式: 自動 (優先 UCI 引擎)');
+        this.enabledStrategies = { gemini: false, minimax: true };
+        console.log('⚡ AI 模式: 自動 (優先 Minimax 算法)');
         break;
     }
   }
 
-  // 設置難度 (同時影響 UCI 引擎和 Minimax)
+  // 設置難度 (影響 Minimax)
   setDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
-    this.uciStrategy.setDifficulty(difficulty);
     this.minimaxStrategy.setDifficulty(difficulty);
-    console.log(`🎯 所有 AI 策略難度設置為: ${difficulty}`);
-  }
-
-  // 設置 Minimax 難度 (保留向後兼容)
-  setMinimaxDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
-    this.minimaxStrategy.setDifficulty(difficulty);
+    console.log(`🎯 AI 策略難度設置為: ${difficulty}`);
   }
 
   // 獲取當前思考狀態
@@ -177,7 +157,6 @@ export class StrategyManager {
 
   // 獲取策略狀態
   getStrategyStatus(): {
-    uci: boolean;
     gemini: boolean;
     minimax: boolean;
   } {

@@ -63,8 +63,8 @@ export class ChineseChess implements OnInit, OnDestroy {
     this.resetGame();
     this.chessGameService.updateApiKeyStatus();
 
-    // 初始化 UCI 引擎為默認 AI
-    this.chessAIService.setAIMode('uci-only');
+    // 初始化為 Minimax 算法
+    this.chessAIService.setAIMode('minimax-only');
 
     // 恢復事件監聽器 - 保留以後可能用到
     if (typeof window !== 'undefined') {
