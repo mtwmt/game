@@ -4,7 +4,14 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ChessGameService, initialState } from './chess-game.service';
 import { ChessAIService } from './chess-ai.service';
-import { ChessPiece, PlayerColor, Position, GameState, MoveResult, GameStatus, AIState } from './chess-piece.interface';
+import {
+  ChessPiece,
+  PlayerColor,
+  Position,
+  GameState,
+  MoveResult,
+  GameStatus,
+} from './chess-piece.interface';
 import { GAME_CONSTANTS } from './chess-values';
 
 @Component({
@@ -37,10 +44,7 @@ export class ChineseChess implements OnInit, OnDestroy {
   protected isInCheck = computed(() => this.gameState().status.isInCheck); // 對方是否被將軍
   protected isCheckmate = computed(() => this.gameState().status.isCheckmate); // 是否將死
   protected isStalemate = computed(() => this.gameState().status.isStalemate); // 是否困斃/和棋
-  protected isSelfInCheck = computed(() => {
-    // 自己是否被將軍 (簡化為 false，邏輯已整合到 status 中)
-    return false;
-  });
+  protected isSelfInCheck = computed(() => this.gameState().status.isSelfInCheck); // 當前玩家是否被將軍
 
   // 顯示相關
   protected currentPlayerDisplay = computed(() =>
@@ -114,8 +118,17 @@ export class ChineseChess implements OnInit, OnDestroy {
     }
   }
 
-  private handleSelectedPieceClick(x: number, y: number, piece: ChessPiece | null, currentState: GameState): void {
-    if (piece && piece.color === currentState.currentPlayer && piece !== currentState.selectedPiece) {
+  private handleSelectedPieceClick(
+    x: number,
+    y: number,
+    piece: ChessPiece | null,
+    currentState: GameState
+  ): void {
+    if (
+      piece &&
+      piece.color === currentState.currentPlayer &&
+      piece !== currentState.selectedPiece
+    ) {
       // 選擇新的己方棋子
       this.selectPiece(piece);
     } else if (this.isValidMove(x, y)) {
@@ -298,8 +311,7 @@ export class ChineseChess implements OnInit, OnDestroy {
   }
 
   private isMoveForward(color: PlayerColor, rank: number): boolean {
-    return (color === PlayerColor.RED && rank < 0) ||
-           (color === PlayerColor.BLACK && rank > 0);
+    return (color === PlayerColor.RED && rank < 0) || (color === PlayerColor.BLACK && rank > 0);
   }
 
   getSquareClass(x: number, y: number): string {
@@ -367,7 +379,11 @@ export class ChineseChess implements OnInit, OnDestroy {
     });
 
     // If switching to AI mode and it's currently black's turn, trigger AI move
-    if (newIsVsAI && currentState.currentPlayer === PlayerColor.BLACK && !currentState.status.gameOver) {
+    if (
+      newIsVsAI &&
+      currentState.currentPlayer === PlayerColor.BLACK &&
+      !currentState.status.gameOver
+    ) {
       this.triggerAIMove();
     }
   }
@@ -438,8 +454,8 @@ export class ChineseChess implements OnInit, OnDestroy {
     const moveNotation = this.generateMoveNotation(piece, from, to, result.captured);
     const newHistory = [...currentState.moveHistory, moveNotation];
 
-    // 切換回玩家
-    const nextPlayer = PlayerColor.RED;
+    // 切換玩家 (和普通移動邏輯一致)
+    const nextPlayer = this.getNextPlayer(piece.color);
 
     // 檢查遊戲狀態
     const gameStatus = this.evaluateGameStatus(result, currentState);
@@ -473,6 +489,7 @@ export class ChineseChess implements OnInit, OnDestroy {
         gameOver: true,
         winner: PlayerColor.RED,
         isInCheck: false,
+        isSelfInCheck: false,
         isCheckmate: false,
         isStalemate: false,
       },

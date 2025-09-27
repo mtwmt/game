@@ -30,7 +30,8 @@ export interface ChessPiece {
 export interface GameStatus {
   gameOver: boolean;
   winner: PlayerColor | null;
-  isInCheck: boolean;
+  isInCheck: boolean; // 對方被將軍
+  isSelfInCheck: boolean; // 當前玩家被將軍
   isCheckmate: boolean;
   isStalemate: boolean;
 }

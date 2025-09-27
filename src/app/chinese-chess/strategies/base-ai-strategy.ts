@@ -44,12 +44,45 @@ export abstract class BaseAIStrategy {
         if (piece && piece.color === color) {
           const possibleMoves = chessGameService.getPossibleMoves(piece, board);
           for (const moveTo of possibleMoves) {
-            moves.push({ from: piece.position, to: moveTo });
+            // 檢查移動是否會讓自己被將軍（非法移動）
+            const move = { from: piece.position, to: moveTo };
+            if (this.isMoveLegal(move, gameState, chessGameService)) {
+              moves.push(move);
+            }
           }
         }
       }
     }
 
     return moves;
+  }
+
+  // 檢查移動是否合法（不會讓自己被將軍）
+  protected isMoveLegal(
+    move: { from: Position; to: Position },
+    gameState: GameState,
+    chessGameService: ChessGameService
+  ): boolean {
+    const board = gameState.board;
+    const piece = board[move.from.y][move.from.x];
+    if (!piece) return false;
+
+    // 模擬移動
+    const originalTarget = board[move.to.y][move.to.x];
+    const originalPos = piece.position;
+
+    board[move.to.y][move.to.x] = piece;
+    board[move.from.y][move.from.x] = null;
+    piece.position = move.to;
+
+    // 檢查是否會讓自己被將軍
+    const wouldBeInCheck = chessGameService.isInCheck(board, piece.color);
+
+    // 還原棋盤
+    board[move.from.y][move.from.x] = piece;
+    board[move.to.y][move.to.x] = originalTarget;
+    piece.position = originalPos;
+
+    return !wouldBeInCheck;
   }
 }

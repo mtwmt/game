@@ -99,13 +99,46 @@ export class StrategyManager {
         if (piece && piece.color === color) {
           const possibleMoves = this.chessGameService.getPossibleMoves(piece, board);
           for (const moveTo of possibleMoves) {
-            moves.push({ from: piece.position, to: moveTo });
+            const move = { from: piece.position, to: moveTo };
+
+            // 檢查移動是否會讓自己被將軍 (避免送死)
+            if (this.isMoveLegal(move, gameState)) {
+              moves.push(move);
+            }
           }
         }
       }
     }
 
     return moves;
+  }
+
+  // 檢查移動是否合法（不會讓自己被將軍）
+  private isMoveLegal(
+    move: { from: Position; to: Position },
+    gameState: GameState
+  ): boolean {
+    const board = gameState.board;
+    const piece = board[move.from.y][move.from.x];
+    if (!piece) return false;
+
+    // 模擬移動
+    const originalTarget = board[move.to.y][move.to.x];
+    const originalPos = piece.position;
+
+    board[move.to.y][move.to.x] = piece;
+    board[move.from.y][move.from.x] = null;
+    piece.position = move.to;
+
+    // 檢查是否會讓自己被將軍
+    const wouldBeInCheck = this.chessGameService.isInCheck(board, piece.color, gameState.moveHistory.length + 1);
+
+    // 還原棋盤
+    board[move.from.y][move.from.x] = piece;
+    board[move.to.y][move.to.x] = originalTarget;
+    piece.position = originalPos;
+
+    return !wouldBeInCheck;
   }
 
   // 策略控制方法

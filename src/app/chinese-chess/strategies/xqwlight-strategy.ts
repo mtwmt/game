@@ -95,7 +95,8 @@ export class XQWLightStrategy extends BaseAIStrategy {
   // ==========================================
 
   private searchRoot(gameState: GameState, depth: number): MoveScore | null {
-    const moves = this.generateAllMoves(gameState, PlayerColor.BLACK);
+    const aiColor = PlayerColor.BLACK; // AI 總是黑方
+    const moves = this.generateAllMoves(gameState, aiColor);
     if (moves.length === 0) return null;
 
     // XQWLight 移動排序
@@ -112,8 +113,8 @@ export class XQWLightStrategy extends BaseAIStrategy {
 
       const newState = this.simulateMove(gameState, move);
 
-      // 檢查是否會讓自己被將軍
-      if (this.chessGameService.isInCheck(newState.board, PlayerColor.BLACK)) {
+      // 檢查是否會讓自己被將軍 - 使用正確的移動計數
+      if (this.chessGameService.isInCheck(newState.board, aiColor, gameState.moveHistory.length + 1)) {
         continue;
       }
 
@@ -158,7 +159,8 @@ export class XQWLightStrategy extends BaseAIStrategy {
 
     // 無移動可走 - 檢查是否將死
     if (moves.length === 0) {
-      const inCheck = this.chessGameService.isInCheck(gameState.board, currentColor);
+      const currentMoveCount = gameState.moveHistory.length;
+      const inCheck = this.chessGameService.isInCheck(gameState.board, currentColor, currentMoveCount);
       if (inCheck) {
         return isMaximizing ? -XQWLIGHT_CONFIG.MATE_VALUE : XQWLIGHT_CONFIG.MATE_VALUE;
       }
@@ -173,8 +175,8 @@ export class XQWLightStrategy extends BaseAIStrategy {
       for (const move of sortedMoves) {
         const newState = this.simulateMove(gameState, move);
 
-        // 跳過會讓自己被將軍的移動
-        if (this.chessGameService.isInCheck(newState.board, currentColor)) {
+        // 跳過會讓自己被將軍的移動 - 使用正確的移動計數
+        if (this.chessGameService.isInCheck(newState.board, currentColor, gameState.moveHistory.length + depth)) {
           continue;
         }
 
@@ -197,8 +199,8 @@ export class XQWLightStrategy extends BaseAIStrategy {
       for (const move of sortedMoves) {
         const newState = this.simulateMove(gameState, move);
 
-        // 跳過會讓自己被將軍的移動
-        if (this.chessGameService.isInCheck(newState.board, currentColor)) {
+        // 跳過會讓自己被將軍的移動 - 使用正確的移動計數
+        if (this.chessGameService.isInCheck(newState.board, currentColor, gameState.moveHistory.length + depth)) {
           continue;
         }
 
@@ -224,6 +226,23 @@ export class XQWLightStrategy extends BaseAIStrategy {
 
   private evaluatePosition(gameState: GameState): number {
     let score = 0;
+
+    // 優先檢查：王是否處於被直接攻擊的危險中
+    const moveCount = gameState.moveHistory.length;
+
+    // 檢查黑王是否會被吃掉
+    const blackKingInDanger = this.chessGameService.isInCheck(gameState.board, PlayerColor.BLACK, moveCount);
+    if (blackKingInDanger) {
+      // 黑方王被攻擊，對黑方極其不利
+      score -= XQWLIGHT_CONFIG.MATE_VALUE * 2;
+    }
+
+    // 檢查紅王是否會被吃掉
+    const redKingInDanger = this.chessGameService.isInCheck(gameState.board, PlayerColor.RED, moveCount);
+    if (redKingInDanger) {
+      // 紅方王被攻擊，對黑方極其有利
+      score += XQWLIGHT_CONFIG.MATE_VALUE * 2;
+    }
 
     // 1. XQWLight 原版棋子價值和位置評估
     for (let y = 0; y < 10; y++) {
@@ -258,11 +277,12 @@ export class XQWLightStrategy extends BaseAIStrategy {
     const redMoves = this.generateAllMoves(gameState, PlayerColor.RED).length;
     score += (blackMoves - redMoves) * XQWLIGHT_CONFIG.MOBILITY_FACTOR;
 
-    // 3. 將軍獎勵/懲罰
-    if (this.chessGameService.isInCheck(gameState.board, PlayerColor.BLACK)) {
+    // 3. 將軍獎勵/懲罰 - 使用正確的移動計數
+    const currentMoveCount = gameState.moveHistory.length;
+    if (this.chessGameService.isInCheck(gameState.board, PlayerColor.BLACK, currentMoveCount)) {
       score -= XQWLIGHT_CONFIG.CHECK_BONUS;
     }
-    if (this.chessGameService.isInCheck(gameState.board, PlayerColor.RED)) {
+    if (this.chessGameService.isInCheck(gameState.board, PlayerColor.RED, currentMoveCount)) {
       score += XQWLIGHT_CONFIG.CHECK_BONUS;
     }
 
@@ -364,13 +384,22 @@ export class XQWLightStrategy extends BaseAIStrategy {
   }
 
   private getFallbackMove(gameState: GameState): { from: Position; to: Position } | null {
-    const moves = this.generateAllMoves(gameState, PlayerColor.BLACK);
+    const aiColor = PlayerColor.BLACK; // AI 總是黑方
+    const moves = this.generateAllMoves(gameState, aiColor);
     if (moves.length === 0) return null;
 
-    // 優先選擇吃子移動
-    const captureMoves = moves.filter((move) => gameState.board[move.to.y][move.to.x] !== null);
+    // 過濾會讓自己被將軍的移動
+    const legalMoves = moves.filter((move) => {
+      const newState = this.simulateMove(gameState, move);
+      return !this.chessGameService.isInCheck(newState.board, aiColor, gameState.moveHistory.length + 1);
+    });
 
-    return captureMoves.length > 0 ? captureMoves[0] : moves[0];
+    if (legalMoves.length === 0) return moves[0]; // 如果沒有合法移動，隨機選一個
+
+    // 優先選擇吃子移動
+    const captureMoves = legalMoves.filter((move) => gameState.board[move.to.y][move.to.x] !== null);
+
+    return captureMoves.length > 0 ? captureMoves[0] : legalMoves[0];
   }
 
   private recordKillerMove(depth: number, move: { from: Position; to: Position }): void {

@@ -65,6 +65,7 @@ export const initialState: GameState = {
     gameOver: false,
     winner: null,
     isInCheck: false,
+    isSelfInCheck: false,
     isCheckmate: false,
     isStalemate: false,
   },
@@ -260,6 +261,11 @@ export class ChessGameService {
 
     if (!redKing || !blackKing) return false;
     if (redKing.x !== blackKing.x) return false;
+
+    // 確保兩王都在同一列且在棋盤上
+    if (!this.isValidPosition(redKing.x, redKing.y) || !this.isValidPosition(blackKing.x, blackKing.y)) {
+      return false;
+    }
 
     return this.isPathClear(board, redKing, blackKing);
   }
@@ -612,6 +618,7 @@ export class ChessGameService {
           gameOver: false,
           winner: null,
           isInCheck: false,
+          isSelfInCheck: false,
           isCheckmate: false,
           isStalemate: false,
         },
@@ -639,6 +646,7 @@ export class ChessGameService {
           gameOver: true,
           winner: piece.color,
           isInCheck: false,
+          isSelfInCheck: false,
           isCheckmate: true,
           isStalemate: false,
         },
@@ -646,7 +654,8 @@ export class ChessGameService {
     }
 
     // 檢查王見王情況 - 移動方立即輸掉遊戲
-    if (this.wouldKingsFaceEachOther(board, moveCount + 1)) {
+    // 但需要排除王本身的移動，因為王的移動不會導致王見王
+    if (piece.type !== PieceType.KING && this.wouldKingsFaceEachOther(board, moveCount + 1)) {
       piece.hasMoved = true;
       return {
         success: true,
@@ -655,6 +664,7 @@ export class ChessGameService {
           gameOver: true,
           winner: piece.color === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED,
           isInCheck: false,
+          isSelfInCheck: false,
           isCheckmate: true,
           isStalemate: false,
         },
@@ -681,6 +691,7 @@ export class ChessGameService {
         gameOver: isCheckmate || isStalemate,
         winner: isCheckmate ? piece.color : null,
         isInCheck: isCheck,
+        isSelfInCheck: isSelfInCheck,
         isCheckmate,
         isStalemate,
       },
