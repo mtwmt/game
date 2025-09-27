@@ -111,6 +111,11 @@ export class XQWLightStrategy extends BaseAIStrategy {
         break;
       }
 
+      // 快速預檢查，避免不必要的模擬
+      if (this.quickMoveValidation(move, gameState, aiColor)) {
+        continue;
+      }
+
       const newState = this.simulateMove(gameState, move);
 
       // XQWLight 專業移動驗證 - 確保移動合法性
@@ -407,6 +412,34 @@ export class XQWLightStrategy extends BaseAIStrategy {
   private getHistoryScore(move: { from: Position; to: Position }): number {
     const key = `${move.from.x}${move.from.y}${move.to.x}${move.to.y}`;
     return this.historyTable.get(key) || 0;
+  }
+
+  // 快速移動預檢查 - 避免不必要的棋盤模擬
+  private quickMoveValidation(
+    move: { from: Position; to: Position },
+    gameState: GameState,
+    aiColor: PlayerColor
+  ): boolean {
+    const board = gameState.board;
+    const piece = board[move.from.y][move.from.x];
+
+    // 基本檢查：確保有棋子且是AI的棋子
+    if (!piece || piece.color !== aiColor) {
+      return true; // 無效移動
+    }
+
+    // 檢查目標位置：不能吃自己的棋子
+    const target = board[move.to.y][move.to.x];
+    if (target && target.color === aiColor) {
+      return true; // 無效移動
+    }
+
+    // 檢查位置是否在棋盤範圍內
+    if (move.to.x < 0 || move.to.x >= 9 || move.to.y < 0 || move.to.y >= 10) {
+      return true; // 無效移動
+    }
+
+    return false; // 通過快速檢查
   }
 
   // XQWLight 專業移動驗證 - 使用統一驗證模組

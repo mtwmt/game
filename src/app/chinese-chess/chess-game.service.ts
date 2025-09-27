@@ -358,7 +358,8 @@ export class ChessGameService {
     this.validateBoard(board);
     this.validatePosition(piece.position.x, piece.position.y, 'piece position');
 
-    const cacheKey = `${piece.id}-${piece.position.x}-${piece.position.y}-true`;
+    // 改進的快取策略：包含棋子移動狀態
+    const cacheKey = `${piece.id}-${piece.position.x}-${piece.position.y}-${piece.hasMoved}-true`;
 
     if (this.moveCache.has(cacheKey)) {
       return this.moveCache.get(cacheKey)!;
@@ -384,7 +385,8 @@ export class ChessGameService {
     this.validateBoard(board);
     this.validatePosition(piece.position.x, piece.position.y, 'piece position');
 
-    const cacheKey = `${piece.id}-${piece.position.x}-${piece.position.y}-false`;
+    // 改進的快取策略：包含棋子移動狀態
+    const cacheKey = `${piece.id}-${piece.position.x}-${piece.position.y}-${piece.hasMoved}-false`;
 
     if (this.moveCache.has(cacheKey)) {
       return this.moveCache.get(cacheKey)!;

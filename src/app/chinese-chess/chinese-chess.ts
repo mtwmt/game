@@ -25,6 +25,7 @@ export class ChineseChess implements OnInit, OnDestroy {
   private chessGameService = inject(ChessGameService);
   private chessAIService = inject(ChessAIService);
   private apiKeyUpdateListener?: () => void;
+  private lastSelectedPiece: ChessPiece | null = null;
 
   protected gameState = signal<GameState>(initialState);
   protected aiType = signal<'local' | 'service'>('local');
@@ -55,7 +56,7 @@ export class ChineseChess implements OnInit, OnDestroy {
   protected isVsAI = computed(() => this.gameState().isVsAI); // 是否為人機對戰模式
   protected aiIsThinking = computed(() => this.gameState().aiState.isThinking); // AI 是否正在思考
   protected aiThinkingText = computed(() => this.gameState().aiState.thinkingText); // AI 思考狀態文字
-  protected aiDifficulty = signal<'easy' | 'medium' | 'hard'>('hard'); // AI 難度設定
+  protected aiDifficulty = signal<'easy' | 'medium' | 'hard'>('medium'); // AI 難度設定
 
   // API Key Modal (保留以後可能用到)
   protected hasApiKey = computed(() => this.chessGameService.hasApiKey()); // 是否有 Gemini API Key
@@ -184,13 +185,14 @@ export class ChineseChess implements OnInit, OnDestroy {
   private selectPiece(piece: ChessPiece): void {
     const currentState = this.gameState();
 
-    // 清除之前的選擇狀態
-    currentState.board.flat().forEach((p) => {
-      if (p) p.isSelected = false;
-    });
+    // 優化：僅清除上次選中的棋子，O(1) 而不是 O(90)
+    if (this.lastSelectedPiece) {
+      this.lastSelectedPiece.isSelected = false;
+    }
 
     // 設定新選擇並計算可行移動
     piece.isSelected = true;
+    this.lastSelectedPiece = piece;
     const validMoves = this.chessGameService.getPossibleMoves(piece, currentState.board);
 
     this.gameState.set({
@@ -207,8 +209,10 @@ export class ChineseChess implements OnInit, OnDestroy {
   private deselectPiece(): void {
     const currentState = this.gameState();
 
-    if (currentState.selectedPiece) {
-      currentState.selectedPiece.isSelected = false;
+    // 優化：使用追蹤的棋子引用
+    if (this.lastSelectedPiece) {
+      this.lastSelectedPiece.isSelected = false;
+      this.lastSelectedPiece = null;
     }
 
     this.gameState.set({

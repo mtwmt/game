@@ -17,6 +17,14 @@ export const GAME_CONSTANTS = {
   AI_THINK_TIME_LIMIT: 5000, // 5秒
   CACHE_SIZE: 1000, // LRU 快取大小
   AI_THINKING_DELAY: 500, // AI 思考延遲
+  CACHE_CLEANUP_INTERVAL: 10, // 每10步清理快取
+} as const;
+
+// 性能監控常數
+export const PERFORMANCE_CONSTANTS = {
+  ENABLE_PERFORMANCE_LOGGING: true, // 是否啟用性能記錄
+  LOG_CACHE_STATS: true, // 是否記錄快取統計
+  LOG_AI_PERFORMANCE: true, // 是否記錄AI性能
 } as const;
 
 // ===========================================
