@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/mtwmt/game/compare/v1.6.0...v1.7.0) (2025-09-27)
+
+
+### Features
+
+* Add isSelfInCheck feature and improve king safety logic ([ee9ff1a](https://github.com/mtwmt/game/commit/ee9ff1a7215e7e4b0a4573047001c51e7b091a7d))
+
 # [1.6.0](https://github.com/mtwmt/game/compare/v1.5.0...v1.6.0) (2025-09-26)
 
 
