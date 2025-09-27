@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/mtwmt/game/compare/v1.7.0...v1.7.1) (2025-09-27)
+
+
+### Performance Improvements
+
+* Optimize Chinese Chess performance ([4631f58](https://github.com/mtwmt/game/commit/4631f5820604b1d5c41c1141bb02ad891a924166))
+
 # [1.7.0](https://github.com/mtwmt/game/compare/v1.6.0...v1.7.0) (2025-09-27)
 
 
