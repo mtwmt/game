@@ -7,54 +7,12 @@ import {
   MoveResult,
   GameState,
 } from './chess-piece.interface';
-import { GAME_CONSTANTS } from './chess-values';
+import { GAME_CONSTANTS } from './utils/chinese-chess-values';
+import { PieceMovesManager } from './utils/chinese-chess-piece-moves';
+import { LRUCache } from './utils/lru-cache';
+import { BoardCache, BoardCacheUtils } from './board-cache.interface';
+import { ChessValidation } from './utils/chinese-chess-validation';
 
-// 簡單的 LRU 快取實現
-class LRUCache<K, V> {
-  private cache = new Map<K, V>();
-  private readonly maxSize: number;
-
-  constructor(maxSize: number = GAME_CONSTANTS.CACHE_SIZE) {
-    this.maxSize = maxSize;
-  }
-
-  get(key: K): V | undefined {
-    const value = this.cache.get(key);
-    if (value !== undefined) {
-      // 重新插入以更新順序
-      this.cache.delete(key);
-      this.cache.set(key, value);
-    }
-    return value;
-  }
-
-  set(key: K, value: V): void {
-    if (this.cache.has(key)) {
-      this.cache.delete(key);
-    } else if (this.cache.size >= this.maxSize) {
-      // 刪除最久未使用的項目
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) {
-        this.cache.delete(firstKey);
-      }
-    }
-    this.cache.set(key, value);
-  }
-
-  has(key: K): boolean {
-    return this.cache.has(key);
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-}
-
-interface BoardCache {
-  kingPositions: Map<PlayerColor, Position>;
-  piecesByColor: Map<PlayerColor, ChessPiece[]>;
-  lastMoveCount: number;
-}
 
 export const initialState: GameState = {
   board: [],
@@ -85,25 +43,35 @@ export class ChessGameService {
   // 統一的 API Key 狀態管理
   hasApiKey = signal(false);
 
-  private boardCache: BoardCache = {
-    kingPositions: new Map(),
-    piecesByColor: new Map(),
-    lastMoveCount: -1,
-  };
+  private boardCache: BoardCache = BoardCacheUtils.createEmptyCache();
 
+  /**
+   * 建構函數：初始化服務並更新 API Key 狀態
+   */
   constructor() {
     this.updateApiKeyStatus();
   }
 
-  private moveCache = new LRUCache<string, Position[]>(GAME_CONSTANTS.CACHE_SIZE);
+  private moveCache = new LRUCache<string, Position[]>();
 
-  // 添加邊界檢查工具方法
+  /**
+   * 驗證棋盤位置是否在有效範圍內
+   * @param x X 座標 (0-8)
+   * @param y Y 座標 (0-9)
+   * @param context 錯誤訊息的上下文
+   * @throws Error 如果位置無效
+   */
   private validatePosition(x: number, y: number, context: string = 'position'): void {
     if (!this.isValidPosition(x, y)) {
       throw new Error(`Invalid chess ${context}: (${x}, ${y}). Valid range: x[0-8], y[0-9]`);
     }
   }
 
+  /**
+   * 驗證棋盤結構是否正確 (9x10)
+   * @param board 要驗證的棋盤
+   * @throws Error 如果棋盤結構無效
+   */
   private validateBoard(board: (ChessPiece | null)[][]): void {
     if (!board || board.length !== GAME_CONSTANTS.BOARD_HEIGHT) {
       throw new Error(`Invalid board height: expected ${GAME_CONSTANTS.BOARD_HEIGHT}`);
@@ -117,20 +85,11 @@ export class ChessGameService {
     }
   }
 
-  // 常用方向常數
-  private readonly ORTHOGONAL_DIRECTIONS = [
-    { dx: 0, dy: -1 },
-    { dx: 0, dy: 1 },
-    { dx: -1, dy: 0 },
-    { dx: 1, dy: 0 },
-  ];
-
-  private readonly DIAGONAL_DIRECTIONS = [
-    { dx: -1, dy: -1 },
-    { dx: 1, dy: -1 },
-    { dx: -1, dy: 1 },
-    { dx: 1, dy: 1 },
-  ];
+  /**
+   * 初始化象棋棋盤
+   * 創建 9x10 的棋盤並放置初始棋子
+   * @returns 初始化後的棋盤
+   */
   initializeBoard(): (ChessPiece | null)[][] {
     const board: (ChessPiece | null)[][] = Array(GAME_CONSTANTS.BOARD_HEIGHT)
       .fill(null)
@@ -140,6 +99,11 @@ export class ChessGameService {
     return board;
   }
 
+  /**
+   * 在棋盤上設置初始棋子位置
+   * 包含紅黑雙方的所有棋子：將帥、士仕、象相、馬、車、砲、兵卒
+   * @param board 要設置棋子的棋盤
+   */
   private setupInitialPieces(board: (ChessPiece | null)[][]): void {
     // 紅方後排
     const redBackRow: PieceType[] = [
@@ -213,6 +177,11 @@ export class ChessGameService {
     };
   }
 
+  /**
+   * 初始化完整的遊戲狀態
+   * 包含棋盤、玩家、遊戲狀態、API Key 等所有初始設定
+   * @returns 初始化的遊戲狀態
+   */
   initializeGameState(): GameState {
     return {
       ...initialState,
@@ -221,12 +190,26 @@ export class ChessGameService {
     };
   }
 
+  /**
+   * 檢查座標是否在棋盤有效範圍內
+   * @param x X 座標 (應該在 0-8 之間)
+   * @param y Y 座標 (應該在 0-9 之間)
+   * @returns 位置是否有效
+   */
   isValidPosition(x: number, y: number): boolean {
     return (
       x >= 0 && x < GAME_CONSTANTS.BOARD_WIDTH && y >= 0 && y < GAME_CONSTANTS.BOARD_HEIGHT
     );
   }
 
+  /**
+   * 檢查指定位置是否在對應顏色的宮殿內
+   * 宮殿是將帥活動的限制區域 (3x3)
+   * @param x X 座標
+   * @param y Y 座標
+   * @param color 棋子顏色
+   * @returns 是否在宮殿內
+   */
   isInPalace(x: number, y: number, color: PlayerColor): boolean {
     if (color === PlayerColor.RED) {
       return (
@@ -245,6 +228,13 @@ export class ChessGameService {
     }
   }
 
+  /**
+   * 檢查指定 Y 座標是否在該顏色的本方陣地
+   * 用於限制象和兵的移動範圍
+   * @param y Y 座標
+   * @param color 棋子顏色
+   * @returns 是否在本方陣地
+   */
   isOnOwnSide(y: number, color: PlayerColor): boolean {
     if (color === PlayerColor.RED) {
       return y >= 5;
@@ -253,6 +243,13 @@ export class ChessGameService {
     }
   }
 
+  /**
+   * 檢查兩王是否會直接面對面（王見王情況）
+   * 這是象棋中的重要規則：造成王見王的一方敗北
+   * @param board 棋盤狀態
+   * @param moveCount 移動計數（用於快取）
+   * @returns 是否會發生王見王
+   */
   wouldKingsFaceEachOther(board: (ChessPiece | null)[][], moveCount: number = 0): boolean {
     this.updateBoardCache(board, moveCount);
 
@@ -260,36 +257,49 @@ export class ChessGameService {
     const blackKing = this.boardCache.kingPositions.get(PlayerColor.BLACK);
 
     if (!redKing || !blackKing) return false;
-    if (redKing.x !== blackKing.x) return false;
+    if (redKing.x !== blackKing.x) return false; // 不在同一列
 
     // 確保兩王都在同一列且在棋盤上
     if (!this.isValidPosition(redKing.x, redKing.y) || !this.isValidPosition(blackKing.x, blackKing.y)) {
       return false;
     }
 
+    // 檢查兩王之間是否沒有棋子阻擋
     return this.isPathClear(board, redKing, blackKing);
   }
 
+  /**
+   * 檢查兩個位置之間的路徑是否暢通（沒有棋子阻擋）
+   * 主要用於王見王檢查，檢查兩王之間是否有棋子
+   * @param board 棋盤狀態
+   * @param from 起始位置
+   * @param to 目標位置
+   * @returns 路徑是否暢通
+   */
   private isPathClear(board: (ChessPiece | null)[][], from: Position, to: Position): boolean {
     const minY = Math.min(from.y, to.y);
     const maxY = Math.max(from.y, to.y);
 
+    // 檢查兩點之間是否有棋子阻擋
     for (let y = minY + 1; y < maxY; y++) {
       if (board[y][from.x] !== null) {
-        return false;
+        return false; // 有棋子阻擋
       }
     }
 
-    return true;
+    return true; // 路徑暢通
   }
 
+  /**
+   * 更新棋盤快取資訊
+   * 快取王的位置和各顏色棋子列表以提升性能
+   * @param board 棋盤狀態
+   * @param moveCount 移動計數（用於判斷是否需要更新快取）
+   */
   private updateBoardCache(board: (ChessPiece | null)[][], moveCount: number): void {
-    if (this.boardCache.lastMoveCount === moveCount) return;
+    if (!BoardCacheUtils.needsUpdate(this.boardCache, moveCount)) return;
 
-    this.boardCache.kingPositions.clear();
-    this.boardCache.piecesByColor.clear();
-    this.boardCache.piecesByColor.set(PlayerColor.RED, []);
-    this.boardCache.piecesByColor.set(PlayerColor.BLACK, []);
+    BoardCacheUtils.resetCache(this.boardCache);
 
     for (let y = 0; y < GAME_CONSTANTS.BOARD_HEIGHT; y++) {
       for (let x = 0; x < GAME_CONSTANTS.BOARD_WIDTH; x++) {
@@ -306,11 +316,21 @@ export class ChessGameService {
     this.boardCache.lastMoveCount = moveCount;
   }
 
+  /**
+   * 清除所有快取
+   * 在棋盤狀態改變時呼叫以確保快取一致性
+   */
   private clearCaches(): void {
     this.moveCache.clear();
-    this.boardCache.lastMoveCount = -1;
+    BoardCacheUtils.resetCache(this.boardCache);
   }
 
+  /**
+   * 生成棋盤狀態的雜湊值
+   * 用於快取識別和棋局重複檢測
+   * @param board 棋盤狀態
+   * @returns 棋盤的雜湊字串
+   */
   private getBoardHash(board: (ChessPiece | null)[][]): string {
     let hash = '';
     for (let y = 0; y < GAME_CONSTANTS.BOARD_HEIGHT; y++) {
@@ -322,45 +342,15 @@ export class ChessGameService {
     return hash;
   }
 
-  private isValidMoveForPiece(
-    move: Position,
-    piece: ChessPiece,
-    board: (ChessPiece | null)[][]
-  ): boolean {
-    if (!this.isValidPosition(move.x, move.y)) return false;
 
-    const target = board[move.y][move.x];
-    return !target || target.color !== piece.color;
-  }
-
-  private getSlidingPieceMoves(
-    piece: ChessPiece,
-    board: (ChessPiece | null)[][],
-    directions: { dx: number; dy: number }[]
-  ): Position[] {
-    const moves: Position[] = [];
-    const { x, y } = piece.position;
-
-    directions.forEach((dir) => {
-      for (let i = 1; i < 10; i++) {
-        const newX = x + dir.dx * i;
-        const newY = y + dir.dy * i;
-        if (!this.isValidPosition(newX, newY)) break;
-
-        const target = board[newY][newX];
-        if (target) {
-          if (target.color !== piece.color) {
-            moves.push({ x: newX, y: newY });
-          }
-          break;
-        } else {
-          moves.push({ x: newX, y: newY });
-        }
-      }
-    });
-    return moves;
-  }
-
+  /**
+   * 獲取棋子的所有可能移動位置（已快取）
+   * 包含王見王檢查，用於正常遊戲移動
+   * @param piece 要分析的棋子
+   * @param board 棋盤狀態
+   * @returns 所有可能的移動位置
+   * @throws Error 如果棋子為 null 或棋盤無效
+   */
   getPossibleMoves(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
     if (!piece) {
       throw new Error('Cannot get possible moves for null piece');
@@ -379,6 +369,14 @@ export class ChessGameService {
     return moves;
   }
 
+  /**
+   * 獲取棋子用於將軍檢查的可能移動位置（已快取）
+   * 不包含王見王檢查，專用於將軍狀態檢測
+   * @param piece 要分析的棋子
+   * @param board 棋盤狀態
+   * @returns 所有可能的攻擊位置
+   * @throws Error 如果棋子為 null 或棋盤無效
+   */
   getPossibleMovesForCheck(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
     if (!piece) {
       throw new Error('Cannot get possible moves for null piece');
@@ -397,56 +395,36 @@ export class ChessGameService {
     return moves;
   }
 
+  /**
+   * 根據棋子類型計算其可能移動
+   * 核心移動邏輯分發器，委託給 PieceMovesManager
+   * @param piece 要分析的棋子
+   * @param board 棋盤狀態
+   * @param checkKingFacing 是否檢查王見王（將軍檢查時為 false）
+   * @returns 該棋子的所有可能移動
+   */
   private calculatePieceMoves(
     piece: ChessPiece,
     board: (ChessPiece | null)[][],
     checkKingFacing: boolean
   ): Position[] {
-    switch (piece.type) {
-      case PieceType.KING:
-        return this.getKingMoves(piece, board, checkKingFacing);
-      case PieceType.ADVISOR:
-        return this.getAdvisorMoves(piece, board);
-      case PieceType.ELEPHANT:
-        return this.getElephantMoves(piece, board);
-      case PieceType.HORSE:
-        return this.getHorseMoves(piece, board);
-      case PieceType.ROOK:
-        return this.getRookMoves(piece, board);
-      case PieceType.CANNON:
-        return this.getCannonMoves(piece, board);
-      case PieceType.SOLDIER:
-        return this.getSoldierMoves(piece, board);
-      default:
-        return [];
-    }
+    return PieceMovesManager.getPieceMoves(
+      piece,
+      board,
+      checkKingFacing,
+      checkKingFacing ? this.wouldMoveCreateKingFacing.bind(this) : undefined
+    );
   }
 
-  private getKingMoves(
-    piece: ChessPiece,
-    board: (ChessPiece | null)[][],
-    checkKingFacing: boolean
-  ): Position[] {
-    const { x, y } = piece.position;
-    const kingMoves = this.ORTHOGONAL_DIRECTIONS.map((dir) => ({
-      x: x + dir.dx,
-      y: y + dir.dy,
-    }));
 
-    return kingMoves.filter((move) => {
-      if (!this.isValidPosition(move.x, move.y) || !this.isInPalace(move.x, move.y, piece.color)) {
-        return false;
-      }
-
-      const target = board[move.y][move.x];
-      if (target && target.color === piece.color) {
-        return false;
-      }
-
-      return !checkKingFacing || !this.wouldMoveCreateKingFacing(piece, move, board);
-    });
-  }
-
+  /**
+   * 檢查移動是否會造成王見王情況
+   * 模擬移動並檢查是否導致兩王直接面對面
+   * @param piece 要移動的棋子
+   * @param move 目標位置
+   * @param board 棋盤狀態
+   * @returns 是否會造成王見王
+   */
   private wouldMoveCreateKingFacing(
     piece: ChessPiece,
     move: Position,
@@ -470,139 +448,27 @@ export class ChessGameService {
     return result;
   }
 
-  private getAdvisorMoves(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
-    const { x, y } = piece.position;
-    const advisorMoves = this.DIAGONAL_DIRECTIONS.map((dir) => ({
-      x: x + dir.dx,
-      y: y + dir.dy,
-    }));
 
-    return advisorMoves.filter(
-      (move) =>
-        this.isValidPosition(move.x, move.y) &&
-        this.isInPalace(move.x, move.y, piece.color) &&
-        this.isValidMoveForPiece(move, piece, board)
-    );
-  }
-
-  private getElephantMoves(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
-    const { x, y } = piece.position;
-    const elephantMoves = [
-      { x: x - 2, y: y - 2, block: { x: x - 1, y: y - 1 } },
-      { x: x + 2, y: y - 2, block: { x: x + 1, y: y - 1 } },
-      { x: x - 2, y: y + 2, block: { x: x - 1, y: y + 1 } },
-      { x: x + 2, y: y + 2, block: { x: x + 1, y: y + 1 } },
-    ];
-
-    return elephantMoves
-      .filter(
-        (move) =>
-          this.isValidPosition(move.x, move.y) &&
-          this.isOnOwnSide(move.y, piece.color) &&
-          !board[move.block.y][move.block.x] && // 檢查塞象眼
-          this.isValidMoveForPiece(move, piece, board)
-      )
-      .map((move) => ({ x: move.x, y: move.y }));
-  }
-
-  private getHorseMoves(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
-    const { x, y } = piece.position;
-    const horseMoves = [
-      { x: x - 1, y: y - 2, block: { x, y: y - 1 } },
-      { x: x + 1, y: y - 2, block: { x, y: y - 1 } },
-      { x: x - 1, y: y + 2, block: { x, y: y + 1 } },
-      { x: x + 1, y: y + 2, block: { x, y: y + 1 } },
-      { x: x - 2, y: y - 1, block: { x: x - 1, y } },
-      { x: x - 2, y: y + 1, block: { x: x - 1, y } },
-      { x: x + 2, y: y - 1, block: { x: x + 1, y } },
-      { x: x + 2, y: y + 1, block: { x: x + 1, y } },
-    ];
-
-    return horseMoves
-      .filter(
-        (move) =>
-          this.isValidPosition(move.x, move.y) &&
-          !board[move.block.y][move.block.x] && // 檢查蹩馬腿
-          this.isValidMoveForPiece(move, piece, board)
-      )
-      .map((move) => ({ x: move.x, y: move.y }));
-  }
-
-  private getRookMoves(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
-    return this.getSlidingPieceMoves(piece, board, this.ORTHOGONAL_DIRECTIONS);
-  }
-
-  private getCannonMoves(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
-    const moves: Position[] = [];
-    const { x, y } = piece.position;
-
-    this.ORTHOGONAL_DIRECTIONS.forEach((dir) => {
-      let hasJumped = false;
-      for (let i = 1; i < 10; i++) {
-        const newX = x + dir.dx * i;
-        const newY = y + dir.dy * i;
-        if (!this.isValidPosition(newX, newY)) break;
-
-        const target = board[newY][newX];
-        if (target) {
-          if (!hasJumped) {
-            hasJumped = true;
-          } else {
-            if (target.color !== piece.color) {
-              moves.push({ x: newX, y: newY });
-            }
-            break;
-          }
-        } else if (!hasJumped) {
-          moves.push({ x: newX, y: newY });
-        }
-      }
-    });
-    return moves;
-  }
-
-  private getSoldierMoves(piece: ChessPiece, board: (ChessPiece | null)[][]): Position[] {
-    const moves: Position[] = [];
-    const { x, y } = piece.position;
-    const forward = piece.color === PlayerColor.RED ? -1 : 1;
-    const forwardMove = { x, y: y + forward };
-
-    // 向前走
-    if (this.isValidMoveForPiece(forwardMove, piece, board)) {
-      moves.push(forwardMove);
-    }
-
-    // 過河後可橫走
-    if (!this.isOnOwnSide(y, piece.color)) {
-      const sideMoves = [
-        { x: x - 1, y },
-        { x: x + 1, y },
-      ];
-      sideMoves.forEach((move) => {
-        if (this.isValidMoveForPiece(move, piece, board)) {
-          moves.push(move);
-        }
-      });
-    }
-
-    return moves;
-  }
-
+  /**
+   * 檢查指定顏色的王是否處於被將軍狀態
+   * 通過檢查敵方棋子是否能攻擊到王的位置來判斷
+   * @param board 棋盤狀態
+   * @param color 要檢查的王的顏色
+   * @param moveCount 移動計數（用於快取）
+   * @returns 是否處於被將軍狀態
+   */
   isInCheck(board: (ChessPiece | null)[][], color: PlayerColor, moveCount: number = 0): boolean {
-    this.updateBoardCache(board, moveCount);
-
-    const kingPos = this.boardCache.kingPositions.get(color);
-    if (!kingPos) return false;
-
-    const enemyColor = color === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED;
-    const enemyPieces = this.boardCache.piecesByColor.get(enemyColor) || [];
-
-    return enemyPieces.some((piece) => {
-      const moves = this.getPossibleMovesForCheck(piece, board);
-      return moves.some((move) => move.x === kingPos.x && move.y === kingPos.y);
-    });
+    return ChessValidation.isInCheck(board, color);
   }
 
+  /**
+   * 執行棋子移動並驗證合法性
+   * 這是遊戲邏輯的核心方法，處理移動驗證、執行和勝負判斷
+   * @param gameState 當前遊戲狀態
+   * @param from 起始位置
+   * @param to 目標位置
+   * @returns 移動結果，包含成功狀態和遊戲狀態
+   */
   makeMove(gameState: GameState, from: Position, to: Position): MoveResult {
     this.validatePosition(from.x, from.y, 'source position');
     this.validatePosition(to.x, to.y, 'target position');
@@ -645,6 +511,7 @@ export class ChessGameService {
         status: {
           gameOver: true,
           winner: piece.color,
+          winReason: '吃掉對方的王',
           isInCheck: false,
           isSelfInCheck: false,
           isCheckmate: true,
@@ -653,36 +520,35 @@ export class ChessGameService {
       };
     }
 
-    // 檢查王見王情況 - 移動方立即輸掉遊戲
-    // 但需要排除王本身的移動，因為王的移動不會導致王見王
-    if (piece.type !== PieceType.KING && this.wouldKingsFaceEachOther(board, moveCount + 1)) {
+    // 檢查是否造成王見王 - 造成王見王的一方敗北
+    if (this.wouldKingsFaceEachOther(board, moveCount + 1)) {
       piece.hasMoved = true;
+      console.log(`🔴 王見王！${piece.color === PlayerColor.RED ? '紅方' : '黑方'} 敗北！`);
       return {
         success: true,
         captured: targetPiece || undefined,
         status: {
           gameOver: true,
-          winner: piece.color === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED,
+          winner: piece.color === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED, // 對方獲勝
+          winReason: '對方造成王見王',
           isInCheck: false,
           isSelfInCheck: false,
-          isCheckmate: true,
+          isCheckmate: true, // 視為將死
           isStalemate: false,
         },
       };
     }
 
-    // 檢查是否將軍對方
+    // 信任 XQWLight 的判斷，只計算遊戲狀態用於顯示
     const oppositeColor = piece.color === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED;
     const isCheck = this.isInCheck(board, oppositeColor, moveCount + 1);
-
-    // 檢查自己是否被將軍（用於提醒玩家）
     const isSelfInCheck = this.isInCheck(board, piece.color, moveCount + 1);
 
     piece.hasMoved = true;
 
-    // 檢查是否將死或困斃
-    const isCheckmate = isCheck ? this.isCheckmate(board, oppositeColor) : false;
-    const isStalemate = !isCheck ? this.isStalemate(board, oppositeColor) : false;
+    // 遊戲結束條件檢查（僅用於狀態顯示）
+    const isCheckmate = isCheck ? this.isCheckmate(board, oppositeColor, moveCount + 1) : false;
+    const isStalemate = !isCheck ? this.isStalemate(board, oppositeColor, moveCount + 1) : false;
 
     return {
       success: true,
@@ -690,6 +556,7 @@ export class ChessGameService {
       status: {
         gameOver: isCheckmate || isStalemate,
         winner: isCheckmate ? piece.color : null,
+        winReason: isCheckmate ? '將死對方' : isStalemate ? '和棋' : undefined,
         isInCheck: isCheck,
         isSelfInCheck: isSelfInCheck,
         isCheckmate,
@@ -698,6 +565,12 @@ export class ChessGameService {
     };
   }
 
+  /**
+   * 獲取棋子的中文符號表示
+   * 根據棋子類型和顏色返回對應的中文字符
+   * @param piece 棋子
+   * @returns 棋子的中文符號
+   */
   getPieceSymbol(piece: ChessPiece): string {
     const symbols: Record<PieceType, { red: string; black: string }> = {
       [PieceType.KING]: { red: '帥', black: '將' },
@@ -712,6 +585,11 @@ export class ChessGameService {
     return symbols[piece.type][piece.color];
   }
 
+  /**
+   * 檢查是否存在有效的 Gemini API Key
+   * 從 localStorage 讀取並驗證 API Key
+   * @returns 是否有有效的 API Key
+   */
   checkHasApiKey(): boolean {
     if (typeof localStorage !== 'undefined') {
       const apiKey = localStorage.getItem('gemini-api-key');
@@ -720,6 +598,10 @@ export class ChessGameService {
     return false;
   }
 
+  /**
+   * 更新 API Key 狀態信號
+   * 檢查並更新內部 API Key 狀態
+   */
   updateApiKeyStatus(): void {
     const hasKey = this.checkHasApiKey();
     this.hasApiKey.set(hasKey);
@@ -727,72 +609,34 @@ export class ChessGameService {
 
   /**
    * 檢查是否為平局（無子可動）
+   * 當玩家不處於將軍狀態但無任何合法移動時為平局
+   * @param board 棋盤狀態
+   * @param color 要檢查的玩家顏色
+   * @param moveCount 移動計數
+   * @returns 是否為平局
    */
-  isStalemate(board: (ChessPiece | null)[][], color: PlayerColor): boolean {
-    // 如果處於將軍狀態，不是平局而是將死
-    if (this.isInCheck(board, color)) {
-      return false;
-    }
-
-    // 檢查是否有任何合法移動
-    for (let y = 0; y < GAME_CONSTANTS.BOARD_HEIGHT; y++) {
-      for (let x = 0; x < GAME_CONSTANTS.BOARD_WIDTH; x++) {
-        const piece = board[y][x];
-        if (piece && piece.color === color) {
-          const moves = this.getPossibleMoves(piece, board);
-          if (moves.length > 0) {
-            return false; // 有合法移動，不是平局
-          }
-        }
-      }
-    }
-
-    return true; // 無子可動，平局
+  isStalemate(board: (ChessPiece | null)[][], color: PlayerColor, moveCount: number = 0): boolean {
+    return ChessValidation.isStalemate(board, color);
   }
 
   /**
    * 檢查是否為將死
+   * 當玩家處於將軍狀態且無任何合法移動能解除將軍時為將死
+   * @param board 棋盤狀態
+   * @param color 要檢查的玩家顏色
+   * @param moveCount 移動計數
+   * @returns 是否為將死
    */
-  isCheckmate(board: (ChessPiece | null)[][], color: PlayerColor): boolean {
-    // 必須處於將軍狀態
-    if (!this.isInCheck(board, color)) {
-      return false;
-    }
-
-    // 檢查是否有任何合法移動能解除將軍
-    for (let y = 0; y < GAME_CONSTANTS.BOARD_HEIGHT; y++) {
-      for (let x = 0; x < GAME_CONSTANTS.BOARD_WIDTH; x++) {
-        const piece = board[y][x];
-        if (piece && piece.color === color) {
-          const moves = this.getPossibleMoves(piece, board);
-          for (const move of moves) {
-            // 模擬移動
-            const originalPiece = board[move.y][move.x];
-            board[move.y][move.x] = piece;
-            board[y][x] = null;
-            piece.position = move;
-
-            // 檢查移動後是否仍然被將軍
-            const stillInCheck = this.isInCheck(board, color);
-
-            // 還原移動
-            board[y][x] = piece;
-            board[move.y][move.x] = originalPiece;
-            piece.position = { x, y };
-
-            if (!stillInCheck) {
-              return false; // 找到解除將軍的移動
-            }
-          }
-        }
-      }
-    }
-
-    return true; // 無法解除將軍，將死
+  isCheckmate(board: (ChessPiece | null)[][], color: PlayerColor, moveCount: number = 0): boolean {
+    return ChessValidation.isCheckmate(board, color);
   }
 
   /**
    * 檢查長將（連續將軍）規則
+   * 檢測是否存在重複的將軍模式，用於判斷禁止長將
+   * @param moveHistory 移動歷史記錄
+   * @param maxRepeats 最大重複次數（預設 3 次）
+   * @returns 是否構成長將
    */
   isPerpetualCheck(moveHistory: string[], maxRepeats: number = 3): boolean {
     if (moveHistory.length < maxRepeats * 2) {
@@ -810,5 +654,156 @@ export class ChessGameService {
     }
 
     return true;
+  }
+
+  // ==========================================
+  // 通用象棋邏輯方法 (委託給 ChessValidation)
+  // ==========================================
+
+  /**
+   * 獲取指定顏色所有棋子的所有可能移動（委託給 ChessValidation）
+   */
+  getAllPossibleMoves(gameState: GameState, color: PlayerColor): { from: Position; to: Position }[] {
+    return ChessValidation.getAllPossibleMoves(gameState, color);
+  }
+
+  /**
+   * 獲取所有合法移動（委託給 ChessValidation）
+   */
+  getAllLegalMoves(gameState: GameState, color: PlayerColor): { from: Position; to: Position }[] {
+    return ChessValidation.getAllLegalMoves(gameState, color);
+  }
+
+  /**
+   * 檢查移動是否合法（委託給 ChessValidation）
+   */
+  isMoveLegal(move: { from: Position; to: Position }, gameState: GameState): boolean {
+    return ChessValidation.isMoveLegal(move, gameState);
+  }
+
+  /**
+   * 模擬移動並返回新的遊戲狀態（委託給 ChessValidation）
+   */
+  simulateMove(gameState: GameState, move: { from: Position; to: Position }): GameState {
+    return ChessValidation.simulateMove(gameState, move);
+  }
+
+  /**
+   * 驗證移動是否符合象棋規則（委託給 ChessValidation）
+   */
+  validateMoveWithRules(
+    move: { from: Position; to: Position },
+    gameState: GameState,
+    playerColor: PlayerColor
+  ): boolean {
+    return ChessValidation.validateMoveWithRules(move, gameState, playerColor);
+  }
+
+  /**
+   * 獲取隨機合法移動（委託給 ChessValidation）
+   */
+  getRandomLegalMove(gameState: GameState, color: PlayerColor): { from: Position; to: Position } | null {
+    return ChessValidation.getRandomLegalMove(gameState, color);
+  }
+
+  /**
+   * 檢查移動是否在可能移動列表中（委託給 ChessValidation）
+   */
+  isValidMove(
+    move: { from: Position; to: Position },
+    possibleMoves: { from: Position; to: Position }[]
+  ): boolean {
+    return ChessValidation.isValidMove(move, possibleMoves);
+  }
+
+  // ==========================================
+  // AI 整合邏輯 (統一入口)
+  // ==========================================
+
+  /**
+   * 執行 AI 移動 - 統一的 AI 移動入口
+   * 1. 調用 AI 策略獲取移動決策
+   * 2. 驗證 AI 返回的移動是否合法
+   * 3. 如果合法則執行移動，否則使用備用策略
+   * @param gameState 當前遊戲狀態
+   * @param aiStrategy AI 策略實例
+   * @returns 移動結果
+   */
+  async makeAIMove(
+    gameState: GameState,
+    aiStrategy: any // 暫時使用 any，之後會改成正確的類型
+  ): Promise<MoveResult> {
+    try {
+      // 1. 檢查 AI 策略是否可用
+      const isAvailable = await aiStrategy.isAvailable();
+      if (!isAvailable) {
+        return this.handleAIMoveFallback(gameState, 'AI 策略不可用');
+      }
+
+      // 2. 調用 AI 策略獲取移動決策
+      const aiResult = await aiStrategy.makeMove(gameState);
+      if (!aiResult) {
+        return this.handleAIMoveFallback(gameState, 'AI 策略未返回有效移動');
+      }
+
+      // 3. 驗證 AI 返回的移動是否在合法移動列表中
+      const { from, to } = aiResult;
+      const piece = gameState.board[from.y][from.x];
+
+      if (!piece) {
+        return this.handleAIMoveFallback(gameState, `位置 (${from.x},${from.y}) 沒有棋子`);
+      }
+
+      if (piece.color !== PlayerColor.BLACK) {
+        return this.handleAIMoveFallback(gameState, 'AI 嘗試移動非黑方棋子');
+      }
+
+      // 4. 檢查移動是否在該棋子的可能移動列表中
+      const possibleMoves = this.getPossibleMoves(piece, gameState.board);
+      if (!this.isValidMove({ from, to }, possibleMoves.map(pos => ({ from: piece.position, to: pos })))) {
+        return this.handleAIMoveFallback(gameState, `移動 (${from.x},${from.y}) -> (${to.x},${to.y}) 不在可能移動列表中`);
+      }
+
+      // 5. 檢查移動是否合法（不會送死或王見王）
+      if (!ChessValidation.isMoveLegal({ from, to }, gameState)) {
+        return this.handleAIMoveFallback(gameState, `移動 (${from.x},${from.y}) -> (${to.x},${to.y}) 會導致送死或王見王`);
+      }
+
+      // 6. 執行合法的 AI 移動
+      console.log(`✅ AI 移動驗證通過: (${from.x},${from.y}) -> (${to.x},${to.y})`);
+      return this.makeMove(gameState, from, to);
+
+    } catch (error) {
+      console.error('❌ AI 移動執行失敗:', error);
+      return this.handleAIMoveFallback(gameState, `AI 執行錯誤: ${error}`);
+    }
+  }
+
+  /**
+   * AI 移動失敗時的備用處理
+   * 使用隨機合法移動作為備案
+   * @param gameState 當前遊戲狀態
+   * @param reason 失敗原因
+   * @returns 移動結果
+   */
+  private handleAIMoveFallback(gameState: GameState, reason: string): MoveResult {
+    console.warn(`⚠️ AI 移動失敗: ${reason}`);
+    console.log('🎲 使用隨機合法移動作為備案...');
+
+    // 獲取隨機合法移動
+    const randomMove = ChessValidation.getRandomLegalMove(gameState, PlayerColor.BLACK);
+
+    if (randomMove) {
+      console.log(`🎯 備用移動: (${randomMove.from.x},${randomMove.from.y}) -> (${randomMove.to.x},${randomMove.to.y})`);
+      return this.makeMove(gameState, randomMove.from, randomMove.to);
+    } else {
+      // 連隨機移動都沒有，遊戲可能結束了
+      console.error('❌ 沒有可用的合法移動，AI 無法行動');
+      return {
+        success: false,
+        captured: undefined,
+        status: gameState.status,
+      };
+    }
   }
 }

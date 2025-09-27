@@ -1,30 +1,30 @@
 import { inject, Injectable } from '@angular/core';
 import { PlayerColor, Position, GameState } from './chess-piece.interface';
-import { StrategyManager } from './strategies/strategy-manager';
+import { AIStrategyCoordinator } from './chess-ai/ai-strategy-coordinator';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ChessAIService {
-  private strategyManager = inject(StrategyManager);
+  private aiCoordinator = inject(AIStrategyCoordinator);
 
   async makeAIMove(gameState: GameState): Promise<{ from: Position; to: Position } | null> {
-    return this.strategyManager.executeAIMove(gameState);
+    return this.aiCoordinator.executeAIMove(gameState);
   }
 
-  // AI 模式控制方法 - 委託給策略管理器
+  // AI 模式控制方法 - 委託給AI協調器
   setUseGeminiAI(use: boolean): void {
-    this.strategyManager.setGeminiEnabled(use);
+    this.aiCoordinator.setGeminiEnabled(use);
   }
 
   // 設置 AI 模式
   setAIMode(mode: 'xqwlight-only' | 'gemini-only' | 'mixed' | 'auto'): void {
-    this.strategyManager.setAIMode(mode);
+    this.aiCoordinator.setAIMode(mode);
   }
 
   // XQWLight 控制方法
   setUseXQWLight(use: boolean): void {
-    this.strategyManager.setXQWLightEnabled(use);
+    this.aiCoordinator.setXQWLightEnabled(use);
   }
 
   // 獲取當前 AI 狀態
@@ -32,20 +32,20 @@ export class ChessAIService {
     xqwlight: boolean;
     geminiAI: boolean;
   } {
-    const strategyStatus = this.strategyManager.getStrategyStatus();
+    const coordinatorStatus = this.aiCoordinator.getStrategyStatus();
     return {
-      xqwlight: strategyStatus.xqwlight,
-      geminiAI: strategyStatus.gemini
+      xqwlight: coordinatorStatus.xqwlight,
+      geminiAI: coordinatorStatus.gemini
     };
   }
 
-  // 設置難度 - 委託給策略管理器
+  // 設置難度 - 委託給AI協調器
   setDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
-    this.strategyManager.setDifficulty(difficulty);
+    this.aiCoordinator.setDifficulty(difficulty);
   }
 
   getThinkingDescription(): string {
-    return this.strategyManager.getThinkingDescription();
+    return this.aiCoordinator.getThinkingDescription();
   }
 
   // 獲取詳細的思考狀態

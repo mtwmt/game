@@ -1,7 +1,7 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { BaseAIStrategy, AIStrategyResult } from './base-ai-strategy';
-import { PlayerColor, GameState } from '../chess-piece.interface';
-import { ChessGameService } from '../chess-game.service';
+import { PlayerColor, GameState, PieceType } from '../chess-piece.interface';
+import { ChessValidation } from '../utils/chinese-chess-validation';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 @Injectable({
@@ -10,8 +10,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 export class GeminiAIStrategy extends BaseAIStrategy {
   readonly name = 'Gemini AI';
   readonly priority = 2;
-
-  private chessGameService = inject(ChessGameService);
 
   async isAvailable(): Promise<boolean> {
     const apiKey = typeof localStorage !== 'undefined' ?
@@ -68,7 +66,7 @@ export class GeminiAIStrategy extends BaseAIStrategy {
         console.log('🤖 選擇理由:', geminiResponse.reasoning);
 
         // 驗證移動是否有效
-        const possibleMoves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK, this.chessGameService);
+        const possibleMoves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
         const move = geminiResponse.move;
         if (this.isValidMove(move, possibleMoves)) {
           return {
@@ -97,7 +95,7 @@ export class GeminiAIStrategy extends BaseAIStrategy {
 
   private createGeminiPrompt(gameState: GameState): string {
     const boardDescription = this.describeBoardState(gameState);
-    const possibleMoves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK, this.chessGameService);
+    const possibleMoves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
     const movesDescription = this.describeValidMoves(possibleMoves);
 
     return `
@@ -170,6 +168,37 @@ Important notes:
       typeof response.move.to.y === 'number' &&
       typeof response.analysis === 'string' &&
       typeof response.reasoning === 'string'
+    );
+  }
+
+  // ==========================================
+  // 使用 ChessValidation 統一驗證模組
+  // ==========================================
+
+  /**
+   * 獲取所有可能移動（使用統一驗證模組）
+   */
+  private getAllPossibleMoves(
+    gameState: GameState,
+    color: PlayerColor
+  ): { from: { x: number; y: number }; to: { x: number; y: number } }[] {
+    const moves = ChessValidation.getAllPossibleMoves(gameState, color);
+    return moves.map(move => ({
+      from: { x: move.from.x, y: move.from.y },
+      to: { x: move.to.x, y: move.to.y }
+    }));
+  }
+
+  /**
+   * 檢查移動是否在可能移動列表中（使用統一驗證模組）
+   */
+  private isValidMove(
+    move: { from: { x: number; y: number }; to: { x: number; y: number } },
+    possibleMoves: { from: { x: number; y: number }; to: { x: number; y: number } }[]
+  ): boolean {
+    return ChessValidation.isValidMove(
+      { from: move.from, to: move.to },
+      possibleMoves.map(m => ({ from: m.from, to: m.to }))
     );
   }
 }

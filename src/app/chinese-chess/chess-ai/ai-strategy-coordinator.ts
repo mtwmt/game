@@ -8,7 +8,7 @@ import { ChessGameService } from '../chess-game.service';
 @Injectable({
   providedIn: 'root',
 })
-export class StrategyManager {
+export class AIStrategyCoordinator {
   private chessGameService = inject(ChessGameService);
   private geminiStrategy = inject(GeminiAIStrategy);
   private xqwlightStrategy = inject(XQWLightStrategy);
@@ -69,12 +69,10 @@ export class StrategyManager {
 
       // 所有策略都失敗，使用緊急備案
       console.log('🎲 使用隨機移動作為最後備案...');
-      const moves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
-      return moves.length > 0 ? moves[Math.floor(Math.random() * moves.length)] : null;
+      return this.getEmergencyMove(gameState);
     } catch (error) {
       console.error('🤖 AI思考出錯:', error);
-      const moves = this.getAllPossibleMoves(gameState, PlayerColor.BLACK);
-      return moves.length > 0 ? moves[0] : null;
+      return this.getEmergencyMove(gameState);
     }
   }
 
@@ -86,59 +84,9 @@ export class StrategyManager {
     });
   }
 
-  private getAllPossibleMoves(
-    gameState: GameState,
-    color: PlayerColor
-  ): { from: Position; to: Position }[] {
-    const moves: { from: Position; to: Position }[] = [];
-    const board = gameState.board;
-
-    for (let y = 0; y < 10; y++) {
-      for (let x = 0; x < 9; x++) {
-        const piece = board[y][x];
-        if (piece && piece.color === color) {
-          const possibleMoves = this.chessGameService.getPossibleMoves(piece, board);
-          for (const moveTo of possibleMoves) {
-            const move = { from: piece.position, to: moveTo };
-
-            // 檢查移動是否會讓自己被將軍 (避免送死)
-            if (this.isMoveLegal(move, gameState)) {
-              moves.push(move);
-            }
-          }
-        }
-      }
-    }
-
-    return moves;
-  }
-
-  // 檢查移動是否合法（不會讓自己被將軍）
-  private isMoveLegal(
-    move: { from: Position; to: Position },
-    gameState: GameState
-  ): boolean {
-    const board = gameState.board;
-    const piece = board[move.from.y][move.from.x];
-    if (!piece) return false;
-
-    // 模擬移動
-    const originalTarget = board[move.to.y][move.to.x];
-    const originalPos = piece.position;
-
-    board[move.to.y][move.to.x] = piece;
-    board[move.from.y][move.from.x] = null;
-    piece.position = move.to;
-
-    // 檢查是否會讓自己被將軍
-    const wouldBeInCheck = this.chessGameService.isInCheck(board, piece.color, gameState.moveHistory.length + 1);
-
-    // 還原棋盤
-    board[move.from.y][move.from.x] = piece;
-    board[move.to.y][move.to.x] = originalTarget;
-    piece.position = originalPos;
-
-    return !wouldBeInCheck;
+  // 緊急備案：使用 ChessGameService 獲取隨機合法移動
+  private getEmergencyMove(gameState: GameState): { from: Position; to: Position } | null {
+    return this.chessGameService.getRandomLegalMove(gameState, PlayerColor.BLACK);
   }
 
   // 策略控制方法

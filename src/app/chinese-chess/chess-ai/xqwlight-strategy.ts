@@ -1,7 +1,8 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { BaseAIStrategy, AIStrategyResult } from './base-ai-strategy';
 import { PlayerColor, Position, GameState, ChessPiece, PieceType } from '../chess-piece.interface';
-import { ChessGameService } from '../chess-game.service';
+import { PieceMovesManager } from '../utils/chinese-chess-piece-moves';
+import { ChessValidation } from '../utils/chinese-chess-validation';
 import {
   PIECE_VALUES,
   getPieceValue,
@@ -10,7 +11,7 @@ import {
   evaluateKingSafety,
   evaluatePawnAdvancement,
   evaluateMobility,
-} from '../chess-values';
+} from '../utils/chinese-chess-values';
 
 interface MoveScore {
   move: { from: Position; to: Position };
@@ -24,7 +25,6 @@ export class XQWLightStrategy extends BaseAIStrategy {
   readonly name = 'XQWLight 專業引擎';
   readonly priority = 1; // 最高優先級
 
-  private chessGameService = inject(ChessGameService);
   private searchDepth = XQWLIGHT_CONFIG.DEPTHS.medium;
   private startTime = 0;
   private nodeCount = 0;
@@ -113,8 +113,8 @@ export class XQWLightStrategy extends BaseAIStrategy {
 
       const newState = this.simulateMove(gameState, move);
 
-      // 檢查是否會讓自己被將軍 - 使用正確的移動計數
-      if (this.chessGameService.isInCheck(newState.board, aiColor, gameState.moveHistory.length + 1)) {
+      // XQWLight 專業移動驗證 - 確保移動合法性
+      if (this.isInvalidMoveForXQWLight(move, newState, gameState, aiColor)) {
         continue;
       }
 
@@ -159,8 +159,7 @@ export class XQWLightStrategy extends BaseAIStrategy {
 
     // 無移動可走 - 檢查是否將死
     if (moves.length === 0) {
-      const currentMoveCount = gameState.moveHistory.length;
-      const inCheck = this.chessGameService.isInCheck(gameState.board, currentColor, currentMoveCount);
+      const inCheck = this.isInCheck(gameState.board, currentColor);
       if (inCheck) {
         return isMaximizing ? -XQWLIGHT_CONFIG.MATE_VALUE : XQWLIGHT_CONFIG.MATE_VALUE;
       }
@@ -175,8 +174,8 @@ export class XQWLightStrategy extends BaseAIStrategy {
       for (const move of sortedMoves) {
         const newState = this.simulateMove(gameState, move);
 
-        // 跳過會讓自己被將軍的移動 - 使用正確的移動計數
-        if (this.chessGameService.isInCheck(newState.board, currentColor, gameState.moveHistory.length + depth)) {
+        // XQWLight 專業移動驗證
+        if (this.isInvalidMoveForXQWLight(move, newState, gameState, currentColor)) {
           continue;
         }
 
@@ -199,8 +198,8 @@ export class XQWLightStrategy extends BaseAIStrategy {
       for (const move of sortedMoves) {
         const newState = this.simulateMove(gameState, move);
 
-        // 跳過會讓自己被將軍的移動 - 使用正確的移動計數
-        if (this.chessGameService.isInCheck(newState.board, currentColor, gameState.moveHistory.length + depth)) {
+        // XQWLight 專業移動驗證
+        if (this.isInvalidMoveForXQWLight(move, newState, gameState, currentColor)) {
           continue;
         }
 
@@ -228,17 +227,15 @@ export class XQWLightStrategy extends BaseAIStrategy {
     let score = 0;
 
     // 優先檢查：王是否處於被直接攻擊的危險中
-    const moveCount = gameState.moveHistory.length;
-
     // 檢查黑王是否會被吃掉
-    const blackKingInDanger = this.chessGameService.isInCheck(gameState.board, PlayerColor.BLACK, moveCount);
+    const blackKingInDanger = this.isInCheck(gameState.board, PlayerColor.BLACK);
     if (blackKingInDanger) {
       // 黑方王被攻擊，對黑方極其不利
       score -= XQWLIGHT_CONFIG.MATE_VALUE * 2;
     }
 
     // 檢查紅王是否會被吃掉
-    const redKingInDanger = this.chessGameService.isInCheck(gameState.board, PlayerColor.RED, moveCount);
+    const redKingInDanger = this.isInCheck(gameState.board, PlayerColor.RED);
     if (redKingInDanger) {
       // 紅方王被攻擊，對黑方極其有利
       score += XQWLIGHT_CONFIG.MATE_VALUE * 2;
@@ -261,7 +258,7 @@ export class XQWLightStrategy extends BaseAIStrategy {
         }
 
         // 機動性評估 (XQWLight 風格)
-        const moveCount = this.chessGameService.getPossibleMoves(piece, gameState.board).length;
+        const moveCount = PieceMovesManager.getPieceMoves(piece, gameState.board, false).length;
         pieceScore += evaluateMobility(piece.type, moveCount);
 
         if (piece.color === PlayerColor.BLACK) {
@@ -277,12 +274,11 @@ export class XQWLightStrategy extends BaseAIStrategy {
     const redMoves = this.generateAllMoves(gameState, PlayerColor.RED).length;
     score += (blackMoves - redMoves) * XQWLIGHT_CONFIG.MOBILITY_FACTOR;
 
-    // 3. 將軍獎勵/懲罰 - 使用正確的移動計數
-    const currentMoveCount = gameState.moveHistory.length;
-    if (this.chessGameService.isInCheck(gameState.board, PlayerColor.BLACK, currentMoveCount)) {
+    // 3. 將軍獎勵/懲罰
+    if (this.isInCheck(gameState.board, PlayerColor.BLACK)) {
       score -= XQWLIGHT_CONFIG.CHECK_BONUS;
     }
-    if (this.chessGameService.isInCheck(gameState.board, PlayerColor.RED, currentMoveCount)) {
+    if (this.isInCheck(gameState.board, PlayerColor.RED)) {
       score += XQWLIGHT_CONFIG.CHECK_BONUS;
     }
 
@@ -331,22 +327,12 @@ export class XQWLightStrategy extends BaseAIStrategy {
 
       // 4. 位置改善評估 (XQWLight 原版)
       if (attackerA) {
-        const fromValueA = getPieceValue(
-          attackerA.type,
-          a.from.x,
-          a.from.y,
-          attackerA.color
-        );
+        const fromValueA = getPieceValue(attackerA.type, a.from.x, a.from.y, attackerA.color);
         const toValueA = getPieceValue(attackerA.type, a.to.x, a.to.y, attackerA.color);
         scoreA += (toValueA - fromValueA) * MOVE_ORDER_WEIGHTS.POSITION_BONUS_FACTOR;
       }
       if (attackerB) {
-        const fromValueB = getPieceValue(
-          attackerB.type,
-          b.from.x,
-          b.from.y,
-          attackerB.color
-        );
+        const fromValueB = getPieceValue(attackerB.type, b.from.x, b.from.y, attackerB.color);
         const toValueB = getPieceValue(attackerB.type, b.to.x, b.to.y, attackerB.color);
         scoreB += (toValueB - fromValueB) * MOVE_ORDER_WEIGHTS.POSITION_BONUS_FACTOR;
       }
@@ -363,43 +349,23 @@ export class XQWLightStrategy extends BaseAIStrategy {
     gameState: GameState,
     color: PlayerColor
   ): { from: Position; to: Position }[] {
-    return this.getAllPossibleMoves(gameState, color, this.chessGameService);
+    return ChessValidation.getAllLegalMoves(gameState, color);
   }
 
   private simulateMove(gameState: GameState, move: { from: Position; to: Position }): GameState {
-    const newBoard = gameState.board.map((row) => [...row]);
-    const movingPiece = newBoard[move.from.y][move.from.x];
+    return ChessValidation.simulateMove(gameState, move);
+  }
 
-    if (movingPiece) {
-      newBoard[move.to.y][move.to.x] = {
-        ...movingPiece,
-        position: { x: move.to.x, y: move.to.y },
-        hasMoved: true,
-        isSelected: false,
-      };
-      newBoard[move.from.y][move.from.x] = null;
-    }
+  private isInCheck(board: (ChessPiece | null)[][], color: PlayerColor): boolean {
+    return ChessValidation.isInCheck(board, color);
+  }
 
-    return { ...gameState, board: newBoard };
+  private wouldKingsFaceEachOther(board: (ChessPiece | null)[][]): boolean {
+    return ChessValidation.wouldKingsFaceEachOther(board);
   }
 
   private getFallbackMove(gameState: GameState): { from: Position; to: Position } | null {
-    const aiColor = PlayerColor.BLACK; // AI 總是黑方
-    const moves = this.generateAllMoves(gameState, aiColor);
-    if (moves.length === 0) return null;
-
-    // 過濾會讓自己被將軍的移動
-    const legalMoves = moves.filter((move) => {
-      const newState = this.simulateMove(gameState, move);
-      return !this.chessGameService.isInCheck(newState.board, aiColor, gameState.moveHistory.length + 1);
-    });
-
-    if (legalMoves.length === 0) return moves[0]; // 如果沒有合法移動，隨機選一個
-
-    // 優先選擇吃子移動
-    const captureMoves = legalMoves.filter((move) => gameState.board[move.to.y][move.to.x] !== null);
-
-    return captureMoves.length > 0 ? captureMoves[0] : legalMoves[0];
+    return ChessValidation.getRandomLegalMove(gameState, PlayerColor.BLACK);
   }
 
   private recordKillerMove(depth: number, move: { from: Position; to: Position }): void {
@@ -441,5 +407,15 @@ export class XQWLightStrategy extends BaseAIStrategy {
   private getHistoryScore(move: { from: Position; to: Position }): number {
     const key = `${move.from.x}${move.from.y}${move.to.x}${move.to.y}`;
     return this.historyTable.get(key) || 0;
+  }
+
+  // XQWLight 專業移動驗證 - 使用統一驗證模組
+  private isInvalidMoveForXQWLight(
+    move: { from: Position; to: Position },
+    newState: GameState,
+    originalState: GameState,
+    aiColor: PlayerColor
+  ): boolean {
+    return ChessValidation.isInvalidMoveForAI(move, newState, originalState, aiColor);
   }
 }

@@ -12,7 +12,7 @@ import {
   MoveResult,
   GameStatus,
 } from './chess-piece.interface';
-import { GAME_CONSTANTS } from './chess-values';
+import { GAME_CONSTANTS } from './utils/chinese-chess-values';
 
 @Component({
   selector: 'app-chinese-chess',
@@ -74,6 +74,10 @@ export class ChineseChess implements OnInit, OnDestroy {
   protected readonly PlayerColor = PlayerColor;
   protected readonly Math = Math;
 
+  /**
+   * Angular 生命週期：元件初始化
+   * 初始化遊戲狀態、設定 AI 引擎、設置事件監聽器
+   */
   ngOnInit(): void {
     this.resetGame();
     this.chessGameService.updateApiKeyStatus();
@@ -94,17 +98,31 @@ export class ChineseChess implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Angular 生命週期：元件銷毀
+   * 清理事件監聽器，防止記憶體洩漏
+   */
   ngOnDestroy(): void {
     if (typeof window !== 'undefined' && this.apiKeyUpdateListener) {
       window.removeEventListener('gemini_api_key_updated', this.apiKeyUpdateListener);
     }
   }
 
+  /**
+   * 重置遊戲到初始狀態
+   * 重新初始化棋盤、棋子位置和遊戲狀態
+   */
   resetGame(): void {
     const newGameState = this.chessGameService.initializeGameState();
     this.gameState.set(newGameState);
   }
 
+  /**
+   * 處理棋盤方格點擊事件
+   * 根據當前狀態決定是選擇棋子還是執行移動
+   * @param x 點擊位置的 x 座標 (0-8)
+   * @param y 點擊位置的 y 座標 (0-9)
+   */
   onSquareClick(x: number, y: number): void {
     if (this.gameOver() || !this.canInteract()) return;
 
@@ -118,6 +136,13 @@ export class ChineseChess implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * 處理已有棋子被選中時的點擊事件
+   * @param x 點擊位置的 x 座標
+   * @param y 點擊位置的 y 座標
+   * @param piece 點擊位置的棋子（可能為 null）
+   * @param currentState 當前遊戲狀態
+   */
   private handleSelectedPieceClick(
     x: number,
     y: number,
@@ -132,22 +157,30 @@ export class ChineseChess implements OnInit, OnDestroy {
       // 選擇新的己方棋子
       this.selectPiece(piece);
     } else if (this.isValidMove(x, y)) {
-      // 移動棋子
+      // 移動棋子到有效位置
       this.makeMove(currentState.selectedPiece!.position, { x, y });
     } else {
-      // 取消選擇
+      // 點擊無效位置，取消選擇
       this.deselectPiece();
     }
   }
 
+  /**
+   * 處理初始狀態（無棋子被選中）時的點擊事件
+   * @param piece 點擊位置的棋子（可能為 null）
+   */
   private handleInitialPieceClick(piece: ChessPiece | null): void {
     const currentState = this.gameState();
     if (piece && piece.color === currentState.currentPlayer) {
-      // 選擇棋子
+      // 選擇己方棋子
       this.selectPiece(piece);
     }
   }
 
+  /**
+   * 選擇棋子並計算其可行移動
+   * @param piece 要選擇的棋子
+   */
   private selectPiece(piece: ChessPiece): void {
     const currentState = this.gameState();
 
@@ -156,7 +189,7 @@ export class ChineseChess implements OnInit, OnDestroy {
       if (p) p.isSelected = false;
     });
 
-    // 設定新選擇
+    // 設定新選擇並計算可行移動
     piece.isSelected = true;
     const validMoves = this.chessGameService.getPossibleMoves(piece, currentState.board);
 
@@ -167,6 +200,10 @@ export class ChineseChess implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * 取消選擇當前棋子
+   * 清除選擇狀態和可行移動列表
+   */
   private deselectPiece(): void {
     const currentState = this.gameState();
 
@@ -181,10 +218,22 @@ export class ChineseChess implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * 檢查指定座標是否為當前選中棋子的有效移動位置
+   * @param x 目標位置的 x 座標
+   * @param y 目標位置的 y 座標
+   * @returns 是否為有效移動位置
+   */
   protected isValidMove(x: number, y: number): boolean {
     return this.validMoves().some((move) => move.x === x && move.y === y);
   }
 
+  /**
+   * 執行棋子移動
+   * 調用遊戲服務進行移動驗證和執行，然後處理移動結果
+   * @param from 起始位置
+   * @param to 目標位置
+   */
   private makeMove(from: Position, to: Position): void {
     const currentState = this.gameState();
     const piece = currentState.board[from.y][from.x];
@@ -197,6 +246,15 @@ export class ChineseChess implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * 處理玩家移動後的結果
+   * 更新遊戲狀態、切換玩家、檢查勝負、觸發 AI 移動
+   * @param result 移動結果
+   * @param piece 移動的棋子
+   * @param from 起始位置
+   * @param to 目標位置
+   * @param currentState 當前遊戲狀態
+   */
   private processMoveResult(
     result: MoveResult,
     piece: ChessPiece,
@@ -204,23 +262,23 @@ export class ChineseChess implements OnInit, OnDestroy {
     to: Position,
     currentState: GameState
   ): void {
-    // 更新移動歷史
+    // 更新移動歷史（生成棋譜記錄）
     const moveNotation = this.generateMoveNotation(piece, from, to, result.captured);
     const newHistory = [...currentState.moveHistory, moveNotation];
 
-    // 切換玩家
+    // 切換到下一個玩家
     const nextPlayer = this.getNextPlayer(currentState.currentPlayer);
 
-    // 檢查遊戲狀態
+    // 評估移動後的遊戲狀態（將軍、將死、和棋等）
     const gameStatus = this.evaluateGameStatus(result, currentState);
 
-    // 清除選擇狀態
+    // 清除所有棋子的選擇狀態
     this.clearPieceSelections(currentState);
 
     // 更新遊戲狀態
     this.updateGameState(currentState, nextPlayer, newHistory, gameStatus);
 
-    // 觸發AI移動（如果需要）
+    // 如果是人機對戰且輪到 AI，觸發 AI 移動
     this.checkAndTriggerAIMove(gameStatus.gameOver, currentState.isVsAI, nextPlayer);
   }
 
@@ -488,6 +546,7 @@ export class ChineseChess implements OnInit, OnDestroy {
       status: {
         gameOver: true,
         winner: PlayerColor.RED,
+        winReason: 'AI 投降',
         isInCheck: false,
         isSelfInCheck: false,
         isCheckmate: false,
