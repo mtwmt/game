@@ -3,6 +3,7 @@ import { Component, inject, OnDestroy, OnInit, signal, computed, PLATFORM_ID } f
 import { PathfindingService, Tile, PathSegment } from './pathfinding.service';
 import { GameLogicService } from './game-logic.service';
 import { GameHeaderComponent, GameRule } from '../shared/components/game-header/game-header';
+import { ModalComponent } from '../shared/components/modal/modal.component';
 
 // 關卡類型枚舉
 enum LevelType {
@@ -15,7 +16,7 @@ enum LevelType {
 
 @Component({
   selector: 'app-pet-match',
-  imports: [CommonModule, GameHeaderComponent],
+  imports: [CommonModule, GameHeaderComponent, ModalComponent],
   templateUrl: './pet-match.html',
 })
 export class PetMatch implements OnInit, OnDestroy {

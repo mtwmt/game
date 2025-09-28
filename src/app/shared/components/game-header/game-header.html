@@ -21,9 +21,9 @@
         src="https://ghbtns.com/github-btn.html?user=mtwmt&repo=game&type=star&count=true"
         frameborder="0"
         scrolling="0"
-        width="76"
+        width="90"
         height="20"
-        title="GitHub"
+        title="GitHub Star"
       ></iframe>
     </div>
     <a routerLink="/" class="bg-lime-600 hover:bg-lime-500 text-white font-bold py-1 px-2 rounded text-sm transition-colors shadow-lg hover:shadow-lime-500/25"> HOME </a>
@@ -31,38 +31,26 @@
 </div>
 
 <!-- Game Rules Modal -->
-@if (isGameRulesModalOpen() && gameRules) {
-<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="closeGameRulesModal()">
-  <div class="bg-neutral-900 border border-neutral-700 rounded-lg max-w-md w-full max-h-[70vh] overflow-hidden" (click)="$event.stopPropagation()">
-    <!-- Modal Header -->
-    <div class="flex items-center justify-between p-4 border-b border-neutral-700">
-      <h3 class="text-lg font-bold text-lime-400">{{ gameRules.title }}</h3>
-      <button
-        (click)="closeGameRulesModal()"
-        class="text-neutral-400 hover:text-white transition-colors"
-      >
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
+<app-modal
+  [isOpen]="isGameRulesModalOpen() && !!gameRules"
+  [title]="gameRules?.title || ''"
+  [type]="'card'"
+  [hasFooter]="true"
+  size="sm"
+  (close)="closeGameRulesModal()"
+>
+  @if (gameRules) {
+  <ul class="space-y-3 text-sm">
+    @for (rule of gameRules.rules; track $index) {
+    <li class="flex gap-3">
+      <span class="text-lime-400 font-bold min-w-[1.5rem]">{{ $index + 1 }}.</span>
+      <span class="text-neutral-200">{{ rule }}</span>
+    </li>
+    }
+  </ul>
+  }
 
-    <!-- Modal Content -->
-    <div class="p-4 overflow-y-auto max-h-[50vh]">
-      <ul class="space-y-3 text-sm">
-        @for (rule of gameRules.rules; track $index) {
-        <li class="flex gap-3">
-          <span class="text-lime-400 font-bold min-w-[1.5rem]">{{ $index + 1 }}.</span>
-          <span class="text-neutral-200">{{ rule }}</span>
-        </li>
-        }
-      </ul>
-    </div>
-
-    <!-- Modal Footer -->
-    <div class="p-4 border-t border-neutral-700 text-center">
-      <p class="text-xs text-neutral-500">祝你遊戲愉快！</p>
-    </div>
+  <div slot="footer">
+    <p class="text-xs text-neutral-500">祝你遊戲愉快！</p>
   </div>
-</div>
-}
+</app-modal>

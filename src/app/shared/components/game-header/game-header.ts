@@ -1,6 +1,7 @@
 import { Component, Input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { ModalComponent } from '../modal/modal.component';
 
 export interface GameRule {
   title: string;
@@ -10,7 +11,7 @@ export interface GameRule {
 @Component({
   selector: 'app-game-header',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, ModalComponent],
   templateUrl: './game-header.html',
 })
 export class GameHeaderComponent {

@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GameHeaderComponent, GameRule } from '../shared/components/game-header/game-header';
+import { ModalComponent } from '../shared/components/modal/modal.component';
 import { ChessGameService, initialState } from './chess-game.service';
 import { ChessAIService } from './chess-ai.service';
 import {
@@ -17,7 +18,7 @@ import { GAME_CONSTANTS } from './utils/chinese-chess-values';
 @Component({
   selector: 'app-chinese-chess',
   standalone: true,
-  imports: [CommonModule, FormsModule, GameHeaderComponent],
+  imports: [CommonModule, FormsModule, GameHeaderComponent, ModalComponent],
   templateUrl: './chinese-chess.html',
   styleUrl: './chinese-chess.scss',
 })

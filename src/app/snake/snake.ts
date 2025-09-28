@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnDestroy, OnInit, signal } from '@angular/core';
 import { GameHeaderComponent, GameRule } from '../shared/components/game-header/game-header';
+import { ModalComponent } from '../shared/components/modal/modal.component';
 
 interface Position {
   x: number;
@@ -11,7 +12,7 @@ type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 
 @Component({
   selector: 'app-snake',
-  imports: [CommonModule, GameHeaderComponent],
+  imports: [CommonModule, GameHeaderComponent, ModalComponent],
   templateUrl: './snake.html',
 })
 export class Snake implements OnInit, OnDestroy {

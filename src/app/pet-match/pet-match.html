@@ -89,7 +89,9 @@
           class="text-center border border-purple-400 bg-purple-400/20 px-1 py-1 text-purple-300 font-bold hover:bg-purple-400/30 transition w-16"
         >
           <div class="text-purple-400 text-xs">已選</div>
-          <div class="text-center text-xs flex gap-1 justify-center h-4 items-center overflow-hidden">
+          <div
+            class="text-center text-xs flex gap-1 justify-center h-4 items-center overflow-hidden"
+          >
             @if (selectedTiles().length > 0) { @for (tile of selectedTiles(); track tile.id) {
             <span class="text-xs leading-none">{{ petEmojis[tile.petType] }}</span>
             } } @else {
@@ -148,137 +150,115 @@
       </div>
       }
 
-      <!-- Game Over Overlay -->
-      @if (gameOver()) {
-      <div
-        class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg"
+      <!-- Game Over Modal -->
+      <app-modal
+        [isOpen]="gameOver()"
+        [theme]="timeUp() ? 'red' : 'orange'"
+        [showCloseButton]="false"
+        [closeOnBackdrop]="false"
+        (close)="resetGame()"
       >
+        <div class="text-3xl mb-4" [innerHTML]="timeUp() ? '⏰' : '😵'"></div>
+        <h2
+          class="text-2xl font-bold mb-4"
+          [class]="timeUp() ? 'text-red-100' : 'text-orange-100'"
+        >
+          {{ timeUp() ? '時間到了！' : '遊戲結束' }}
+        </h2>
         <div
-          class="bg-gradient-to-br border-2 rounded-lg p-8 shadow-2xl text-center"
+          class="rounded-lg p-3 mb-6"
+          [class]="timeUp() ? 'bg-red-700/50' : 'bg-orange-700/50'"
+        >
+          <div [class]="timeUp() ? 'text-red-200' : 'text-orange-200'">總分數</div>
+          <div class="font-bold text-2xl" [class]="timeUp() ? 'text-red-100' : 'text-orange-100'">
+            {{ score() }}
+          </div>
+        </div>
+        <button
+          class="font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
           [class]="
             timeUp()
-              ? 'from-red-600 to-red-800 border-red-400 shadow-red-400/50'
-              : 'from-orange-600 to-orange-800 border-orange-400 shadow-orange-400/50'
+              ? 'bg-red-500 hover:bg-red-400 text-red-900'
+              : 'bg-orange-500 hover:bg-orange-400 text-orange-900'
           "
+          (click)="resetGame()"
         >
-          <div class="text-3xl mb-4" [innerHTML]="timeUp() ? '⏰' : '😵'"></div>
-          <h2
-            class="text-2xl font-bold mb-4"
-            [class]="timeUp() ? 'text-red-100' : 'text-orange-100'"
-          >
-            {{ timeUp() ? '時間到了！' : '遊戲結束' }}
-          </h2>
-          <div
-            class="rounded-lg p-3 mb-6"
-            [class]="timeUp() ? 'bg-red-700/50' : 'bg-orange-700/50'"
-          >
-            <div [class]="timeUp() ? 'text-red-200' : 'text-orange-200'">總分數</div>
-            <div class="font-bold text-2xl" [class]="timeUp() ? 'text-red-100' : 'text-orange-100'">
-              {{ score() }}
+          重新開始
+        </button>
+      </app-modal>
+
+      <!-- Level Complete Modal -->
+      <app-modal
+        [isOpen]="levelComplete()"
+        [theme]="gameComplete() ? 'yellow' : 'green'"
+        [showCloseButton]="false"
+        [closeOnBackdrop]="false"
+        (close)="gameComplete() ? resetGame() : nextLevel()"
+      >
+        <div class="text-3xl mb-4" [innerHTML]="gameComplete() ? '🏆' : '🎉'"></div>
+        <h2
+          class="text-2xl font-bold mb-4"
+          [class]="gameComplete() ? 'text-yellow-100' : 'text-green-100'"
+        >
+          {{ gameComplete() ? '恭喜你全部破關！' : '關卡 ' + level() + ' 完成！' }}
+        </h2>
+
+        @if (gameComplete()) {
+        <!-- 全破關顯示 -->
+        <div class="mb-6">
+          <div class="text-yellow-200 text-lg mb-4">🎮 遊戲統計 🎮</div>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div class="bg-yellow-600/50 rounded-lg p-3">
+              <div class="text-yellow-200">總移動</div>
+              <div class="text-yellow-100 font-bold text-xl">{{ moves() }}</div>
+            </div>
+            <div class="bg-yellow-600/50 rounded-lg p-3">
+              <div class="text-yellow-200">總時間</div>
+              <div class="text-yellow-100 font-bold text-xl">{{ formattedTime() }}</div>
+            </div>
+            <div class="bg-yellow-600/50 rounded-lg p-3">
+              <div class="text-yellow-200">道具使用</div>
+              <div class="text-yellow-100 font-bold text-xl">
+                {{ totalShufflesUsed() + totalHintsUsed() }}
+              </div>
+            </div>
+            <div class="bg-yellow-600/50 rounded-lg p-3">
+              <div class="text-yellow-200">最終分數</div>
+              <div class="text-yellow-100 font-bold text-xl">{{ score() }}</div>
             </div>
           </div>
-          <button
-            class="font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
-            [class]="
-              timeUp()
-                ? 'bg-red-500 hover:bg-red-400 text-red-900'
-                : 'bg-orange-500 hover:bg-orange-400 text-orange-900'
-            "
-            (click)="resetGame()"
-          >
-            重新開始
-          </button>
         </div>
-      </div>
-      } @if (levelComplete()) {
-      <div
-        class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg"
-      >
-        <div
-          class="bg-gradient-to-br border-2 rounded-lg p-8 shadow-2xl text-center"
+        } @else {
+        <!-- 一般關卡完成顯示 -->
+        <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+          <div class="bg-green-700/50 rounded-lg p-3">
+            <div class="text-green-200">移動次數</div>
+            <div class="text-green-100 font-bold text-xl">{{ moves() }}</div>
+          </div>
+          <div class="bg-green-700/50 rounded-lg p-3">
+            <div class="text-green-200">完成時間</div>
+            <div class="text-green-100 font-bold text-xl">{{ formattedTime() }}</div>
+          </div>
+        </div>
+
+        <div class="bg-green-700/50 rounded-lg p-3 mb-6">
+          <div class="text-green-200">總分數</div>
+          <div class="text-green-100 font-bold text-2xl">{{ score() }}</div>
+        </div>
+        }
+
+        <button
+          class="font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
           [class]="
             gameComplete()
-              ? 'from-yellow-500 to-yellow-700 border-yellow-300 shadow-yellow-300/50'
-              : 'from-green-600 to-green-800 border-green-400 shadow-green-400/50'
+              ? 'bg-yellow-400 hover:bg-yellow-300 text-yellow-900'
+              : 'bg-green-500 hover:bg-green-400 text-green-900'
           "
+          (click)="gameComplete() ? resetGame() : nextLevel()"
         >
-          <div class="text-3xl mb-4" [innerHTML]="gameComplete() ? '🏆' : '🎉'"></div>
-          <h2
-            class="text-2xl font-bold mb-4"
-            [class]="gameComplete() ? 'text-yellow-100' : 'text-green-100'"
-          >
-            {{ gameComplete() ? '恭喜你全部破關！' : '關卡 ' + level() + ' 完成！' }}
-          </h2>
-
-          @if (gameComplete()) {
-          <!-- 全破關顯示 -->
-          <div class="mb-6">
-            <div class="text-yellow-200 text-lg mb-4">🎮 遊戲統計 🎮</div>
-            <div class="grid grid-cols-2 gap-4 text-sm">
-              <div class="bg-yellow-600/50 rounded-lg p-3">
-                <div class="text-yellow-200">總移動</div>
-                <div class="text-yellow-100 font-bold text-xl">{{ moves() }}</div>
-              </div>
-              <div class="bg-yellow-600/50 rounded-lg p-3">
-                <div class="text-yellow-200">總時間</div>
-                <div class="text-yellow-100 font-bold text-xl">{{ formattedTime() }}</div>
-              </div>
-              <div class="bg-yellow-600/50 rounded-lg p-3">
-                <div class="text-yellow-200">道具使用</div>
-                <div class="text-yellow-100 font-bold text-xl">
-                  {{ totalShufflesUsed() + totalHintsUsed() }}
-                </div>
-              </div>
-              <div class="bg-yellow-600/50 rounded-lg p-3">
-                <div class="text-yellow-200">最終分數</div>
-                <div class="text-yellow-100 font-bold text-xl">{{ score() }}</div>
-              </div>
-            </div>
-          </div>
-          } @else {
-          <!-- 一般關卡完成顯示 -->
-          <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
-            <div class="bg-green-700/50 rounded-lg p-3">
-              <div class="text-green-200">移動次數</div>
-              <div class="text-green-100 font-bold text-xl">{{ moves() }}</div>
-            </div>
-            <div class="bg-green-700/50 rounded-lg p-3">
-              <div class="text-green-200">完成時間</div>
-              <div class="text-green-100 font-bold text-xl">{{ formattedTime() }}</div>
-            </div>
-          </div>
-
-          <div class="bg-green-700/50 rounded-lg p-3 mb-6">
-            <div class="text-green-200">總分數</div>
-            <div class="text-green-100 font-bold text-2xl">{{ score() }}</div>
-          </div>
-          }
-
-          <button
-            class="font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
-            [class]="
-              gameComplete()
-                ? 'bg-yellow-400 hover:bg-yellow-300 text-yellow-900'
-                : 'bg-green-500 hover:bg-green-400 text-green-900'
-            "
-            (click)="gameComplete() ? resetGame() : nextLevel()"
-          >
-            {{ gameComplete() ? '重新挑戰' : '下一關 →' }}
-          </button>
-        </div>
-      </div>
-      }
+          {{ gameComplete() ? '重新挑戰' : '下一關 →' }}
+        </button>
+      </app-modal>
     </div>
   </main>
-
-  <!-- Game Instructions -->
-  <!-- <div class="text-xs text-lime-600 text-center pt-1">
-    <p class="mb-2">點擊兩個相同的寵物來配對！</p>
-    <p class="text-xs">連接線不能超過2-3次轉彎，配對成功後方塊會消失。</p>
-    @if (level() === 1) {
-    <p class="text-xs text-yellow-400 mt-1">第一關：消除後空白不會補位</p>
-    } @else {
-    <p class="text-xs text-orange-400 mt-1">第{{ level() }}關：消除後空白會往下補位！</p>
-    }
-  </div> -->
 </div>

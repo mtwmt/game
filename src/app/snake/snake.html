@@ -34,7 +34,6 @@
         >)
       </button>
     </div>
-
   </header>
 
   <!-- Game Board -->
@@ -97,13 +96,6 @@
       >
         開始遊戲
       </button>
-      } @if (gameOver()) {
-      <button
-        class="border border-cyan-800 bg-cyan-900 p-2 text-cyan-400 font-bold hover:bg-cyan-400/30 transition"
-        (click)="resetGame()"
-      >
-        重新開始
-      </button>
       } @if (gameStarted() && !gameOver()) {
       <button
         class="border border-yellow-800 bg-yellow-900 p-2 text-yellow-400 font-bold hover:bg-yellow-300/30 transition"
@@ -114,4 +106,26 @@
       }
     </div>
   </div>
+
+  <!-- Game Over Modal -->
+  <app-modal
+    [isOpen]="gameOver()"
+    theme="lime"
+    [showCloseButton]="false"
+    [closeOnBackdrop]="false"
+    (close)="resetGame()"
+  >
+    <div class="text-3xl mb-4">💀</div>
+    <h2 class="text-2xl font-bold mb-2 text-lime-100">遊戲結束</h2>
+    <div class="rounded-lg p-3 mb-6 bg-lime-700/50">
+      <div class="text-lime-200">最終分數</div>
+      <div class="font-bold text-2xl text-lime-100">{{ score() }}</div>
+    </div>
+    <button
+      class="bg-lime-400 hover:bg-lime-300 text-lime-900 font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+      (click)="resetGame()"
+    >
+      重新開始
+    </button>
+  </app-modal>
 </div>
