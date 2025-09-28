@@ -73,7 +73,7 @@
     <!-- Game Statistics -->
     <div class="flex flex-col gap-2">
       <div
-        class="flex items-center gap-1 flex-wrap bg-white/10 rounded-md p-2 border border-white/20"
+        class="flex items-center justify-center gap-1 flex-wrap bg-white/10 rounded-md p-2 border border-white/20"
       >
         <div
           class="border border-lime-400 bg-lime-400/20 px-2 py-1 text-lime-300 font-bold hover:bg-lime-400/30 transition"
@@ -118,6 +118,28 @@
             {{ getAIDifficultyText() }}
           </div>
         </div>
+
+        <!-- 棋譜記錄按鈕 -->
+        <!-- @if (moveHistory().length > 0) { -->
+        <button
+          (click)="openMoveHistoryModal()"
+          class="border border-cyan-400 bg-cyan-400/20 px-2 py-1 text-cyan-300 font-bold hover:bg-cyan-400/30 transition-all duration-200 relative"
+          title="查看棋譜記錄"
+        >
+          <div class="text-cyan-400 text-xs">棋譜記錄</div>
+          <div class="text-center text-xs flex items-center justify-center gap-1">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <span>{{ moveHistory().length }}</span>
+          </div>
+        </button>
+        <!-- } -->
       </div>
     </div>
   </header>
@@ -472,24 +494,16 @@
     </div>
   </main>
 
-  <!-- Floating Move History Button -->
-  @if (moveHistory().length > 0) {
-  <button
-    (click)="openMoveHistoryModal()"
-    class="fixed bottom-4 right-4 bg-amber-600 hover:bg-amber-500 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 z-10"
-    title="查看棋譜記錄"
-  >
-    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-    </svg>
-    <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{{ moveHistory().length }}</span>
-  </button>
-  }
-
   <!-- Move History Modal -->
   @if (isMoveHistoryModalOpen()) {
-  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="closeMoveHistoryModal()">
-    <div class="bg-neutral-900 border border-neutral-700 rounded-lg max-w-md w-full max-h-[70vh] overflow-hidden" (click)="$event.stopPropagation()">
+  <div
+    class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+    (click)="closeMoveHistoryModal()"
+  >
+    <div
+      class="bg-neutral-900 border border-neutral-700 rounded-lg max-w-md w-full max-h-[70vh] overflow-hidden"
+      (click)="$event.stopPropagation()"
+    >
       <!-- Modal Header -->
       <div class="flex items-center justify-between p-4 border-b border-neutral-700">
         <h3 class="text-lg font-bold text-amber-400">棋譜記錄</h3>
@@ -498,7 +512,12 @@
           class="text-neutral-400 hover:text-white transition-colors"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -510,8 +529,16 @@
         } @else {
         <div class="grid grid-cols-1 gap-2 text-sm">
           @for (move of moveHistory(); track $index; let i = $index) { @if (i % 2 === 0) {
-          <div class="flex gap-3 py-2 px-3 rounded {{ i === moveHistory().length - 2 || i === moveHistory().length - 1 ? 'bg-neutral-800' : 'hover:bg-neutral-800' }}">
-            <span class="text-neutral-400 min-w-[2rem] font-mono">{{ Math.floor(i / 2) + 1 }}.</span>
+          <div
+            class="flex gap-3 py-2 px-3 rounded {{
+              i === moveHistory().length - 2 || i === moveHistory().length - 1
+                ? 'bg-neutral-800'
+                : 'hover:bg-neutral-800'
+            }}"
+          >
+            <span class="text-neutral-400 min-w-[2rem] font-mono"
+              >{{ Math.floor(i / 2) + 1 }}.</span
+            >
             <div class="flex gap-4 flex-1">
               <span class="text-red-400 min-w-[4rem]">{{ move }}</span>
               @if (moveHistory()[i + 1]) {
@@ -531,10 +558,4 @@
     </div>
   </div>
   }
-
-  <!-- Game Instructions -->
-  <!-- <footer class="mt-4 text-xs text-amber-600 text-center">
-    <p class="mb-1">點擊選擇棋子，再點擊目標位置移動</p>
-    <p>紅方先行，將軍對方即獲勝</p>
-  </footer> -->
 </div>

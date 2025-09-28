@@ -84,30 +84,19 @@
           <div class="text-center text-xs">{{ remainingTiles() }}</div>
         </div>
 
-        <!-- <div
-          class="border px-2 py-1 font-bold hover:bg-opacity-30 transition"
-          [class]="
-            countdownTime() <= 30
-              ? 'border-red-400 bg-red-400/20 text-red-300 hover:bg-red-400/30'
-              : countdownTime() <= 60
-              ? 'border-yellow-400 bg-yellow-400/20 text-yellow-300 hover:bg-yellow-400/30'
-              : 'border-blue-400 bg-blue-400/20 text-blue-300 hover:bg-blue-400/30'
-          "
+        <!-- Selected Tiles Indicator -->
+        <div
+          class="text-center border border-purple-400 bg-purple-400/20 px-1 py-1 text-purple-300 font-bold hover:bg-purple-400/30 transition w-16"
         >
-          <div
-            class="text-xs"
-            [class]="
-              countdownTime() <= 30
-                ? 'text-red-400'
-                : countdownTime() <= 60
-                ? 'text-yellow-400'
-                : 'text-blue-400'
-            "
-          >
-            倒數
+          <div class="text-purple-400 text-xs">已選</div>
+          <div class="text-center text-xs flex gap-1 justify-center h-4 items-center overflow-hidden">
+            @if (selectedTiles().length > 0) { @for (tile of selectedTiles(); track tile.id) {
+            <span class="text-xs leading-none">{{ petEmojis[tile.petType] }}</span>
+            } } @else {
+            <span class="text-neutral-500 text-xs leading-none">點擊寵物</span>
+            }
           </div>
-          <div class="text-center text-xs">{{ formattedCountdown() }}</div>
-        </div> -->
+        </div>
 
         <!-- Timeline -->
         <div class="w-full mt-2 h-2 bg-neutral-700/80 rounded overflow-hidden relative">
@@ -292,22 +281,4 @@
     <p class="text-xs text-orange-400 mt-1">第{{ level() }}關：消除後空白會往下補位！</p>
     }
   </div> -->
-
-  <!-- Selected Tiles Indicator -->
-  <!-- @if (selectedTiles().length > 0) {
-  <div class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-    <div class="bg-stone-800/90 border border-yellow-400 rounded-lg px-4 py-2 backdrop-blur-sm">
-      <div class="text-yellow-400 text-sm font-bold mb-1">已選擇:</div>
-      <div class="flex gap-2">
-        @for (tile of selectedTiles(); track tile.id) {
-        <div
-          class="w-8 h-8 bg-yellow-400/20 border border-yellow-400 rounded flex items-center justify-center text-lg"
-        >
-          {{ petEmojis[tile.petType] }}
-        </div>
-        }
-      </div>
-    </div>
-  </div>
-  } -->
 </div>
