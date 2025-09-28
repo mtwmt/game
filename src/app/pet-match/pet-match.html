@@ -1,11 +1,6 @@
 <div class="w-full max-w-sm mx-auto flex flex-col">
   <header class="mb-2 flex flex-col gap-3 items-stretch">
-    <div class="flex justify-between items-center">
-      <h1 class="text-center text-2xl font-bold tracking-wider text-lime-400 drop-shadow">
-        寵物連連看
-      </h1>
-      <a routerLink="/" class="text-lime-600 text-sm">HOME</a>
-    </div>
+    <app-game-header title="寵物連連看" [gameRules]="gameRules"></app-game-header>
 
     <!-- Game Control Buttons -->
     <div class="flex gap-2">

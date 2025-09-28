@@ -1,8 +1,8 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit, signal, computed, PLATFORM_ID } from '@angular/core';
-import { PathfindingService, Tile, Position, PathSegment } from './pathfinding.service';
-import { GameLogicService, GameStats } from './game-logic.service';
-import { RouterLink } from '@angular/router';
+import { PathfindingService, Tile, PathSegment } from './pathfinding.service';
+import { GameLogicService } from './game-logic.service';
+import { GameHeaderComponent, GameRule } from '../shared/components/game-header/game-header';
 
 // 關卡類型枚舉
 enum LevelType {
@@ -15,7 +15,7 @@ enum LevelType {
 
 @Component({
   selector: 'app-pet-match',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, GameHeaderComponent],
   templateUrl: './pet-match.html',
 })
 export class PetMatch implements OnInit, OnDestroy {
@@ -27,6 +27,20 @@ export class PetMatch implements OnInit, OnDestroy {
   protected readonly boardWidth = 6;
   protected readonly boardHeight = 9;
   protected readonly petTypes = 12; // Number of different pet types
+
+  // 遊戲規則定義
+  protected readonly gameRules: GameRule = {
+    title: '寵物連連看遊戲規則',
+    rules: [
+      '點擊兩個相同的寵物圖案進行配對消除',
+      '兩個圖案之間的連線最多只能有2個轉彎',
+      '連線路徑不能被其他圖案阻擋',
+      '成功配對後圖案會消除並獲得分數',
+      '每關限時5分鐘，超時即遊戲結束',
+      '消除所有圖案即可過關進入下一關',
+      '不同關卡有不同的重力補位效果'
+    ]
+  };
 
   protected readonly board = signal<(Tile | null)[][]>([]);
   protected readonly selectedTiles = signal<Tile[]>([]);

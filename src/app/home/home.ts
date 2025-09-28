@@ -1,6 +1,7 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Component, OnInit, inject, PLATFORM_ID } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { GameHeaderComponent, GameRule } from '../shared/components/game-header/game-header';
 
 interface Game {
   title: string;
@@ -13,12 +14,26 @@ interface Game {
 
 @Component({
   selector: 'app-home',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, GameHeaderComponent],
   templateUrl: './home.html',
 })
 export class Home implements OnInit {
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
+
+  // 遊戲中心規則說明
+  protected readonly gameRules: GameRule = {
+    title: '遊戲中心使用說明',
+    rules: [
+      '點擊任意遊戲卡片即可開始遊玩',
+      '每個遊戲都有不同的難度等級和玩法',
+      '所有遊戲都支援響應式設計，手機電腦都能玩',
+      '遊戲進行中可隨時返回首頁選擇其他遊戲',
+      '建議先查看各遊戲的規則說明再開始',
+      '享受遊戲時光，挑戰你的極限！'
+    ]
+  };
+
   protected readonly games: Game[] = [
     {
       title: '貪食蛇',

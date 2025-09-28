@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnDestroy, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { GameHeaderComponent, GameRule } from '../shared/components/game-header/game-header';
 
 interface Position {
   x: number;
@@ -11,7 +11,7 @@ type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 
 @Component({
   selector: 'app-snake',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, GameHeaderComponent],
   templateUrl: './snake.html',
 })
 export class Snake implements OnInit, OnDestroy {
@@ -23,6 +23,19 @@ export class Snake implements OnInit, OnDestroy {
   protected readonly gameOver = signal(false);
   protected readonly gameStarted = signal(false);
   protected readonly isPaused = signal(false);
+
+  // 遊戲規則定義
+  protected readonly gameRules: GameRule = {
+    title: '貪食蛇遊戲規則',
+    rules: [
+      '使用方向鍵 (↑↓←→) 或觸控滑動控制蛇的移動方向',
+      '吃到紅色食物可以增加分數並讓蛇身變長',
+      '避免撞到邊界牆壁或蛇身本體，否則遊戲結束',
+      '按空白鍵可以暫停/繼續遊戲',
+      '遊戲目標是獲得最高分數，挑戰自己的極限',
+      '蛇移動速度固定，需要提前預判路線'
+    ]
+  };
 
   private gameLoop?: NodeJS.Timeout;
   private readonly gameSpeed = 150;

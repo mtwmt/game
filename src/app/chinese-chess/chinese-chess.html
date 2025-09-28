@@ -1,84 +1,74 @@
 <div class="w-full max-w-[95vw] sm:max-w-sm mx-auto flex flex-col px-2 sm:px-0">
   <header class="mb-2 flex flex-col gap-3 items-stretch">
-    <div class="flex justify-between items-center">
-      <h1 class="text-center text-2xl font-bold tracking-wider text-lime-400 drop-shadow">
-        中國象棋
-      </h1>
-      <a routerLink="/" class="text-lime-600 text-sm">HOME</a>
-    </div>
+    <app-game-header title="中國象棋" [gameRules]="gameRules"></app-game-header>
 
     <!-- Game Control Buttons -->
     <div class="flex gap-2 justify-between">
-      <button
-        class="h-12 w-1/3 rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-base shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300 drop-shadow-[0_0_5px_#22d3ee]"
-        (click)="toggleGameMode()"
-      >
-        {{ isVsAI() ? '👥 切換雙人' : '🤖 切換AI' }}
-      </button>
+      <!-- 模式/難度選擇按鈕（下拉選單） -->
+      <div class="relative w-2/4 dropdown-container">
+        <button
+          class="h-12 w-full rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-sm shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300 drop-shadow-[0_0_5px_#22d3ee] flex items-center justify-between px-3 transition-all hover:shadow-lg"
+          (click)="toggleDropdown()"
+          [class.bg-lime-600]="isDropdownOpen()"
+        >
+          <span>{{ getCurrentModeText() }}</span>
+          <div class="flex items-center gap-1">
+            <!-- <span class="text-xs text-lime-300">切換</span> -->
+            <span
+              class="text-lime-200 font-bold transition-transform duration-200"
+              [class.rotate-180]="isDropdownOpen()"
+            >
+              ▼
+            </span>
+          </div>
+        </button>
 
-      <div class="h-12 w-1/3 rounded-md border font-medium shadow bg-zinc-800">
-        @if (isInCheck()) {
-        <div class="text-3xl text-center text-amber-300 font-bold leading-12 animate-pulse">
-          將軍！
+        <!-- 下拉選單 -->
+        @if (isDropdownOpen()) {
+        <div
+          class="absolute top-14 left-0 w-full bg-neutral-800 border border-neutral-600 rounded-md shadow-lg z-50"
+        >
+          <button
+            class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700 flex items-center gap-2"
+            [class]="!isVsAI() ? 'bg-lime-700' : ''"
+            (click)="selectMode('pvp')"
+          >
+            👥 雙人模式
+          </button>
+          <div class="border-t border-neutral-600"></div>
+          <button
+            class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700 flex items-center gap-2"
+            [class]="isVsAI() && aiDifficulty() === 'easy' ? 'bg-lime-700' : ''"
+            (click)="selectMode('easy')"
+          >
+            🤖 簡單AI
+          </button>
+          <button
+            class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700 flex items-center gap-2"
+            [class]="isVsAI() && aiDifficulty() === 'medium' ? 'bg-lime-700' : ''"
+            (click)="selectMode('medium')"
+          >
+            🤖 中等AI
+          </button>
+          <button
+            class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700 flex items-center gap-2"
+            [class]="isVsAI() && aiDifficulty() === 'hard' ? 'bg-lime-700' : ''"
+            (click)="selectMode('hard')"
+          >
+            🤖 困難AI
+          </button>
         </div>
-        } @if (isSelfInCheck() && !isInCheck()) {
-        <div class="text-3xl text-red-400 animate-pulse">被將軍！</div>
         }
       </div>
 
+      <!-- 重新開始按鈕 -->
       <button
-        class="h-12 w-1/3 rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+        class="h-12 w-1/4 rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
         (click)="resetGame()"
       >
         重新開始
       </button>
     </div>
-
-
-    <!-- AI 難度設置 (僅在 AI 模式時顯示) -->
-    @if (isVsAI()) {
-    <div class="flex gap-2">
-      <!-- XQWLight 難度選擇 -->
-      <div
-        class="w-full flex items-center gap-2 bg-neutral-800/50 rounded-lg p-2 border border-neutral-600 justify-center"
-      >
-        <span class="text-amber-300 text-sm font-medium">🧠 AI 難度:</span>
-        <button
-          class="px-2 py-1 text-xs rounded transition-colors"
-          [ngClass]="
-            aiDifficulty() === 'easy'
-              ? 'bg-green-600 text-white'
-              : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-          "
-          (click)="setAIDifficulty('easy')"
-        >
-          簡單
-        </button>
-        <button
-          class="px-2 py-1 text-xs rounded transition-colors"
-          [ngClass]="
-            aiDifficulty() === 'medium'
-              ? 'bg-yellow-600 text-white'
-              : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-          "
-          (click)="setAIDifficulty('medium')"
-        >
-          中等
-        </button>
-        <button
-          class="px-2 py-1 text-xs rounded transition-colors"
-          [ngClass]="
-            aiDifficulty() === 'hard'
-              ? 'bg-red-600 text-white'
-              : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-          "
-          (click)="setAIDifficulty('hard')"
-        >
-          困難
-        </button>
-      </div>
-    </div>
-    }
 
     <!-- Game Statistics -->
     <div class="flex flex-col gap-2">
@@ -127,12 +117,6 @@
           <div class="text-center text-xs">
             {{ getAIDifficultyText() }}
           </div>
-        </div>
-
-        <div
-          class="w-full text-center text-sm mt-2 h-4 bg-neutral-700/80 rounded overflow-hidden relative animate-pulse text-white"
-        >
-          @if (aiIsThinking()) { AI 思考中... }
         </div>
       </div>
     </div>
@@ -257,18 +241,62 @@
 
             <!-- 楚河漢界 - 手機版 -->
             <div
-              class="absolute left-0 right-0 bg-amber-100 flex items-center justify-between px-8 z-5 sm:hidden"
+              class="absolute left-0 right-0 bg-amber-100 flex items-center justify-between px-4 z-5 sm:hidden"
               style="top: 161px; height: 40px"
             >
               <span class="text-amber-700 font-bold text-xs tracking-wider">楚河</span>
+
+              <!-- 遊戲狀態顯示 - 手機版 -->
+              <div class="flex items-center justify-center gap-1">
+                <!-- 將軍狀態 -->
+                @if (isInCheck()) {
+                <div class="text-lg text-red-600 font-bold animate-pulse drop-shadow-md">
+                  ⚔️ 將軍！
+                </div>
+                } @else if (isSelfInCheck()) {
+                <div class="text-lg text-orange-600 font-bold animate-pulse drop-shadow-md">
+                  🛡️ 被將軍
+                </div>
+                }
+
+                <!-- AI 思考狀態 -->
+                @if (aiIsThinking()) {
+                <div class="text-xs text-blue-600 font-bold animate-pulse drop-shadow-md">
+                  🤖 AI思考中...
+                </div>
+                }
+              </div>
+
               <span class="text-amber-700 font-bold text-xs tracking-wider">漢界</span>
             </div>
             <!-- 楚河漢界 - 桌面版 -->
             <div
-              class="absolute left-0 right-0 bg-amber-100 flex items-center justify-between px-16 z-5 hidden sm:flex"
+              class="absolute left-0 right-0 bg-amber-100 flex items-center justify-between px-8 z-5 hidden sm:flex"
               style="top: 204px; height: 50px"
             >
               <span class="text-amber-700 font-bold text-sm tracking-wider">楚河</span>
+
+              <!-- 遊戲狀態顯示 - 桌面版 -->
+              <div class="flex items-center justify-center gap-1">
+                <!-- 將軍狀態 -->
+                @if (isInCheck()) {
+                <div class="text-xl text-red-600 font-bold animate-pulse drop-shadow-lg">
+                  ⚔️ 將軍！
+                </div>
+                } @else if (isSelfInCheck()) {
+                <div class="text-xl text-orange-600 font-bold animate-pulse drop-shadow-lg">
+                  🛡️ 被將軍
+                </div>
+                }
+
+                <!-- AI 思考狀態 -->
+                @if (aiIsThinking()) {
+                <div class="text-sm text-blue-600 font-bold animate-pulse drop-shadow-lg">
+                  🤖 AI思考中...
+                </div>
+                }
+              </div>
+
               <span class="text-amber-700 font-bold text-sm tracking-wider">漢界</span>
             </div>
 
@@ -444,32 +472,69 @@
     </div>
   </main>
 
-  <!-- Move History -->
+  <!-- Floating Move History Button -->
   @if (moveHistory().length > 0) {
-  <section class="mt-6">
-    <h3 class="text-lg font-bold text-amber-400 mb-3">棋譜記錄</h3>
-    <div
-      class="bg-neutral-900/70 border border-neutral-700 rounded-md p-4 max-h-32 overflow-y-auto"
-    >
-      <div class="grid grid-cols-2 gap-2 text-sm">
-        @for (move of moveHistory(); track $index; let i = $index) { @if (i % 2 === 0) {
-        <div class="flex gap-2">
-          <span class="text-neutral-400">{{ Math.floor(i / 2) + 1 }}.</span>
-          <span class="text-red-400">{{ move }}</span>
-          @if (moveHistory()[i + 1]) {
-          <span class="text-neutral-300">{{ moveHistory()[i + 1] }}</span>
-          }
+  <button
+    (click)="openMoveHistoryModal()"
+    class="fixed bottom-4 right-4 bg-amber-600 hover:bg-amber-500 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 z-10"
+    title="查看棋譜記錄"
+  >
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{{ moveHistory().length }}</span>
+  </button>
+  }
+
+  <!-- Move History Modal -->
+  @if (isMoveHistoryModalOpen()) {
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="closeMoveHistoryModal()">
+    <div class="bg-neutral-900 border border-neutral-700 rounded-lg max-w-md w-full max-h-[70vh] overflow-hidden" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-4 border-b border-neutral-700">
+        <h3 class="text-lg font-bold text-amber-400">棋譜記錄</h3>
+        <button
+          (click)="closeMoveHistoryModal()"
+          class="text-neutral-400 hover:text-white transition-colors"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="p-4 overflow-y-auto max-h-[50vh]">
+        @if (moveHistory().length === 0) {
+        <p class="text-neutral-400 text-center">尚無棋譜記錄</p>
+        } @else {
+        <div class="grid grid-cols-1 gap-2 text-sm">
+          @for (move of moveHistory(); track $index; let i = $index) { @if (i % 2 === 0) {
+          <div class="flex gap-3 py-2 px-3 rounded {{ i === moveHistory().length - 2 || i === moveHistory().length - 1 ? 'bg-neutral-800' : 'hover:bg-neutral-800' }}">
+            <span class="text-neutral-400 min-w-[2rem] font-mono">{{ Math.floor(i / 2) + 1 }}.</span>
+            <div class="flex gap-4 flex-1">
+              <span class="text-red-400 min-w-[4rem]">{{ move }}</span>
+              @if (moveHistory()[i + 1]) {
+              <span class="text-neutral-300">{{ moveHistory()[i + 1] }}</span>
+              }
+            </div>
+          </div>
+          } }
         </div>
-        } }
+        }
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-neutral-700 text-center">
+        <p class="text-xs text-neutral-500">共 {{ moveHistory().length }} 步棋</p>
       </div>
     </div>
-  </section>
+  </div>
   }
 
   <!-- Game Instructions -->
-  <footer class="mt-4 text-xs text-amber-600 text-center">
+  <!-- <footer class="mt-4 text-xs text-amber-600 text-center">
     <p class="mb-1">點擊選擇棋子，再點擊目標位置移動</p>
     <p>紅方先行，將軍對方即獲勝</p>
-  </footer>
+  </footer> -->
 </div>
-

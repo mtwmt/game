@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { GameHeaderComponent, GameRule } from '../shared/components/game-header/game-header';
 import { ChessGameService, initialState } from './chess-game.service';
 import { ChessAIService } from './chess-ai.service';
 import {
@@ -17,7 +17,7 @@ import { GAME_CONSTANTS } from './utils/chinese-chess-values';
 @Component({
   selector: 'app-chinese-chess',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, FormsModule, GameHeaderComponent],
   templateUrl: './chinese-chess.html',
   styleUrl: './chinese-chess.scss',
 })
@@ -63,6 +63,12 @@ export class ChineseChess implements OnInit, OnDestroy {
   protected isGeminiEnabled = computed(() => this.hasApiKey() && this.isVsAI()); // 是否啟用 Gemini AI
   protected isApiKeyModalOpen = signal(false); // API Key 設定彈窗是否開啟
 
+  // 下拉選單控制
+  protected isDropdownOpen = signal(false); // 模式/難度下拉選單是否開啟
+
+  // 棋譜彈窗控制
+  protected isMoveHistoryModalOpen = signal(false); // 棋譜記錄彈窗是否開啟
+
   // 互動控制
   protected isAITurn = computed(
     () => this.isVsAI() && this.currentPlayer() === PlayerColor.BLACK && !this.gameOver()
@@ -74,6 +80,21 @@ export class ChineseChess implements OnInit, OnDestroy {
 
   protected readonly PlayerColor = PlayerColor;
   protected readonly Math = Math;
+
+  // 遊戲規則定義
+  protected readonly gameRules: GameRule = {
+    title: '中國象棋遊戲規則',
+    rules: [
+      '點擊選擇棋子，再點擊目標位置移動',
+      '紅方先行，雙方輪流下棋',
+      '將軍對方的將/帥即獲勝',
+      '將/帥不能離開九宮格範圍',
+      '兵/卒過河後可橫向移動',
+      '馬走日字且不能蹩腿',
+      '象/相走田字且不能過河',
+      '車走直線，砲隔子吃棋'
+    ]
+  };
 
   /**
    * Angular 生命週期：元件初始化
@@ -96,6 +117,14 @@ export class ChineseChess implements OnInit, OnDestroy {
         }
       };
       window.addEventListener('gemini_api_key_updated', this.apiKeyUpdateListener);
+
+      // 點擊外部關閉下拉選單
+      document.addEventListener('click', (event) => {
+        const target = event.target as Element;
+        if (!target.closest('.dropdown-container') && this.isDropdownOpen()) {
+          this.closeDropdown();
+        }
+      });
     }
   }
 
@@ -583,6 +612,52 @@ export class ChineseChess implements OnInit, OnDestroy {
       default:
         return '中等';
     }
+  }
+
+  // 獲取當前模式按鈕文字
+  getCurrentModeText(): string {
+    if (this.isVsAI()) {
+      return `🤖 ${this.getAIDifficultyText()}AI`;
+    } else {
+      return '👥 雙人模式';
+    }
+  }
+
+  // 切換下拉選單開關
+  toggleDropdown(): void {
+    this.isDropdownOpen.set(!this.isDropdownOpen());
+  }
+
+  // 關閉下拉選單
+  closeDropdown(): void {
+    this.isDropdownOpen.set(false);
+  }
+
+  // 打開棋譜記錄彈窗
+  openMoveHistoryModal(): void {
+    this.isMoveHistoryModalOpen.set(true);
+  }
+
+  // 關閉棋譜記錄彈窗
+  closeMoveHistoryModal(): void {
+    this.isMoveHistoryModalOpen.set(false);
+  }
+
+  // 選擇模式（整合模式切換和難度設定）
+  selectMode(mode: 'pvp' | 'easy' | 'medium' | 'hard'): void {
+    if (mode === 'pvp') {
+      // 切換到雙人模式
+      if (this.isVsAI()) {
+        this.toggleGameMode();
+      }
+    } else {
+      // 切換到 AI 模式並設定難度
+      if (!this.isVsAI()) {
+        this.toggleGameMode();
+      }
+      this.setAIDifficulty(mode);
+    }
+    this.closeDropdown();
   }
 
   // === Gemini API 相關方法 - 保留以後可能用到 ===
