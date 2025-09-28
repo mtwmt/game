@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/mtwmt/game/compare/v1.8.0...v1.9.0) (2025-09-28)
+
+
+### Features
+
+* add documentation maintenance guidelines and dark theme for GitHub star button ([0abc8af](https://github.com/mtwmt/game/commit/0abc8afb562f743057333db73fd4c7451c6f8a8d))
+
 # [1.8.0](https://github.com/mtwmt/game/compare/v1.7.1...v1.8.0) (2025-09-28)
 
 
