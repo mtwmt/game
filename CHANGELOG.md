@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/mtwmt/game/compare/v1.7.1...v1.8.0) (2025-09-28)
+
+
+### Features
+
+* add game header component and rules system ([3df2a69](https://github.com/mtwmt/game/commit/3df2a6963ef7e4503cd7f4de56510db3a8c1bda1))
+
 ## [1.7.1](https://github.com/mtwmt/game/compare/v1.7.0...v1.7.1) (2025-09-27)
 
 
