@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { BaseAIStrategy, AIStrategyResult } from './base-ai-strategy';
-import { PlayerColor, Position, GameState, ChessPiece, PieceType } from '../chess-piece.interface';
+import { BaseAIStrategy, AIStrategyResult } from './base-strategy';
+import { PlayerColor, Position, GameState, ChessPiece, PieceType } from '../chinese-chess-piece.interface';
 import { PieceMovesManager } from '../utils/chinese-chess-piece-moves';
 import { ChessValidation } from '../utils/chinese-chess-validation';
 import {
@@ -11,7 +11,7 @@ import {
   evaluateKingSafety,
   evaluatePawnAdvancement,
   evaluateMobility,
-} from '../utils/chinese-chess-values';
+} from '../utils/chinese-chess-config';
 
 interface MoveScore {
   move: { from: Position; to: Position };

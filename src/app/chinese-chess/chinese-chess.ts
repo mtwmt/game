@@ -3,28 +3,27 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GameHeaderComponent, GameRule } from '../shared/components/game-header/game-header';
 import { ModalComponent } from '../shared/components/modal/modal.component';
-import { ChessGameService, initialState } from './chess-game.service';
-import { ChessAIService } from './chess-ai.service';
+import { ChineseChessService, initialState } from './chinese-chess.service';
+import { ChineseChessAiService } from './chinese-chess-ai.service';
 import {
   ChessPiece,
   PlayerColor,
   Position,
   GameState,
   MoveResult,
-  GameStatus,
-} from './chess-piece.interface';
-import { GAME_CONSTANTS } from './utils/chinese-chess-values';
+  GameResult,
+} from './chinese-chess-piece.interface';
+import { GAME_CONSTANTS } from './utils/chinese-chess-config';
 
 @Component({
   selector: 'app-chinese-chess',
   standalone: true,
   imports: [CommonModule, FormsModule, GameHeaderComponent, ModalComponent],
   templateUrl: './chinese-chess.html',
-  styleUrl: './chinese-chess.scss',
 })
 export class ChineseChess implements OnInit, OnDestroy {
-  private chessGameService = inject(ChessGameService);
-  private chessAIService = inject(ChessAIService);
+  private chineseChessService = inject(ChineseChessService);
+  private chineseChessAiService = inject(ChineseChessAiService);
   private apiKeyUpdateListener?: () => void;
   private lastSelectedPiece: ChessPiece | null = null;
 
@@ -60,7 +59,7 @@ export class ChineseChess implements OnInit, OnDestroy {
   protected aiDifficulty = signal<'easy' | 'medium' | 'hard'>('medium'); // AI 難度設定
 
   // API Key Modal (保留以後可能用到)
-  protected hasApiKey = computed(() => this.chessGameService.hasApiKey()); // 是否有 Gemini API Key
+  protected hasApiKey = computed(() => this.chineseChessService.hasApiKey()); // 是否有 Gemini API Key
   protected isGeminiEnabled = computed(() => this.hasApiKey() && this.isVsAI()); // 是否啟用 Gemini AI
   protected isApiKeyModalOpen = signal(false); // API Key 設定彈窗是否開啟
 
@@ -93,8 +92,8 @@ export class ChineseChess implements OnInit, OnDestroy {
       '兵/卒過河後可橫向移動',
       '馬走日字且不能蹩腿',
       '象/相走田字且不能過河',
-      '車走直線，砲隔子吃棋'
-    ]
+      '車走直線，砲隔子吃棋',
+    ],
   };
 
   /**
@@ -103,15 +102,15 @@ export class ChineseChess implements OnInit, OnDestroy {
    */
   ngOnInit(): void {
     this.resetGame();
-    this.chessGameService.updateApiKeyStatus();
+    this.chineseChessService.updateApiKeyStatus();
 
     // 初始化為 XQWLight 引擎
-    this.chessAIService.setAIMode('xqwlight-only');
+    this.chineseChessAiService.setAIMode('xqwlight-only');
 
     // 恢復事件監聽器 - 保留以後可能用到
     if (typeof window !== 'undefined') {
       this.apiKeyUpdateListener = () => {
-        this.chessGameService.updateApiKeyStatus();
+        this.chineseChessService.updateApiKeyStatus();
         // 當 API key 狀態改變時，重新檢查 AI 類型
         if (this.hasApiKey() && this.aiType() === 'local') {
           this.setAIType('service');
@@ -144,7 +143,7 @@ export class ChineseChess implements OnInit, OnDestroy {
    * 重新初始化棋盤、棋子位置和遊戲狀態
    */
   resetGame(): void {
-    const newGameState = this.chessGameService.initializeGameState();
+    const newGameState = this.chineseChessService.initializeGameState();
     this.gameState.set(newGameState);
   }
 
@@ -223,7 +222,7 @@ export class ChineseChess implements OnInit, OnDestroy {
     // 設定新選擇並計算可行移動
     piece.isSelected = true;
     this.lastSelectedPiece = piece;
-    const validMoves = this.chessGameService.getPossibleMoves(piece, currentState.board);
+    const validMoves = this.chineseChessService.getPossibleMoves(piece, currentState.board);
 
     this.gameState.set({
       ...currentState,
@@ -273,7 +272,7 @@ export class ChineseChess implements OnInit, OnDestroy {
     const piece = currentState.board[from.y][from.x];
     if (!piece) return;
 
-    const result: MoveResult = this.chessGameService.makeMove(currentState, from, to);
+    const result: MoveResult = this.chineseChessService.makeMove(currentState, from, to);
 
     if (result.success) {
       this.processMoveResult(result, piece, from, to, currentState);
@@ -304,23 +303,23 @@ export class ChineseChess implements OnInit, OnDestroy {
     const nextPlayer = this.getNextPlayer(currentState.currentPlayer);
 
     // 評估移動後的遊戲狀態（將軍、將死、和棋等）
-    const gameStatus = this.evaluateGameStatus(result, currentState);
+    const gameResult = this.evaluateGameResult(result, currentState);
 
     // 清除所有棋子的選擇狀態
     this.clearPieceSelections(currentState);
 
     // 更新遊戲狀態
-    this.updateGameState(currentState, nextPlayer, newHistory, gameStatus);
+    this.updateGameState(currentState, nextPlayer, newHistory, gameResult);
 
     // 如果是人機對戰且輪到 AI，觸發 AI 移動
-    this.checkAndTriggerAIMove(gameStatus.gameOver, currentState.isVsAI, nextPlayer);
+    this.checkAndTriggerAIMove(gameResult.gameOver, currentState.isVsAI, nextPlayer);
   }
 
   private getNextPlayer(currentPlayer: PlayerColor): PlayerColor {
     return currentPlayer === PlayerColor.RED ? PlayerColor.BLACK : PlayerColor.RED;
   }
 
-  private evaluateGameStatus(result: MoveResult, currentState: GameState): GameStatus {
+  private evaluateGameResult(result: MoveResult, currentState: GameState): GameResult {
     return result.status;
   }
 
@@ -334,7 +333,7 @@ export class ChineseChess implements OnInit, OnDestroy {
     currentState: GameState,
     nextPlayer: PlayerColor,
     newHistory: string[],
-    gameStatus: GameStatus
+    gameResult: GameResult
   ): void {
     this.gameState.set({
       ...currentState,
@@ -342,7 +341,7 @@ export class ChineseChess implements OnInit, OnDestroy {
       selectedPiece: null,
       validMoves: [],
       moveHistory: newHistory,
-      status: gameStatus,
+      status: gameResult,
     });
   }
 
@@ -368,7 +367,7 @@ export class ChineseChess implements OnInit, OnDestroy {
   ): string {
     if (!piece) return '';
 
-    const pieceSymbol = this.chessGameService.getPieceSymbol(piece);
+    const pieceSymbol = this.chineseChessService.getPieceSymbol(piece);
     const file = this.getFileNumber(piece.color, from.x);
     const action = this.getMoveAction(piece.color, from, to);
 
@@ -421,8 +420,8 @@ export class ChineseChess implements OnInit, OnDestroy {
 
     // 宮殿背景
     if (
-      this.chessGameService.isInPalace(x, y, PlayerColor.RED) ||
-      this.chessGameService.isInPalace(x, y, PlayerColor.BLACK)
+      this.chineseChessService.isInPalace(x, y, PlayerColor.RED) ||
+      this.chineseChessService.isInPalace(x, y, PlayerColor.BLACK)
     ) {
       classes += ' palace';
     }
@@ -444,7 +443,7 @@ export class ChineseChess implements OnInit, OnDestroy {
 
   getPieceSymbol(piece: ChessPiece | null): string {
     if (!piece) return '';
-    return this.chessGameService.getPieceSymbol(piece);
+    return this.chineseChessService.getPieceSymbol(piece);
   }
 
   getRowNumbers(): number[] {
@@ -499,20 +498,20 @@ export class ChineseChess implements OnInit, OnDestroy {
 
   private prepareAIThinking(currentState: GameState): void {
     // 設置AI難度
-    this.chessAIService.setDifficulty(this.aiDifficulty());
+    this.chineseChessAiService.setDifficulty(this.aiDifficulty());
 
     // 設置 AI 思考狀態
     this.gameState.set({
       ...currentState,
       aiState: {
         isThinking: true,
-        thinkingText: this.chessAIService.getThinkingDescription(),
+        thinkingText: this.chineseChessAiService.getThinkingDescription(),
       },
     });
   }
 
   private async executeAIMove(currentState: GameState): Promise<void> {
-    const aiMove = await this.chessAIService.makeAIMove(currentState);
+    const aiMove = await this.chineseChessAiService.makeAIMove(currentState);
 
     if (aiMove) {
       console.log('🤖 AI選擇移動:', aiMove);
@@ -528,7 +527,7 @@ export class ChineseChess implements OnInit, OnDestroy {
     const piece = currentState.board[from.y][from.x];
     if (!piece) return;
 
-    const result: MoveResult = this.chessGameService.makeMove(currentState, from, to);
+    const result: MoveResult = this.chineseChessService.makeMove(currentState, from, to);
 
     if (result.success) {
       this.processAIMoveResult(result, piece, from, to, currentState);
@@ -550,7 +549,7 @@ export class ChineseChess implements OnInit, OnDestroy {
     const nextPlayer = this.getNextPlayer(piece.color);
 
     // 檢查遊戲狀態
-    const gameStatus = this.evaluateGameStatus(result, currentState);
+    const gameResult = this.evaluateGameResult(result, currentState);
     const winner = result.status.winner;
 
     // 清除選擇狀態
@@ -562,7 +561,7 @@ export class ChineseChess implements OnInit, OnDestroy {
       selectedPiece: null,
       validMoves: [],
       moveHistory: newHistory,
-      status: gameStatus,
+      status: gameResult,
       aiState: {
         isThinking: false,
         thinkingText: '',
@@ -677,7 +676,7 @@ export class ChineseChess implements OnInit, OnDestroy {
     }
 
     // 更新 API Key 狀態
-    this.chessGameService.updateApiKeyStatus();
+    this.chineseChessService.updateApiKeyStatus();
 
     // 如果正在使用 Gemini AI，則自動切換回本地端 AI
     if (this.aiType() === 'service') {
@@ -689,7 +688,7 @@ export class ChineseChess implements OnInit, OnDestroy {
 
   onApiKeySaved(): void {
     console.log('onApiKeySaved called');
-    this.chessGameService.updateApiKeyStatus();
+    this.chineseChessService.updateApiKeyStatus();
     console.log('hasApiKey after save:', this.hasApiKey());
 
     // 延遲關閉 modal，確保狀態更新完成
@@ -700,7 +699,7 @@ export class ChineseChess implements OnInit, OnDestroy {
 
   onApiKeyCleared(): void {
     console.log('onApiKeyCleared called');
-    this.chessGameService.updateApiKeyStatus();
+    this.chineseChessService.updateApiKeyStatus();
     console.log('hasApiKey after clear:', this.hasApiKey());
 
     // 如果正在使用 Gemini AI，則自動切換回本地端 AI
@@ -723,7 +722,7 @@ export class ChineseChess implements OnInit, OnDestroy {
     }
 
     // 設置 ChessAIService 的 AI 類型
-    this.chessAIService.setUseGeminiAI(type === 'service');
+    this.chineseChessAiService.setUseGeminiAI(type === 'service');
 
     console.log(`🤖 已切換 AI 類型: ${type}`);
   }

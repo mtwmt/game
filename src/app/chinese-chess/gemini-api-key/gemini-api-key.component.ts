@@ -1,7 +1,7 @@
 import { Component, signal, output, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ChessGameService } from '../../chinese-chess/chess-game.service';
+import { ChineseChessService } from '../chinese-chess.service';
 
 @Component({
   selector: 'app-gemini-api-key',
@@ -11,16 +11,16 @@ import { ChessGameService } from '../../chinese-chess/chess-game.service';
   styleUrl: './gemini-api-key.component.scss'
 })
 export class GeminiApiKeyComponent {
-  private chessGameService = inject(ChessGameService);
+  private chineseChessService = inject(ChineseChessService);
 
   apiKeyInput = '';
 
-  hasApiKey = computed(() => this.chessGameService.hasApiKey());
+  hasApiKey = computed(() => this.chineseChessService.hasApiKey());
   onApiKeySaved = output<void>();
   onApiKeyClear = output<void>();
 
   constructor() {
-    this.chessGameService.updateApiKeyStatus();
+    this.chineseChessService.updateApiKeyStatus();
   }
 
   saveApiKey(): void {
@@ -41,7 +41,7 @@ export class GeminiApiKeyComponent {
       }
 
       // 更新統一的狀態
-      this.chessGameService.updateApiKeyStatus();
+      this.chineseChessService.updateApiKeyStatus();
     }
   }
 
@@ -57,7 +57,7 @@ export class GeminiApiKeyComponent {
       }
 
       // 更新統一的狀態
-      this.chessGameService.updateApiKeyStatus();
+      this.chineseChessService.updateApiKeyStatus();
     }
   }
 

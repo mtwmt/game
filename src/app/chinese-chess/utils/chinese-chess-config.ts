@@ -1,4 +1,4 @@
-import { PieceType, PlayerColor } from '../chess-piece.interface';
+import { PieceType, PlayerColor } from '../chinese-chess-piece.interface';
 
 // 遊戲常數
 export const GAME_CONSTANTS = {

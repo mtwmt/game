@@ -3,8 +3,8 @@ import {
   PieceType,
   PlayerColor,
   Position,
-} from '../chess-piece.interface';
-import { GAME_CONSTANTS } from './chinese-chess-values';
+} from '../chinese-chess-piece.interface';
+import { GAME_CONSTANTS } from './chinese-chess-config';
 
 /**
  * 棋子走法管理類

@@ -6,12 +6,13 @@ import {
   Position,
   MoveResult,
   GameState,
-} from './chess-piece.interface';
-import { GAME_CONSTANTS } from './utils/chinese-chess-values';
+} from './chinese-chess-piece.interface';
+import { GAME_CONSTANTS } from './utils/chinese-chess-config';
 import { PieceMovesManager } from './utils/chinese-chess-piece-moves';
 import { LRUCache } from './utils/lru-cache';
 import { BoardCache, BoardCacheUtils } from './board-cache.interface';
 import { ChessValidation } from './utils/chinese-chess-validation';
+import { BaseAIStrategy } from './strategies/base-strategy';
 
 
 export const initialState: GameState = {
@@ -38,7 +39,7 @@ export const initialState: GameState = {
 @Injectable({
   providedIn: 'root',
 })
-export class ChessGameService {
+export class ChineseChessService {
 
   // 統一的 API Key 狀態管理
   hasApiKey = signal(false);
@@ -728,22 +729,22 @@ export class ChessGameService {
    * 2. 驗證 AI 返回的移動是否合法
    * 3. 如果合法則執行移動，否則使用備用策略
    * @param gameState 當前遊戲狀態
-   * @param aiStrategy AI 策略實例
+   * @param strategy AI 策略實例
    * @returns 移動結果
    */
   async makeAIMove(
     gameState: GameState,
-    aiStrategy: any // 暫時使用 any，之後會改成正確的類型
+    strategy: BaseAIStrategy
   ): Promise<MoveResult> {
     try {
       // 1. 檢查 AI 策略是否可用
-      const isAvailable = await aiStrategy.isAvailable();
+      const isAvailable = await strategy.isAvailable();
       if (!isAvailable) {
         return this.handleAIMoveFallback(gameState, 'AI 策略不可用');
       }
 
       // 2. 調用 AI 策略獲取移動決策
-      const aiResult = await aiStrategy.makeMove(gameState);
+      const aiResult = await strategy.makeMove(gameState);
       if (!aiResult) {
         return this.handleAIMoveFallback(gameState, 'AI 策略未返回有效移動');
       }

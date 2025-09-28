@@ -1,4 +1,4 @@
-import { ChessPiece, PlayerColor, Position } from './chess-piece.interface';
+import { ChessPiece, PlayerColor, Position } from './chinese-chess-piece.interface';
 
 /**
  * 棋盤快取介面

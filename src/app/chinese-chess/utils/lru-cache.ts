@@ -1,4 +1,4 @@
-import { GAME_CONSTANTS } from './chinese-chess-values';
+import { GAME_CONSTANTS } from './chinese-chess-config';
 
 /**
  * 簡單的 LRU (Least Recently Used) 快取實現

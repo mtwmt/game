@@ -1,15 +1,15 @@
 import { Injectable, inject } from '@angular/core';
-import { GameState, PlayerColor, Position } from '../chess-piece.interface';
-import { BaseAIStrategy } from './base-ai-strategy';
+import { GameState, PlayerColor, Position } from '../chinese-chess-piece.interface';
+import { BaseAIStrategy } from './base-strategy';
 import { GeminiAIStrategy } from './gemini-ai-strategy';
 import { XQWLightStrategy } from './xqwlight-strategy';
-import { ChessGameService } from '../chess-game.service';
+import { ChineseChessService } from '../chinese-chess.service';
 
 @Injectable({
   providedIn: 'root',
 })
-export class AIStrategyCoordinator {
-  private chessGameService = inject(ChessGameService);
+export class StrategyService {
+  private chineseChessService = inject(ChineseChessService);
   private geminiStrategy = inject(GeminiAIStrategy);
   private xqwlightStrategy = inject(XQWLightStrategy);
 
@@ -86,7 +86,7 @@ export class AIStrategyCoordinator {
 
   // 緊急備案：使用 ChessGameService 獲取隨機合法移動
   private getEmergencyMove(gameState: GameState): { from: Position; to: Position } | null {
-    return this.chessGameService.getRandomLegalMove(gameState, PlayerColor.BLACK);
+    return this.chineseChessService.getRandomLegalMove(gameState, PlayerColor.BLACK);
   }
 
   // 策略控制方法

@@ -1,4 +1,4 @@
-import { PlayerColor, Position, GameState } from '../chess-piece.interface';
+import { Position, GameState } from '../chinese-chess-piece.interface';
 
 export interface AIStrategyResult {
   from: Position;

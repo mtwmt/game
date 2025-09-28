@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { BaseAIStrategy, AIStrategyResult } from './base-ai-strategy';
-import { PlayerColor, GameState, PieceType } from '../chess-piece.interface';
+import { BaseAIStrategy, AIStrategyResult } from './base-strategy';
+import { PlayerColor, GameState, PieceType } from '../chinese-chess-piece.interface';
 import { ChessValidation } from '../utils/chinese-chess-validation';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 

@@ -1,4 +1,4 @@
-import { ChessPiece, PieceType, PlayerColor, Position, GameState } from '../chess-piece.interface';
+import { ChessPiece, PieceType, PlayerColor, Position, GameState } from '../chinese-chess-piece.interface';
 import { PieceMovesManager } from './chinese-chess-piece-moves';
 
 /**

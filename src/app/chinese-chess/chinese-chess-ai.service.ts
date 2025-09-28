@@ -1,30 +1,30 @@
 import { inject, Injectable } from '@angular/core';
-import { PlayerColor, Position, GameState } from './chess-piece.interface';
-import { AIStrategyCoordinator } from './chess-ai/ai-strategy-coordinator';
+import { Position, GameState } from './chinese-chess-piece.interface';
+import { StrategyService } from './strategies/strategy-service';
 
 @Injectable({
   providedIn: 'root',
 })
-export class ChessAIService {
-  private aiCoordinator = inject(AIStrategyCoordinator);
+export class ChineseChessAiService {
+  private strategyService = inject(StrategyService);
 
   async makeAIMove(gameState: GameState): Promise<{ from: Position; to: Position } | null> {
-    return this.aiCoordinator.executeAIMove(gameState);
+    return this.strategyService.executeAIMove(gameState);
   }
 
   // AI 模式控制方法 - 委託給AI協調器
   setUseGeminiAI(use: boolean): void {
-    this.aiCoordinator.setGeminiEnabled(use);
+    this.strategyService.setGeminiEnabled(use);
   }
 
   // 設置 AI 模式
   setAIMode(mode: 'xqwlight-only' | 'gemini-only' | 'mixed' | 'auto'): void {
-    this.aiCoordinator.setAIMode(mode);
+    this.strategyService.setAIMode(mode);
   }
 
   // XQWLight 控制方法
   setUseXQWLight(use: boolean): void {
-    this.aiCoordinator.setXQWLightEnabled(use);
+    this.strategyService.setXQWLightEnabled(use);
   }
 
   // 獲取當前 AI 狀態
@@ -32,20 +32,20 @@ export class ChessAIService {
     xqwlight: boolean;
     geminiAI: boolean;
   } {
-    const coordinatorStatus = this.aiCoordinator.getStrategyStatus();
+    const coordinatorStatus = this.strategyService.getStrategyStatus();
     return {
       xqwlight: coordinatorStatus.xqwlight,
-      geminiAI: coordinatorStatus.gemini
+      geminiAI: coordinatorStatus.gemini,
     };
   }
 
   // 設置難度 - 委託給AI協調器
   setDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
-    this.aiCoordinator.setDifficulty(difficulty);
+    this.strategyService.setDifficulty(difficulty);
   }
 
   getThinkingDescription(): string {
-    return this.aiCoordinator.getThinkingDescription();
+    return this.strategyService.getThinkingDescription();
   }
 
   // 獲取詳細的思考狀態
@@ -72,7 +72,7 @@ export class ChessAIService {
     return {
       description,
       mode,
-      isThinking: true
+      isThinking: true,
     };
   }
 }

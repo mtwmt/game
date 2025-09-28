@@ -27,7 +27,7 @@ export interface ChessPiece {
   hasMoved: boolean;
 }
 
-export interface GameStatus {
+export interface GameResult {
   gameOver: boolean;
   winner: PlayerColor | null;
   winReason?: string; // 獲勝原因說明
@@ -40,7 +40,7 @@ export interface GameStatus {
 export interface MoveResult {
   success: boolean;
   captured?: ChessPiece;
-  status: GameStatus;
+  status: GameResult;
 }
 
 export interface AIState {
@@ -53,7 +53,7 @@ export interface GameState {
   currentPlayer: PlayerColor;
   selectedPiece: ChessPiece | null;
   validMoves: Position[];
-  status: GameStatus;
+  status: GameResult;
   moveHistory: string[];
   isVsAI: boolean;
   aiState: AIState;

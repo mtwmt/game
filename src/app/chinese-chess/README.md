@@ -4,22 +4,23 @@
 
 ```
 src/app/chinese-chess/
-├── chinese-chess.ts                  # 主元件 (UI 控制器)
-├── chess-game.service.ts            # 遊戲邏輯核心服務
-├── chess-ai.service.ts              # AI 服務統一介面
-├── chess-piece.interface.ts         # 型別定義和介面
-├── board-cache.interface.ts         # 棋盤快取介面和工具
-├── utils/                           # 工具類和公用函數
-│   ├── chinese-chess-validation.ts # 象棋規則驗證模組
-│   ├── chinese-chess-values.ts     # XQWLight 評分表和常數
-│   ├── chinese-chess-piece-moves.ts# 棋子走法管理類
-│   └── lru-cache.ts                # LRU 快取實現
-├── chess-ai/                        # AI 策略模組
-│   ├── base-ai-strategy.ts         # 策略基類
-│   ├── ai-strategy-coordinator.ts  # AI 策略協調器
-│   ├── xqwlight-strategy.ts        # XQWLight 專業引擎
-│   └── gemini-ai-strategy.ts       # Gemini AI 策略
-└── gemini-api-key/                  # API 金鑰管理元件
+├── chinese-chess.ts                    # 主元件 (UI 控制器)
+├── chinese-chess.service.ts           # 遊戲邏輯核心服務
+├── chinese-chess-ai.service.ts        # AI 服務統一介面
+├── chinese-chess-piece.interface.ts   # 型別定義和介面
+├── board-cache.interface.ts           # 棋盤快取介面和工具
+├── utils/                             # 工具類和公用函數
+│   ├── chinese-chess-validation.ts   # 象棋規則驗證模組
+│   ├── chinese-chess-config.ts       # XQWLight 配置和常數
+│   ├── chinese-chess-piece-moves.ts  # 棋子走法管理類
+│   ├── chinese-chess-openings.ts     # 開局定式和戰略
+│   └── lru-cache.ts                  # LRU 快取實現
+├── strategies/                        # AI 策略模組
+│   ├── base-strategy.ts              # 策略基類
+│   ├── strategy-service.ts           # 策略管理服務
+│   ├── xqwlight-strategy.ts          # XQWLight 專業引擎
+│   └── gemini-ai-strategy.ts         # Gemini AI 策略
+└── gemini-api-key/                    # API 金鑰管理元件
     └── gemini-api-key.component.ts
 ```
 
@@ -46,7 +47,7 @@ interface GameState {
   currentPlayer: PlayerColor; // 當前輪到的玩家
   selectedPiece: ChessPiece | null; // 目前選中的棋子
   validMoves: Position[]; // 選中棋子的有效移動位置
-  status: GameStatus; // 遊戲狀態 (將軍/將死/和棋)
+  status: GameResult; // 遊戲狀態 (將軍/將死/和棋)
   moveHistory: string[]; // 移動歷史記錄 (棋譜)
   isVsAI: boolean; // 是否為人機對戰模式
   aiState: AIState; // AI 思考狀態
@@ -76,7 +77,7 @@ enum PlayerColor {
 ```
 ChineseChess.ngOnInit()
 → resetGame()
-→ ChessGameService.initializeGameState()
+→ ChineseChessService.initializeGameState()
 → 初始化 9x10 棋盤、放置棋子、設置遊戲狀態
 ```
 
@@ -87,7 +88,7 @@ ChineseChess.ngOnInit()
 → onSquareClick(x, y)
 → handleSelectedPieceClick() / handleInitialPieceClick()
 → selectPiece() / makeMove()
-→ ChessGameService.makeMove(gameState, from, to)
+→ ChineseChessService.makeMove(gameState, from, to)
 → 驗證移動、更新棋盤、檢查遊戲狀態
 → processMoveResult() → 切換玩家、更新歷史、觸發AI
 ```
@@ -96,8 +97,9 @@ ChineseChess.ngOnInit()
 
 ```
 triggerAIMove()
-→ ChessGameService.makeAIMove(gameState, aiStrategy)
-→ AI 策略決策 + 移動驗證
+→ ChineseChessAiService.makeAIMove(gameState)
+→ StrategyService.executeAIMove(gameState)
+→ AI 策略決策 + 移動驗證 + 執行移動
 → processAIMoveResult()
 ```
 
@@ -114,10 +116,13 @@ triggerAIMove()
 
 ### 主要服務職責
 
-- **ChessGameService**: 遊戲邏輯核心，統一管理移動驗證和 AI 整合
+- **ChineseChessService**: 遊戲邏輯核心，統一管理移動驗證和 AI 整合
 - **ChessValidation**: 象棋規則驗證，包含將軍、將死、王見王判定
 - **PieceMovesManager**: 棋子走法邏輯，處理各種棋子的移動規則
-- **ChessAIService**: AI 服務介面，協調不同 AI 策略
+- **ChineseChessConfig**: 配置管理模組，包含 XQWLight 常數和遊戲參數
+- **ChineseChessOpenings**: 開局定式和戰略模組，包含常見開局與變化
+- **ChineseChessAiService**: AI 服務介面，協調不同 AI 策略
+- **StrategyService**: 策略管理服務，協調多種 AI 策略
 - **XQWLightStrategy**: 專業 AI 引擎，使用 Alpha-Beta 搜尋算法
 
 ### 效能優化

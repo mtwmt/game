@@ -1,4 +1,4 @@
-import { Position } from '../chess-piece.interface';
+import { Position } from '../chinese-chess-piece.interface';
 
 // 定義棋譜類型
 export interface ChessGameRecord {
