@@ -65,6 +65,7 @@
 每個遊戲都透過 `GameHeaderComponent` 提供統一的遊戲規則查看功能：
 
 **使用方式**：
+
 ```typescript
 // 在遊戲元件中定義規則
 protected readonly gameRules: GameRule = {
@@ -83,6 +84,7 @@ protected readonly gameRules: GameRule = {
 ```
 
 **功能特色**：
+
 - 標題旁邊的問號圖示按鈕
 - 點擊後彈出全螢幕規則說明彈窗
 - 支援編號列表形式的規則展示
@@ -119,15 +121,42 @@ protected readonly gameRules: GameRule = {
 - 沒有重複程式碼（DRY 原則）
 - 變數和函數名稱語意清楚
 
-### 文件更新
+## 文件維護指引
 
-- README 安裝說明已更新（如適用）
-- 技術規格文件已同步
-- 變更記錄已記錄
-- 用戶操作說明已更新（如適用）
+### 模組 README 維護
 
-## 維護提醒
+當對以下模組進行重大更新時，請同步更新對應的 README：
+
+- `src/app/chinese-chess/` → 更新 `src/app/chinese-chess/README.md`
+- `src/app/pet-match/` → 更新 `src/app/pet-match/README.md`
+- `src/app/snake/` → 如有重大架構變更，考慮新增 README
+- **新遊戲開發** → 建議為複雜遊戲創建專屬 README
+
+### 需要更新 README 的情況
+
+**核心架構變更**：
+
+- 新增核心服務或重要類別
+- 修改主要的遊戲邏輯流程
+- 變更 API 介面或型別定義
+- 架構重構或設計模式變更
+
+**功能新增**：
+
+- 新增重要的 UI/UX 功能
+- 加入新的遊戲機制或規則
+- 實作新的 AI 策略或演算法
+- 加入效能優化或快取系統
+
+**文件結構建議**：
+
+- 簡單遊戲（如 Snake）：可不需要 README
+- 中等複雜度（如 Pet Match）：建議有 README
+- 複雜遊戲（如 Chinese Chess）：必須有詳細 README
+
+### 主文件 (CLAUDE.md) 維護
 
 - 完成新功能時請要求更新此檔案
 - 變更架構或技術棧時需同步更新
 - 新增遊戲或重要元件時請更新遊戲列表
+- 新增共享元件時需更新架構說明
