@@ -22,6 +22,11 @@ export const routes: Routes = [
     title: 'Game - Chinese Chess',
   },
   {
+    path: 'minesweeper',
+    loadComponent: () => import('./minesweeper/minesweeper').then((m) => m.MinesweeperComponent),
+    title: 'Game - Minesweeper',
+  },
+  {
     path: '**',
     redirectTo: '',
   },

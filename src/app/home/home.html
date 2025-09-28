@@ -15,14 +15,16 @@
     <a
       [routerLink]="game.route"
       class="group relative overflow-hidden rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-{{
-        game.color
+        getColor(game)
       }}/20 block"
       [ngClass]="{
         'border-green-600 bg-gradient-to-br from-green-900/20 to-green-800/10':
-          game.color === 'green',
-        'border-pink-600 bg-gradient-to-br from-pink-900/20 to-pink-800/10': game.color === 'pink',
+          getColor(game) === 'green',
+        'border-pink-600 bg-gradient-to-br from-pink-900/20 to-pink-800/10': getColor(game) === 'pink',
         'border-amber-600 bg-gradient-to-br from-amber-900/20 to-amber-800/10':
-          game.color === 'amber'
+          getColor(game) === 'amber',
+        'border-sky-600 bg-gradient-to-br from-sky-900/20 to-sky-800/10':
+          getColor(game) === 'sky'
       }"
     >
       <!-- Game Card Content -->
@@ -36,9 +38,10 @@
         <h2
           class="text-base sm:text-xl lg:text-2xl font-bold mb-1 sm:mb-2 lg:mb-3 text-center"
           [ngClass]="{
-            'text-green-300': game.color === 'green',
-            'text-pink-300': game.color === 'pink',
-            'text-amber-300': game.color === 'amber'
+            'text-green-300': getColor(game) === 'green',
+            'text-pink-300': getColor(game) === 'pink',
+            'text-amber-300': getColor(game) === 'amber',
+            'text-sky-300': getColor(game) === 'sky'
           }"
         >
           {{ game.title }}
@@ -56,9 +59,10 @@
           <span
             class="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs font-medium border"
             [ngClass]="{
-              'bg-green-500/20 text-green-300 border-green-500/30': game.color === 'green',
-              'bg-pink-500/20 text-pink-300 border-pink-500/30': game.color === 'pink',
-              'bg-amber-500/20 text-amber-300 border-amber-500/30': game.color === 'amber'
+              'bg-green-500/20 text-green-300 border-green-500/30': getColor(game) === 'green',
+              'bg-pink-500/20 text-pink-300 border-pink-500/30': getColor(game) === 'pink',
+              'bg-amber-500/20 text-amber-300 border-amber-500/30': getColor(game) === 'amber',
+              'bg-sky-500/20 text-sky-300 border-sky-500/30': getColor(game) === 'sky'
             }"
           >
             {{ game.difficulty }}
@@ -71,11 +75,13 @@
             class="inline-flex items-center px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 rounded-lg font-medium transition-all duration-200 w-full justify-center text-white shadow-lg"
             [ngClass]="{
               'bg-green-600 group-hover:bg-green-500 group-hover:shadow-green-500/30':
-                game.color === 'green',
+                getColor(game) === 'green',
               'bg-pink-600 group-hover:bg-pink-500 group-hover:shadow-pink-500/30':
-                game.color === 'pink',
+                getColor(game) === 'pink',
               'bg-amber-600 group-hover:bg-amber-500 group-hover:shadow-amber-500/30':
-                game.color === 'amber'
+                getColor(game) === 'amber',
+              'bg-sky-600 group-hover:bg-sky-500 group-hover:shadow-sky-500/30':
+                getColor(game) === 'sky'
             }"
           >
             <span class="mr-1 sm:mr-2 text-xs sm:text-sm">🚀</span>
@@ -88,9 +94,10 @@
       <div
         class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
         [ngClass]="{
-          'bg-gradient-to-br from-green-400/10 to-green-600/10': game.color === 'green',
-          'bg-gradient-to-br from-pink-400/10 to-pink-600/10': game.color === 'pink',
-          'bg-gradient-to-br from-amber-400/10 to-amber-600/10': game.color === 'amber'
+          'bg-gradient-to-br from-green-400/10 to-green-600/10': getColor(game) === 'green',
+          'bg-gradient-to-br from-pink-400/10 to-pink-600/10': getColor(game) === 'pink',
+          'bg-gradient-to-br from-amber-400/10 to-amber-600/10': getColor(game) === 'amber',
+          'bg-gradient-to-br from-sky-400/10 to-sky-600/10': getColor(game) === 'sky'
         }"
       ></div>
     </a>

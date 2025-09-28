@@ -1,0 +1,249 @@
+<div class="w-full max-w-sm mx-auto flex flex-col">
+  <header class="mb-2 flex flex-col gap-3 items-stretch">
+    <app-game-header title="踩地雷" [gameRules]="gameRules"></app-game-header>
+
+    <!-- Game Control Buttons -->
+    <div class="flex gap-2 justify-between">
+      <!-- 難度選擇下拉選單 -->
+      <div class="relative w-2/4 dropdown-container">
+        <button
+          class="h-12 w-full rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-sm shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300 flex items-center justify-between px-3 transition-all"
+          (click)="toggleDropdown()"
+          [class.bg-lime-600]="isDropdownOpen()"
+        >
+          <span>{{ getDifficultyName(gameState().difficulty) }}</span>
+          <span
+            class="text-lime-200 font-bold transition-transform duration-200"
+            [class.rotate-180]="isDropdownOpen()"
+          >
+            ▼
+          </span>
+        </button>
+
+        <!-- 下拉選單 -->
+        @if (isDropdownOpen()) {
+        <div
+          class="absolute top-14 left-0 w-full bg-neutral-800 border border-neutral-600 rounded-md shadow-lg z-50"
+        >
+          <button
+            class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700"
+            [class]="isCurrentDifficulty(Difficulty.BEGINNER) ? 'bg-lime-700' : ''"
+            (click)="selectDifficulty(Difficulty.BEGINNER)"
+          >
+            {{ getDifficultyName(Difficulty.BEGINNER) }}
+          </button>
+          <div class="border-t border-neutral-600"></div>
+          <button
+            class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700"
+            [class]="isCurrentDifficulty(Difficulty.INTERMEDIATE) ? 'bg-lime-700' : ''"
+            (click)="selectDifficulty(Difficulty.INTERMEDIATE)"
+          >
+            {{ getDifficultyName(Difficulty.INTERMEDIATE) }}
+          </button>
+          <button
+            class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700"
+            [class]="isCurrentDifficulty(Difficulty.EXPERT) ? 'bg-lime-700' : ''"
+            (click)="selectDifficulty(Difficulty.EXPERT)"
+          >
+            {{ getDifficultyName(Difficulty.EXPERT) }}
+          </button>
+        </div>
+        }
+      </div>
+
+      <!-- 重新開始按鈕 -->
+      @if (gameState().gameStatus === GameStatus.LOST || gameState().gameStatus === GameStatus.WON)
+      {
+      <button
+        class="h-12 w-1/4 rounded-md bg-cyan-700 border border-cyan-500 text-cyan-50 font-semibold text-base shadow hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+        (click)="resetGame()"
+      >
+        重新開始
+      </button>
+      } @else {
+      <button
+        class="h-12 w-1/4 rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-base shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300"
+        (click)="resetGame()"
+      >
+        新遊戲
+      </button>
+      }
+    </div>
+
+    <!-- Game Statistics -->
+    <div
+      class="flex items-center gap-1 justify-center flex-wrap bg-neutral-900/70 rounded-md p-2 border border-neutral-700"
+    >
+      <div
+        class="border border-red-400 bg-red-400/20 px-2 py-1 text-red-300 font-bold hover:bg-red-400/30 transition"
+      >
+        <div class="text-red-400 text-xs">地雷</div>
+        <div class="text-center text-xs">{{ remainingMines() }}</div>
+      </div>
+
+      <div
+        class="border border-lime-400 bg-lime-400/20 px-2 py-1 text-lime-300 font-bold hover:bg-lime-400/30 transition"
+      >
+        <div class="text-lime-400 text-xs">進度</div>
+        <div class="text-center text-xs">{{ getProgressPercentage() }}%</div>
+      </div>
+
+      <div
+        class="border border-yellow-400 bg-yellow-400/20 px-2 py-1 text-yellow-300 font-bold hover:bg-yellow-400/30 transition"
+      >
+        <div class="text-yellow-400 text-xs">已開</div>
+        <div class="text-center text-xs">{{ gameState().revealedCount }}</div>
+      </div>
+
+      <div
+        class="border border-orange-400 bg-orange-400/20 px-2 py-1 text-orange-300 font-bold hover:bg-orange-400/30 transition"
+      >
+        <div class="text-orange-400 text-xs">旗標</div>
+        <div class="text-center text-xs">{{ gameState().flaggedCount }}</div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="w-full mt-2 h-2 bg-neutral-700/80 rounded overflow-hidden relative">
+        <div
+          class="h-full bg-gradient-to-r transition-all duration-300"
+          [class]="timelineColorClass()"
+          [style.width.%]="timelinePercentage()"
+        ></div>
+        <span
+          class="absolute inset-0 text-[9px] tracking-wide font-semibold flex items-center justify-center select-none transition-colors duration-300"
+          [class]="timelineTextClass()"
+        >
+          {{ formattedTime() }}
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Game Board -->
+  <main
+    class="inline-grid gap-[1px] p-2 bg-green-900/40 border border-green-800 touch-none select-none mx-auto"
+    [style.grid-template-columns]="'repeat(' + gameState().width + ', minmax(0, 1fr))'"
+  >
+    @for (row of gameState().board; track $index; let x = $index) {
+      @for (cell of row; track cell.id; let y = $index) {
+    <button
+      (click)="onCellClick({ x: x, y: y })"
+      (contextmenu)="onCellRightClick($event, { x: x, y: y })"
+      (touchstart)="onTouchStart($event, { x: x, y: y })"
+      (touchend)="onTouchEnd($event, { x: x, y: y })"
+      [disabled]="
+        gameState().gameStatus === GameStatus.LOST || gameState().gameStatus === GameStatus.WON
+      "
+      class="w-4 h-4 text-xs font-bold border border-gray-400 transition-all duration-150 hover:scale-105 focus:outline-none focus:ring-1 focus:ring-lime-300"
+      [ngClass]="{
+        'bg-neutral-100 hover:bg-neutral-200': !cell.isRevealed && !cell.isFlagged,
+        'bg-neutral-400': cell.isRevealed && !cell.isMine && cell.neighborMineCount === 0,
+        'bg-white': cell.isRevealed && !cell.isMine && cell.neighborMineCount > 0,
+        'bg-red-500 text-white': cell.isRevealed && cell.isMine,
+        'bg-yellow-300': cell.isFlagged,
+        'text-blue-600': cell.isRevealed && cell.neighborMineCount === 1,
+        'text-green-600': cell.isRevealed && cell.neighborMineCount === 2,
+        'text-red-600': cell.isRevealed && cell.neighborMineCount === 3,
+        'text-purple-600': cell.isRevealed && cell.neighborMineCount === 4,
+        'text-yellow-600': cell.isRevealed && cell.neighborMineCount === 5,
+        'text-pink-600': cell.isRevealed && cell.neighborMineCount === 6,
+        'text-black': cell.isRevealed && cell.neighborMineCount === 7,
+        'text-neutral-600': cell.isRevealed && cell.neighborMineCount === 8
+      }"
+    >
+      {{ getCellContent(x, y) }}
+    </button>
+    } }
+  </main>
+
+  <!-- Controls Info -->
+  <footer class="mt-4 text-center text-xs text-zinc-400 px-4">
+    <div class="flex justify-center gap-4">
+      <span>👆 點擊揭開</span>
+      <span>🚩 右鍵標記</span>
+      <span>📱 長按標記</span>
+    </div>
+  </footer>
+
+  <!-- Game Over Modal (失敗) -->
+  <app-modal
+    [isOpen]="gameState().gameStatus === GameStatus.LOST"
+    theme="red"
+    [showCloseButton]="false"
+    [closeOnBackdrop]="false"
+    (close)="resetGame()"
+  >
+    <div class="text-3xl mb-4">💥</div>
+    <h2 class="text-2xl font-bold mb-4 text-red-100">踩到地雷！</h2>
+    <div class="bg-red-700/50 rounded-lg p-3 mb-6">
+      <div class="grid grid-cols-2 gap-4 text-center">
+        <div class="bg-red-600/50 rounded-lg p-3">
+          <div class="text-red-200">遊戲時間</div>
+          <div class="text-red-100 font-bold text-xl">{{ formattedTime() }}</div>
+        </div>
+        <div class="bg-red-600/50 rounded-lg p-3">
+          <div class="text-red-200">已開格子</div>
+          <div class="text-red-100 font-bold text-xl">{{ gameState().revealedCount }}</div>
+        </div>
+      </div>
+    </div>
+    <button
+      class="bg-red-500 hover:bg-red-400 text-red-900 font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+      (click)="resetGame()"
+    >
+      重新開始
+    </button>
+  </app-modal>
+
+  <!-- Game Won Modal (獲勝) -->
+  <app-modal
+    [isOpen]="gameState().gameStatus === GameStatus.WON"
+    theme="green"
+    [showCloseButton]="false"
+    [closeOnBackdrop]="false"
+    (close)="resetGame()"
+  >
+    <div class="text-3xl mb-4">🎉</div>
+    <h2 class="text-2xl font-bold mb-4 text-green-100">恭喜獲勝！</h2>
+    <div class="bg-green-700/50 rounded-lg p-3 mb-6">
+      <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="bg-green-600/50 rounded-lg p-3">
+          <div class="text-green-200">難度</div>
+          <div class="text-green-100 font-bold text-xl">
+            {{ getDifficultyName(gameState().difficulty) }}
+          </div>
+        </div>
+        <div class="bg-green-600/50 rounded-lg p-3">
+          <div class="text-green-200">時間</div>
+          <div class="text-green-100 font-bold text-xl">{{ formattedTime() }}</div>
+        </div>
+        <div class="bg-green-600/50 rounded-lg p-3">
+          <div class="text-green-200">效率</div>
+          <div class="text-green-100 font-bold text-xl">{{ getProgressPercentage() }}%</div>
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button
+        class="bg-green-500 hover:bg-green-400 text-green-900 font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg flex-1"
+        (click)="resetGame()"
+      >
+        再玩一次
+      </button>
+      <button
+        class="bg-lime-500 hover:bg-lime-400 text-lime-900 font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg flex-1"
+        (click)="
+          setDifficulty(
+            gameState().difficulty === Difficulty.BEGINNER
+              ? Difficulty.INTERMEDIATE
+              : gameState().difficulty === Difficulty.INTERMEDIATE
+              ? Difficulty.EXPERT
+              : Difficulty.BEGINNER
+          )
+        "
+      >
+        {{ gameState().difficulty === Difficulty.EXPERT ? '回到初級' : '提升難度' }}
+      </button>
+    </div>
+  </app-modal>
+</div>

@@ -37,8 +37,9 @@
   </header>
 
   <!-- Game Board -->
+  <!-- class="inline-grid grid-cols-12 gap-[2px] p-2 bg-green-900/40 border border-green-800 touch-none select-none" -->
   <main
-    class="inline-grid grid-cols-12 gap-[2px] p-2 bg-green-900/40 border border-green-800 touch-none select-none"
+    class="inline-grid gap-[2px] p-2 bg-green-900/40 border border-green-800 touch-none select-none mx-auto"
     [ngStyle]="{ 'grid-template-columns': 'repeat(' + boardSize + ', minmax(0, 1fr))' }"
     (touchstart)="onTouchStart($event)"
     (touchmove)="onTouchMove($event)"

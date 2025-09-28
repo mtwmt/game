@@ -25,8 +25,8 @@ export class PetMatch implements OnInit, OnDestroy {
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
 
-  protected readonly boardWidth = 6;
-  protected readonly boardHeight = 9;
+  protected readonly boardWidth = 7;
+  protected readonly boardHeight = 10;
   protected readonly petTypes = 12; // Number of different pet types
 
   // 遊戲規則定義

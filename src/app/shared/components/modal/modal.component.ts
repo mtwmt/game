@@ -110,7 +110,18 @@ export class ModalComponent {
       return `${styles.content} ${paddingTop}`.trim();
     }
 
-    return `bg-gradient-to-br from-${theme}-600 to-${theme}-800 border-2 border-${theme}-400 rounded-lg p-8`;
+    const themeClasses: { [key: string]: string } = {
+      amber: 'bg-gradient-to-br from-amber-600 to-amber-800 border-2 border-amber-400',
+      red: 'bg-gradient-to-br from-red-600 to-red-800 border-2 border-red-400',
+      orange: 'bg-gradient-to-br from-orange-600 to-orange-800 border-2 border-orange-400',
+      lime: 'bg-gradient-to-br from-lime-600 to-lime-800 border-2 border-lime-400',
+      yellow: 'bg-gradient-to-br from-yellow-600 to-yellow-800 border-2 border-yellow-400',
+      green: 'bg-gradient-to-br from-green-600 to-green-800 border-2 border-green-400',
+      cyan: 'bg-gradient-to-br from-cyan-600 to-cyan-800 border-2 border-cyan-400',
+    };
+
+    const themeClass = themeClasses[theme] || themeClasses['amber'];
+    return `${themeClass} rounded-lg p-8`;
   }
 
   protected getFooterClass(): string {
