@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/mtwmt/game/compare/v1.10.0...v1.11.0) (2025-09-29)
+
+
+### Features
+
+* implement device-adaptive minesweeper game ([a6c0e00](https://github.com/mtwmt/game/commit/a6c0e00ea3f8b5077ebb185e204440c11af79d88))
+
 # [1.10.0](https://github.com/mtwmt/game/compare/v1.9.0...v1.10.0) (2025-09-28)
 
 
