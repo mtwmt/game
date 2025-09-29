@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/mtwmt/game/compare/v1.9.0...v1.10.0) (2025-09-28)
+
+
+### Features
+
+* add Minesweeper game and improve UI components ([1521649](https://github.com/mtwmt/game/commit/1521649eb0a7d76b02edf2c68c4b83be89db3cfc))
+
 # [1.9.0](https://github.com/mtwmt/game/compare/v1.8.0...v1.9.0) (2025-09-28)
 
 
