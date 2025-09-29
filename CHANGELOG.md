@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/mtwmt/game/compare/v1.11.0...v1.12.0) (2025-09-29)
+
+
+### Features
+
+* Add dynamic board sizing for mobile devices ([65911ce](https://github.com/mtwmt/game/commit/65911ce37e7f6f437600b0a0bc8183f053dda5cd))
+
 # [1.11.0](https://github.com/mtwmt/game/compare/v1.10.0...v1.11.0) (2025-09-29)
 
 
