@@ -33,12 +33,16 @@ export class MinesweeperService {
 
   private gameTimer: number | null = null;
   private isMobile: boolean = false;
+  private screenWidth: number = 0;
+  private screenHeight: number = 0;
 
   /**
-   * 設置設備類型
+   * 設置設備類型和螢幕尺寸
    */
-  setDeviceType(isMobile: boolean): void {
+  setDeviceType(isMobile: boolean, screenWidth?: number, screenHeight?: number): void {
     this.isMobile = isMobile;
+    this.screenWidth = screenWidth || 0;
+    this.screenHeight = screenHeight || 0;
   }
 
   /**
@@ -46,7 +50,7 @@ export class MinesweeperService {
    */
   initializeGame(difficulty: Difficulty = Difficulty.EXPERT): void {
     this.stopTimer();
-    const difficultyConfigs = getDifficultyConfigs(this.isMobile);
+    const difficultyConfigs = getDifficultyConfigs(this.isMobile, this.screenWidth, this.screenHeight);
     const config = difficultyConfigs[difficulty];
 
     if (!MinesweeperValidation.isValidGameConfig(config.width, config.height, config.mineCount)) {

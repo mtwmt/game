@@ -30,7 +30,7 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
 
   // 動態難度配置
   protected readonly difficultyConfigs = computed(() => {
-    return getDifficultyConfigs(this.isMobile());
+    return getDifficultyConfigs(this.isMobile(), this.getScreenWidth(), this.getScreenHeight());
   });
 
   // 下拉選單控制
@@ -104,8 +104,8 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    // 設置設備類型到service
-    this.minesweeperService.setDeviceType(this.isMobile());
+    // 設置設備類型和螢幕尺寸到service
+    this.minesweeperService.setDeviceType(this.isMobile(), this.getScreenWidth(), this.getScreenHeight());
     this.minesweeperService.initializeGame();
 
     // 只在瀏覽器環境中設置點擊監聽器
@@ -290,6 +290,26 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
     }
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
            window.innerWidth < 768;
+  }
+
+  /**
+   * 獲取螢幕寬度
+   */
+  private getScreenWidth(): number {
+    if (!isPlatformBrowser(this.platformId)) {
+      return 0;
+    }
+    return window.innerWidth;
+  }
+
+  /**
+   * 獲取螢幕高度
+   */
+  private getScreenHeight(): number {
+    if (!isPlatformBrowser(this.platformId)) {
+      return 0;
+    }
+    return window.innerHeight;
   }
 
   /**
