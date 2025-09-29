@@ -72,14 +72,18 @@ export class MinesweeperService {
 
   /**
    * 創建空的遊戲板
+   * board[row][col] = board[y][x]
+   * 標準二維陣列結構：第一維是行(row/y)，第二維是列(col/x)
    */
   private createEmptyBoard(width: number, height: number): Cell[][] {
     const board: Cell[][] = [];
 
-    for (let x = 0; x < width; x++) {
-      board[x] = [];
-      for (let y = 0; y < height; y++) {
-        board[x][y] = {
+    // 外層迴圈：行 (y 軸，從上到下)
+    for (let y = 0; y < height; y++) {
+      board[y] = [];
+      // 內層迴圈：列 (x 軸，從左到右)
+      for (let x = 0; x < width; x++) {
+        board[y][x] = {
           position: { x, y },
           isMine: false,
           isRevealed: false,
@@ -95,29 +99,27 @@ export class MinesweeperService {
 
   /**
    * 初始化地雷（在第一次點擊後）
+   * 直接修改傳入的 gameState，不更新 signal
    */
-  private initializeMines(firstClickPosition: Position): void {
-    const currentState = this.gameState();
+  private initializeMines(firstClickPosition: Position, gameState: GameState): void {
     const minePositions = MineGenerator.generateMinePositions(
-      currentState.width,
-      currentState.height,
-      currentState.mineCount,
+      gameState.width,
+      gameState.height,
+      gameState.mineCount,
       firstClickPosition
     );
 
     // 在遊戲板上放置地雷
     minePositions.forEach(pos => {
-      currentState.board[pos.x][pos.y].isMine = true;
+      gameState.board[pos.y][pos.x].isMine = true;
     });
 
     // 計算每個格子的鄰近地雷數量
     MineGenerator.calculateNeighborMineCounts(
-      currentState.board,
-      currentState.width,
-      currentState.height
+      gameState.board,
+      gameState.width,
+      gameState.height
     );
-
-    this.gameState.set({ ...currentState });
   }
 
   /**
@@ -134,7 +136,7 @@ export class MinesweeperService {
       return { success: false, gameOver: false, cellsRevealed: [], gameStatus: currentState.gameStatus };
     }
 
-    const cell = currentState.board[position.x][position.y];
+    const cell = currentState.board[position.y][position.x];
 
     if (!MinesweeperValidation.canRevealCell(cell)) {
       return { success: false, gameOver: false, cellsRevealed: [], gameStatus: currentState.gameStatus };
@@ -142,7 +144,7 @@ export class MinesweeperService {
 
     // 如果是第一次點擊，初始化地雷
     if (currentState.isFirstClick) {
-      this.initializeMines(position);
+      this.initializeMines(position, currentState);
       this.startTimer();
       currentState.gameStatus = GameStatus.PLAYING;
       currentState.isFirstClick = false;
@@ -151,8 +153,9 @@ export class MinesweeperService {
     const cellsRevealed = this.revealCellRecursive(position, currentState);
 
     // 檢查遊戲狀態
-    if (MinesweeperValidation.checkGameOver(currentState.board[position.x][position.y])) {
+    if (MinesweeperValidation.checkGameOver(currentState.board[position.y][position.x])) {
       currentState.gameStatus = GameStatus.LOST;
+      currentState.triggeredMinePosition = position; // 記錄觸發地雷位置
       this.stopTimer();
       this.revealAllMines(currentState);
     } else if (MinesweeperValidation.checkWinCondition(currentState)) {
@@ -160,7 +163,15 @@ export class MinesweeperService {
       this.stopTimer();
     }
 
-    this.gameState.set({ ...currentState });
+    // 使用 signal.update() 觸發變更檢測
+    // 只需要更新狀態，不需要深拷貝整個 board
+    this.gameState.update(state => ({
+      ...state,
+      board: currentState.board,
+      revealedCount: currentState.revealedCount,
+      gameStatus: currentState.gameStatus,
+      triggeredMinePosition: currentState.triggeredMinePosition
+    }));
 
     return {
       success: true,
@@ -172,11 +183,16 @@ export class MinesweeperService {
 
   /**
    * 遞歸揭開格子（空白區域展開）
+   * 標準踩地雷邏輯：
+   * 1. 揭開當前格子
+   * 2. 如果當前格子是空白(0)，遞迴揭開所有鄰居
+   * 3. 鄰居如果也是空白(0)，繼續遞迴；如果是數字則停止
    */
   private revealCellRecursive(position: Position, gameState: GameState): Position[] {
-    const cell = gameState.board[position.x][position.y];
+    const cell = gameState.board[position.y][position.x];
     const revealedPositions: Position[] = [];
 
+    // 如果已揭開或已標記，直接返回
     if (cell.isRevealed || cell.isFlagged) {
       return revealedPositions;
     }
@@ -186,8 +202,13 @@ export class MinesweeperService {
     gameState.revealedCount++;
     revealedPositions.push(position);
 
-    // 如果是空白格子（鄰近地雷數為0），遞歸揭開鄰近格子
-    if (!cell.isMine && cell.neighborMineCount === 0) {
+    // 如果是地雷，直接返回（遊戲結束由 revealCell 處理）
+    if (cell.isMine) {
+      return revealedPositions;
+    }
+
+    // 如果是空白格子（鄰近地雷數為0），遞歸揭開所有鄰近格子
+    if (cell.neighborMineCount === 0) {
       const neighbors = MinesweeperValidation.getNeighborPositions(
         position,
         gameState.width,
@@ -195,8 +216,11 @@ export class MinesweeperService {
       );
 
       neighbors.forEach(neighborPos => {
-        const neighborCell = gameState.board[neighborPos.x][neighborPos.y];
-        if (!neighborCell.isRevealed && !neighborCell.isFlagged) {
+        const neighborCell = gameState.board[neighborPos.y][neighborPos.x];
+        if (!neighborCell.isRevealed && !neighborCell.isFlagged && !neighborCell.isMine) {
+          // 遞迴展開鄰居
+          // 如果鄰居是數字，會在下一層停止（因為 neighborMineCount > 0）
+          // 如果鄰居是空白，會繼續遞迴展開
           const neighborRevealed = this.revealCellRecursive(neighborPos, gameState);
           revealedPositions.push(...neighborRevealed);
         }
@@ -220,7 +244,7 @@ export class MinesweeperService {
       return false;
     }
 
-    const cell = currentState.board[position.x][position.y];
+    const cell = currentState.board[position.y][position.x];
 
     if (!MinesweeperValidation.canToggleFlag(cell)) {
       return false;
@@ -239,7 +263,12 @@ export class MinesweeperService {
       }
     }
 
-    this.gameState.set({ ...currentState });
+    // 使用 signal.update() 觸發變更檢測
+    this.gameState.update(state => ({
+      ...state,
+      board: currentState.board,
+      flaggedCount: currentState.flaggedCount
+    }));
     return true;
   }
 
@@ -247,9 +276,9 @@ export class MinesweeperService {
    * 揭開所有地雷（遊戲結束時）
    */
   private revealAllMines(gameState: GameState): void {
-    for (let x = 0; x < gameState.width; x++) {
-      for (let y = 0; y < gameState.height; y++) {
-        const cell = gameState.board[x][y];
+    for (let y = 0; y < gameState.height; y++) {
+      for (let x = 0; x < gameState.width; x++) {
+        const cell = gameState.board[y][x];
         if (cell.isMine) {
           cell.isRevealed = true;
         }

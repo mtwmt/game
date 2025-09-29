@@ -85,31 +85,11 @@ export function calculateOptimalMobileBoard(screenWidth: number, screenHeight: n
   const totalCells = optimalWidth * optimalHeight;
   const mineCount = Math.max(1, Math.floor(totalCells * MINE_DENSITY));
 
-  const dynamicBoard = {
+  return {
     width: optimalWidth,
     height: optimalHeight,
     mineCount: mineCount
   };
-
-  console.log('🖥️ 螢幕尺寸計算:', {
-    screenWidth,
-    screenHeight,
-    availableWidth,
-    availableHeight,
-    maxWidth,
-    maxHeight,
-    cellSize: CELL_SIZE
-  });
-
-  console.log('✅ 動態計算棋盤配置:', {
-    width: dynamicBoard.width,
-    height: dynamicBoard.height,
-    mineCount: dynamicBoard.mineCount,
-    totalCells: totalCells,
-    mineDensity: Math.round((dynamicBoard.mineCount / totalCells) * 100) + '%'
-  });
-
-  return dynamicBoard;
 }
 
 // 動態手機版難度配置生成

@@ -86,6 +86,48 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   });
 
+  // 計算所有格子的顯示內容（效能優化）
+  protected readonly cellContents = computed(() => {
+    const board = this.gameState().board;
+    return board.map(row =>
+      row.map(cell => {
+        if (cell.isFlagged) return '🚩';
+        if (!cell.isRevealed) return '';
+        if (cell.isMine) return '💣';
+        if (cell.neighborMineCount > 0) return cell.neighborMineCount.toString();
+        return '';
+      })
+    );
+  });
+
+  // 計算所有格子的樣式類別（效能優化）
+  protected readonly cellClasses = computed(() => {
+    const board = this.gameState().board;
+    const mobile = this.isMobile();
+
+    return board.map(row =>
+      row.map(cell => {
+        const classes: Record<string, boolean> = {
+          'w-8 h-8 text-sm': mobile,
+          'w-5 h-5 text-xs': !mobile,
+          'bg-neutral-50 hover:bg-neutral-100': !cell.isRevealed && !cell.isFlagged,
+          'bg-neutral-300': cell.isRevealed && !cell.isMine,
+          'bg-red-500 text-white': cell.isRevealed && cell.isMine,
+          'bg-yellow-300': cell.isFlagged,
+          'text-blue-600': cell.isRevealed && cell.neighborMineCount === 1,
+          'text-green-600': cell.isRevealed && cell.neighborMineCount === 2,
+          'text-red-600': cell.isRevealed && cell.neighborMineCount === 3,
+          'text-purple-600': cell.isRevealed && cell.neighborMineCount === 4,
+          'text-yellow-600': cell.isRevealed && cell.neighborMineCount === 5,
+          'text-pink-600': cell.isRevealed && cell.neighborMineCount === 6,
+          'text-black': cell.isRevealed && cell.neighborMineCount === 7,
+          'text-neutral-600': cell.isRevealed && cell.neighborMineCount === 8
+        };
+        return classes;
+      })
+    );
+  });
+
   // 計算遊戲狀態文字
   protected readonly gameStatusText = computed(() => {
     const status = this.gameState().gameStatus;
@@ -128,6 +170,8 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
    * 處理格子點擊
    */
   protected onCellClick(position: Position): void {
+    const cell = this.gameState().board[position.y][position.x];
+
     if (this.isMobile()) {
       // 手機版：根據當前模式執行操作
       if (this.gameMode() === 'dig') {
@@ -188,55 +232,6 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
     this.minesweeperService.resetGame();
   }
 
-  /**
-   * 獲取格子顯示內容
-   */
-  protected getCellContent(x: number, y: number): string {
-    const cell = this.gameState().board[x][y];
-
-    if (cell.isFlagged) {
-      return '🚩';
-    }
-
-    if (!cell.isRevealed) {
-      return '';
-    }
-
-    if (cell.isMine) {
-      return '💣';
-    }
-
-    if (cell.neighborMineCount > 0) {
-      return cell.neighborMineCount.toString();
-    }
-
-    return '';
-  }
-
-  /**
-   * 獲取格子CSS類別
-   */
-  protected getCellClass(x: number, y: number): string {
-    const cell = this.gameState().board[x][y];
-    const classes: string[] = ['cell'];
-
-    if (cell.isRevealed) {
-      classes.push('revealed');
-      if (cell.isMine) {
-        classes.push('mine');
-      } else if (cell.neighborMineCount > 0) {
-        classes.push(`number-${cell.neighborMineCount}`);
-      }
-    } else {
-      classes.push('hidden');
-    }
-
-    if (cell.isFlagged) {
-      classes.push('flagged');
-    }
-
-    return classes.join(' ');
-  }
 
   /**
    * 獲取難度配置名稱
@@ -281,6 +276,20 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
     return gameTime >= 300 ? 'text-neutral-900/90' : 'text-white';
   });
 
+  // 計算小地圖格子尺寸（適合在彈窗中顯示完整棋盤）
+  protected readonly miniMapCellSize = computed(() => {
+    const width = this.gameState().width;
+    const height = this.gameState().height;
+    const maxWidth = 280; // 彈窗內最大寬度
+    const maxHeight = 200; // 彈窗內最大高度
+
+    const cellWidth = Math.floor(maxWidth / width);
+    const cellHeight = Math.floor(maxHeight / height);
+
+    // 取最小值確保整個棋盤能顯示，最小 4px
+    return Math.max(4, Math.min(cellWidth, cellHeight, 12));
+  });
+
   /**
    * 檢測是否為手機設備
    */
@@ -319,5 +328,19 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
     if (this.isMobile()) {
       this.gameMode.set(this.gameMode() === 'dig' ? 'flag' : 'dig');
     }
+  }
+
+  /**
+   * 獲取 X 軸索引陣列（用於渲染）
+   */
+  protected getXIndices(): number[] {
+    return Array.from({ length: this.gameState().width }, (_, i) => i);
+  }
+
+  /**
+   * 獲取 Y 軸索引陣列（用於渲染）
+   */
+  protected getYIndices(): number[] {
+    return Array.from({ length: this.gameState().height }, (_, i) => i);
   }
 }

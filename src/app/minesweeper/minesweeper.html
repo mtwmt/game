@@ -153,8 +153,7 @@
         'repeat(' + gameState().width + ', ' + (isMobile() ? '32px' : '20px') + ')'
       "
     >
-      @for (row of gameState().board; track $index; let x = $index) { @for (cell of row; track
-      cell.id; let y = $index) {
+      @for (y of getYIndices(); track y) { @for (x of getXIndices(); track x) {
       <button
         (click)="onCellClick({ x: x, y: y })"
         (contextmenu)="onCellRightClick($event, { x: x, y: y })"
@@ -162,25 +161,9 @@
           gameState().gameStatus === GameStatus.LOST || gameState().gameStatus === GameStatus.WON
         "
         class="font-bold border border-gray-400 transition-all duration-150 hover:scale-105 focus:outline-none focus:ring-1 focus:ring-lime-300"
-        [ngClass]="{
-          'w-8 h-8 text-sm': isMobile(),
-          'w-5 h-5 text-xs': !isMobile(),
-          'bg-neutral-100 hover:bg-neutral-200': !cell.isRevealed && !cell.isFlagged,
-          'bg-neutral-400': cell.isRevealed && !cell.isMine && cell.neighborMineCount === 0,
-          'bg-white': cell.isRevealed && !cell.isMine && cell.neighborMineCount > 0,
-          'bg-red-500 text-white': cell.isRevealed && cell.isMine,
-          'bg-yellow-300': cell.isFlagged,
-          'text-blue-600': cell.isRevealed && cell.neighborMineCount === 1,
-          'text-green-600': cell.isRevealed && cell.neighborMineCount === 2,
-          'text-red-600': cell.isRevealed && cell.neighborMineCount === 3,
-          'text-purple-600': cell.isRevealed && cell.neighborMineCount === 4,
-          'text-yellow-600': cell.isRevealed && cell.neighborMineCount === 5,
-          'text-pink-600': cell.isRevealed && cell.neighborMineCount === 6,
-          'text-black': cell.isRevealed && cell.neighborMineCount === 7,
-          'text-neutral-600': cell.isRevealed && cell.neighborMineCount === 8
-        }"
+        [ngClass]="cellClasses()[y][x]"
       >
-        {{ getCellContent(x, y) }}
+        {{ cellContents()[y][x] }}
       </button>
       } }
     </div>
@@ -211,6 +194,39 @@
   >
     <div class="text-3xl mb-4">💥</div>
     <h2 class="text-2xl font-bold mb-4 text-red-100">踩到地雷！</h2>
+
+    <!-- 地雷分布小地圖 -->
+    <div class="bg-red-700/50 rounded-lg p-3 mb-4">
+      <div class="text-red-200 text-sm mb-2 text-center">地雷分布圖</div>
+      <div class="flex justify-center">
+        <div
+          class="grid gap-[1px] bg-red-900/40 p-1 rounded"
+          [style.grid-template-columns]="'repeat(' + gameState().width + ', ' + miniMapCellSize() + 'px)'"
+        >
+          @for (y of getYIndices(); track y) {
+            @for (x of getXIndices(); track x) {
+              <div
+                [style.width.px]="miniMapCellSize()"
+                [style.height.px]="miniMapCellSize()"
+                [ngClass]="{
+                  'bg-yellow-400 ring-2 ring-yellow-200': gameState().triggeredMinePosition?.x === x && gameState().triggeredMinePosition?.y === y,
+                  'bg-red-500': gameState().board[y][x].isMine && !(gameState().triggeredMinePosition?.x === x && gameState().triggeredMinePosition?.y === y),
+                  'bg-neutral-700': !gameState().board[y][x].isMine && !gameState().board[y][x].isRevealed,
+                  'bg-neutral-500': !gameState().board[y][x].isMine && gameState().board[y][x].isRevealed
+                }"
+              ></div>
+            }
+          }
+        </div>
+      </div>
+      <div class="text-red-300 text-xs mt-2 text-center flex justify-center gap-3">
+        <span>🟡 觸發</span>
+        <span>🔴 地雷</span>
+        <span>⬛ 未開</span>
+        <span>⬜ 已開</span>
+      </div>
+    </div>
+
     <div class="bg-red-700/50 rounded-lg p-3 mb-6">
       <div class="grid grid-cols-2 gap-4 text-center">
         <div class="bg-red-600/50 rounded-lg p-3">

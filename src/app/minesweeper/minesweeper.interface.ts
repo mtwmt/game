@@ -23,6 +23,7 @@ export interface GameState {
   gameTime: number;
   isFirstClick: boolean;
   difficulty: Difficulty;
+  triggeredMinePosition?: Position; // 觸發失敗的地雷位置
 }
 
 export enum GameStatus {

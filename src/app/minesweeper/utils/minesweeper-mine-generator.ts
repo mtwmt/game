@@ -67,9 +67,9 @@ export class MineGenerator {
     width: number,
     height: number
   ): void {
-    for (let x = 0; x < width; x++) {
-      for (let y = 0; y < height; y++) {
-        const cell = board[x][y];
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const cell = board[y][x];
         if (!cell.isMine) {
           cell.neighborMineCount = this.countNeighborMines(
             { x, y },
@@ -98,7 +98,7 @@ export class MineGenerator {
     );
 
     return neighbors.reduce((count, neighborPos) => {
-      const neighborCell = board[neighborPos.x][neighborPos.y];
+      const neighborCell = board[neighborPos.y][neighborPos.x];
       return count + (neighborCell.isMine ? 1 : 0);
     }, 0);
   }
