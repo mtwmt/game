@@ -11,7 +11,7 @@ import {
   Difficulty,
   GameRule,
 } from './minesweeper.interface';
-import { DIFFICULTY_CONFIGS } from './utils/minesweeper-config';
+import { getDifficultyConfigs } from './utils/minesweeper-config';
 
 @Component({
   selector: 'app-minesweeper',
@@ -27,24 +27,51 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
   protected readonly gameState = this.minesweeperService.gameState;
   protected readonly GameStatus = GameStatus;
   protected readonly Difficulty = Difficulty;
-  protected readonly DIFFICULTY_CONFIGS = DIFFICULTY_CONFIGS;
+
+  // 動態難度配置
+  protected readonly difficultyConfigs = computed(() => {
+    return getDifficultyConfigs(this.isMobile());
+  });
 
   // 下拉選單控制
   protected isDropdownOpen = signal(false);
 
-  // 遊戲規則
-  protected readonly gameRules: GameRule = {
-    title: '踩地雷遊戲規則',
-    rules: [
+  // 設備類型檢測
+  protected readonly isMobile = signal(this.checkIsMobile());
+
+  // 手機版操作模式：挖掘或標旗
+  protected gameMode = signal<'dig' | 'flag'>('dig');
+
+  // 遊戲規則 - 根據設備類型動態生成
+  protected readonly gameRules = computed<GameRule>(() => {
+    const baseRules = [
       '點擊格子來揭開它們，避免點到地雷',
       '數字表示該格子周圍8格中地雷的數量',
-      '右鍵點擊（或長按）來標記/取消標記地雷',
+    ];
+
+    const controlRules = this.isMobile()
+      ? [
+          '使用挖掘🔨和標旗🚩按鈕切換操作模式',
+          '挖掘模式：點擊揭開格子',
+          '標旗模式：點擊標記/取消標記地雷',
+        ]
+      : [
+          '左鍵點擊揭開格子',
+          '右鍵點擊標記/取消標記地雷',
+        ];
+
+    const endRules = [
       '揭開所有非地雷格子即可獲勝',
       '點到地雷就會失敗',
       '第一次點擊保證不會踩到地雷',
       '旗標數量不能超過地雷總數',
-    ],
-  };
+    ];
+
+    return {
+      title: '踩地雷遊戲規則',
+      rules: [...baseRules, ...controlRules, ...endRules],
+    };
+  });
 
   // 計算剩餘地雷數
   protected readonly remainingMines = computed(() => {
@@ -77,6 +104,8 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    // 設置設備類型到service
+    this.minesweeperService.setDeviceType(this.isMobile());
     this.minesweeperService.initializeGame();
 
     // 只在瀏覽器環境中設置點擊監聽器
@@ -93,63 +122,35 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.minesweeperService.cleanup();
-    // 清理觸控計時器
-    if (this.touchTimer) {
-      clearTimeout(this.touchTimer);
-    }
   }
 
   /**
    * 處理格子點擊
    */
   protected onCellClick(position: Position): void {
-    this.minesweeperService.revealCell(position);
-  }
-
-  /**
-   * 處理右鍵點擊（標記/取消標記）
-   */
-  protected onCellRightClick(event: MouseEvent, position: Position): void {
-    event.preventDefault();
-    this.minesweeperService.toggleFlag(position);
-  }
-
-  // 觸控事件處理
-  private touchTimer: number | null = null;
-  private touchStartTime: number = 0;
-
-  /**
-   * 處理觸控開始
-   */
-  protected onTouchStart(event: TouchEvent, position: Position): void {
-    this.touchStartTime = Date.now();
-    this.touchTimer = window.setTimeout(() => {
-      // 長按500ms觸發標記
-      this.minesweeperService.toggleFlag(position);
-      // 提供觸覺反饋
-      if (navigator.vibrate) {
-        navigator.vibrate(50);
+    if (this.isMobile()) {
+      // 手機版：根據當前模式執行操作
+      if (this.gameMode() === 'dig') {
+        this.minesweeperService.revealCell(position);
+      } else {
+        this.minesweeperService.toggleFlag(position);
       }
-    }, 500);
-  }
-
-  /**
-   * 處理觸控結束
-   */
-  protected onTouchEnd(event: TouchEvent, position: Position): void {
-    if (this.touchTimer) {
-      clearTimeout(this.touchTimer);
-      this.touchTimer = null;
-    }
-
-    const touchDuration = Date.now() - this.touchStartTime;
-
-    // 如果是短觸控（小於500ms），則視為點擊
-    if (touchDuration < 500) {
-      event.preventDefault();
+    } else {
+      // PC版：左鍵揭開格子
       this.minesweeperService.revealCell(position);
     }
   }
+
+  /**
+   * 處理右鍵點擊（標記/取消標記）- 僅PC版
+   */
+  protected onCellRightClick(event: MouseEvent, position: Position): void {
+    event.preventDefault();
+    if (!this.isMobile()) {
+      this.minesweeperService.toggleFlag(position);
+    }
+  }
+
 
   /**
    * 設置難度
@@ -241,7 +242,7 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
    * 獲取難度配置名稱
    */
   protected getDifficultyName(difficulty: Difficulty): string {
-    return DIFFICULTY_CONFIGS[difficulty].name;
+    return this.difficultyConfigs()[difficulty].name;
   }
 
   /**
@@ -279,4 +280,24 @@ export class MinesweeperComponent implements OnInit, OnDestroy {
     const gameTime = this.gameState().gameTime;
     return gameTime >= 300 ? 'text-neutral-900/90' : 'text-white';
   });
+
+  /**
+   * 檢測是否為手機設備
+   */
+  private checkIsMobile(): boolean {
+    if (!isPlatformBrowser(this.platformId)) {
+      return false;
+    }
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           window.innerWidth < 768;
+  }
+
+  /**
+   * 切換操作模式（僅手機版）
+   */
+  protected toggleGameMode(): void {
+    if (this.isMobile()) {
+      this.gameMode.set(this.gameMode() === 'dig' ? 'flag' : 'dig');
+    }
+  }
 }

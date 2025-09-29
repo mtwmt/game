@@ -7,7 +7,7 @@ import {
   Position,
   MoveResult,
 } from './minesweeper.interface';
-import { DIFFICULTY_CONFIGS } from './utils/minesweeper-config';
+import { getDifficultyConfigs } from './utils/minesweeper-config';
 import { MinesweeperValidation } from './utils/minesweeper-validation';
 import { MineGenerator } from './utils/minesweeper-mine-generator';
 
@@ -32,13 +32,22 @@ export class MinesweeperService {
   gameState = signal<GameState>({ ...initialGameState });
 
   private gameTimer: number | null = null;
+  private isMobile: boolean = false;
+
+  /**
+   * 設置設備類型
+   */
+  setDeviceType(isMobile: boolean): void {
+    this.isMobile = isMobile;
+  }
 
   /**
    * 初始化新遊戲
    */
   initializeGame(difficulty: Difficulty = Difficulty.EXPERT): void {
     this.stopTimer();
-    const config = DIFFICULTY_CONFIGS[difficulty];
+    const difficultyConfigs = getDifficultyConfigs(this.isMobile);
+    const config = difficultyConfigs[difficulty];
 
     if (!MinesweeperValidation.isValidGameConfig(config.width, config.height, config.mineCount)) {
       console.error('Invalid game configuration');

@@ -1,11 +1,38 @@
 <div class="w-full max-w-sm mx-auto flex flex-col">
   <header class="mb-2 flex flex-col gap-3 items-stretch">
-    <app-game-header title="踩地雷" [gameRules]="gameRules"></app-game-header>
+    <app-game-header title="踩地雷" [gameRules]="gameRules()"></app-game-header>
 
     <!-- Game Control Buttons -->
     <div class="flex gap-2 justify-between">
+      <!-- 手機版模式切換按鈕 -->
+      @if (isMobile()) {
+      <div class="flex gap-2 w-1/2">
+        <button
+          class="h-12 flex-1 rounded-lg border font-bold text-lg shadow-lg focus:outline-none focus:ring-3 transition-all flex items-center justify-center"
+          [class]="
+            gameMode() === 'dig'
+              ? 'bg-lime-700 border-lime-500 text-lime-50 focus:ring-lime-300'
+              : 'bg-neutral-700 border-neutral-500 text-neutral-300 hover:bg-neutral-600 focus:ring-neutral-300'
+          "
+          (click)="gameMode() === 'flag' ? toggleGameMode() : null"
+        >
+          🔨
+        </button>
+        <button
+          class="h-12 flex-1 rounded-lg border font-bold text-lg shadow-lg focus:outline-none focus:ring-3 transition-all flex items-center justify-center"
+          [class]="
+            gameMode() === 'flag'
+              ? 'bg-red-700 border-red-500 text-red-50 focus:ring-red-300'
+              : 'bg-neutral-700 border-neutral-500 text-neutral-300 hover:bg-neutral-600 focus:ring-neutral-300'
+          "
+          (click)="gameMode() === 'dig' ? toggleGameMode() : null"
+        >
+          🚩
+        </button>
+      </div>
+      }
       <!-- 難度選擇下拉選單 -->
-      <div class="relative w-2/4 dropdown-container">
+      <div class="relative dropdown-container" [class]="isMobile() ? 'w-1/2' : 'w-2/4'">
         <button
           class="h-12 w-full rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-sm shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300 flex items-center justify-between px-3 transition-all"
           (click)="toggleDropdown()"
@@ -111,58 +138,67 @@
         ></div>
         <span
           class="absolute inset-0 text-[9px] tracking-wide font-semibold flex items-center justify-center select-none transition-colors duration-300"
-          [class]="timelineTextClass()"
+          [ngClass]="timelineTextClass()"
         >
           {{ formattedTime() }}
         </span>
       </div>
     </div>
   </header>
-
-  <!-- Game Board -->
-  <main
-    class="inline-grid gap-[1px] p-2 bg-green-900/40 border border-green-800 touch-none select-none mx-auto"
-    [style.grid-template-columns]="'repeat(' + gameState().width + ', minmax(0, 1fr))'"
-  >
-    @for (row of gameState().board; track $index; let x = $index) {
-      @for (cell of row; track cell.id; let y = $index) {
-    <button
-      (click)="onCellClick({ x: x, y: y })"
-      (contextmenu)="onCellRightClick($event, { x: x, y: y })"
-      (touchstart)="onTouchStart($event, { x: x, y: y })"
-      (touchend)="onTouchEnd($event, { x: x, y: y })"
-      [disabled]="
-        gameState().gameStatus === GameStatus.LOST || gameState().gameStatus === GameStatus.WON
+  <main class="flex justify-center">
+    <!-- Game Board -->
+    <div
+      class="grid gap-[1px] p-2 bg-green-900/40 border border-green-800 touch-none select-none mx-auto"
+      [style.grid-template-columns]="
+        'repeat(' + gameState().width + ', ' + (isMobile() ? '32px' : '20px') + ')'
       "
-      class="w-4 h-4 text-xs font-bold border border-gray-400 transition-all duration-150 hover:scale-105 focus:outline-none focus:ring-1 focus:ring-lime-300"
-      [ngClass]="{
-        'bg-neutral-100 hover:bg-neutral-200': !cell.isRevealed && !cell.isFlagged,
-        'bg-neutral-400': cell.isRevealed && !cell.isMine && cell.neighborMineCount === 0,
-        'bg-white': cell.isRevealed && !cell.isMine && cell.neighborMineCount > 0,
-        'bg-red-500 text-white': cell.isRevealed && cell.isMine,
-        'bg-yellow-300': cell.isFlagged,
-        'text-blue-600': cell.isRevealed && cell.neighborMineCount === 1,
-        'text-green-600': cell.isRevealed && cell.neighborMineCount === 2,
-        'text-red-600': cell.isRevealed && cell.neighborMineCount === 3,
-        'text-purple-600': cell.isRevealed && cell.neighborMineCount === 4,
-        'text-yellow-600': cell.isRevealed && cell.neighborMineCount === 5,
-        'text-pink-600': cell.isRevealed && cell.neighborMineCount === 6,
-        'text-black': cell.isRevealed && cell.neighborMineCount === 7,
-        'text-neutral-600': cell.isRevealed && cell.neighborMineCount === 8
-      }"
     >
-      {{ getCellContent(x, y) }}
-    </button>
-    } }
+      @for (row of gameState().board; track $index; let x = $index) { @for (cell of row; track
+      cell.id; let y = $index) {
+      <button
+        (click)="onCellClick({ x: x, y: y })"
+        (contextmenu)="onCellRightClick($event, { x: x, y: y })"
+        [disabled]="
+          gameState().gameStatus === GameStatus.LOST || gameState().gameStatus === GameStatus.WON
+        "
+        class="font-bold border border-gray-400 transition-all duration-150 hover:scale-105 focus:outline-none focus:ring-1 focus:ring-lime-300"
+        [ngClass]="{
+          'w-8 h-8 text-sm': isMobile(),
+          'w-5 h-5 text-xs': !isMobile(),
+          'bg-neutral-100 hover:bg-neutral-200': !cell.isRevealed && !cell.isFlagged,
+          'bg-neutral-400': cell.isRevealed && !cell.isMine && cell.neighborMineCount === 0,
+          'bg-white': cell.isRevealed && !cell.isMine && cell.neighborMineCount > 0,
+          'bg-red-500 text-white': cell.isRevealed && cell.isMine,
+          'bg-yellow-300': cell.isFlagged,
+          'text-blue-600': cell.isRevealed && cell.neighborMineCount === 1,
+          'text-green-600': cell.isRevealed && cell.neighborMineCount === 2,
+          'text-red-600': cell.isRevealed && cell.neighborMineCount === 3,
+          'text-purple-600': cell.isRevealed && cell.neighborMineCount === 4,
+          'text-yellow-600': cell.isRevealed && cell.neighborMineCount === 5,
+          'text-pink-600': cell.isRevealed && cell.neighborMineCount === 6,
+          'text-black': cell.isRevealed && cell.neighborMineCount === 7,
+          'text-neutral-600': cell.isRevealed && cell.neighborMineCount === 8
+        }"
+      >
+        {{ getCellContent(x, y) }}
+      </button>
+      } }
+    </div>
   </main>
-
   <!-- Controls Info -->
   <footer class="mt-4 text-center text-xs text-zinc-400 px-4">
+    @if (isMobile()) {
     <div class="flex justify-center gap-4">
-      <span>👆 點擊揭開</span>
-      <span>🚩 右鍵標記</span>
-      <span>📱 長按標記</span>
+      <span>🔨 挖掘模式</span>
+      <span>🚩 標旗模式</span>
+      <span>👆 點擊操作</span>
     </div>
+    } @else {
+    <div class="flex justify-center gap-4">
+      <span>👆 左鍵揭開</span>
+      <span>🚩 右鍵標記</span>
+    </div>
+    }
   </footer>
 
   <!-- Game Over Modal (失敗) -->

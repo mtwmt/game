@@ -148,7 +148,7 @@
     <div class="relative inline-block">
       <!-- Game Board -->
       <div
-        class="chess-board bg-amber-100 border-2 sm:border-4 border-amber-800 p-2 sm:p-6 relative"
+        class="bg-amber-100 border-2 sm:border-4 border-amber-800 p-2 sm:p-6 relative"
       >
         <!-- Column Labels (Top) -->
         <div class="flex justify-center mb-1 sm:mb-2">
@@ -356,7 +356,7 @@
               >
                 <div
                   class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold shadow-lg"
-                  [class]="
+                  [ngClass]="
                     square.color === PlayerColor.RED
                       ? 'bg-red-100 border-red-600 text-red-800'
                       : 'bg-neutral-100 border-neutral-800 text-neutral-800'
