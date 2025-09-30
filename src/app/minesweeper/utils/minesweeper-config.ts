@@ -1,4 +1,5 @@
 import { Difficulty, DifficultyConfig } from '../minesweeper.interface';
+import { calculateOptimalBoard, DEFAULT_BOARD_CONFIG } from '../../shared/utils/board-calculator';
 
 // PC版難度配置 - 傳統踩地雷尺寸
 export const DESKTOP_DIFFICULTY_CONFIGS: Record<Difficulty, DifficultyConfig> = {
@@ -58,42 +59,25 @@ export const MOBILE_DIFFICULTY_CONFIGS: Record<Difficulty, DifficultyConfig> = {
 };
 
 // 動態計算最適棋盤配置
-export function calculateOptimalMobileBoard(screenWidth: number, screenHeight: number): { width: number; height: number; mineCount: number } {
-  const CELL_SIZE = 32;        // 固定格子尺寸 32px
-  const PADDING_HORIZONTAL = 40;    // 左右邊距
-  const PADDING_VERTICAL = 256;     // 固定預留 200px 給 header + footer + 統計區域 + 按鈕
-  const GAP_TOTAL = 4;         // 格子間距總和估計值
-  const BORDER_TOTAL = 8;      // 邊框總和估計值
-
-  // 計算可用寬度和高度
-  const availableWidth = screenWidth - PADDING_HORIZONTAL - GAP_TOTAL - BORDER_TOTAL;
-  const availableHeight = screenHeight - PADDING_VERTICAL - GAP_TOTAL - BORDER_TOTAL;
-
-  // 計算最大可容納的格子數
-  const maxWidth = Math.floor(availableWidth / CELL_SIZE);
-  const maxHeight = Math.floor(availableHeight / CELL_SIZE);
-
-  // 設定最小和最大限制
-  const MIN_BOARD_SIZE = 6;
-  const MAX_BOARD_WIDTH = 20;
-  const MAX_BOARD_HEIGHT = 25;
-  const MINE_DENSITY = 0.18; // 18% 地雷密度
-
-  // 動態計算最適棋盤尺寸
-  const optimalWidth = Math.max(MIN_BOARD_SIZE, Math.min(maxWidth, MAX_BOARD_WIDTH));
-  const optimalHeight = Math.max(MIN_BOARD_SIZE, Math.min(maxHeight, MAX_BOARD_HEIGHT));
-  const totalCells = optimalWidth * optimalHeight;
-  const mineCount = Math.max(1, Math.floor(totalCells * MINE_DENSITY));
+export function calculateOptimalMobileBoard(
+  screenWidth: number,
+  screenHeight: number
+): { width: number; height: number; mineCount: number } {
+  // 使用共用的棋盤計算器，配置參數與預設值一致
+  const board = calculateOptimalBoard(screenWidth, screenHeight, DEFAULT_BOARD_CONFIG);
 
   return {
-    width: optimalWidth,
-    height: optimalHeight,
-    mineCount: mineCount
+    width: board.width,
+    height: board.height,
+    mineCount: board.elementCount!,
   };
 }
 
 // 動態手機版難度配置生成
-export function generateDynamicMobileConfigs(screenWidth: number, screenHeight: number): Record<Difficulty, DifficultyConfig> {
+export function generateDynamicMobileConfigs(
+  screenWidth: number,
+  screenHeight: number
+): Record<Difficulty, DifficultyConfig> {
   const expertBoard = calculateOptimalMobileBoard(screenWidth, screenHeight);
 
   return {
@@ -125,7 +109,11 @@ export function generateDynamicMobileConfigs(screenWidth: number, screenHeight: 
 }
 
 // 動態難度配置函數 (向後兼容)
-export function getDifficultyConfigs(isMobile: boolean, screenWidth?: number, screenHeight?: number): Record<Difficulty, DifficultyConfig> {
+export function getDifficultyConfigs(
+  isMobile: boolean,
+  screenWidth?: number,
+  screenHeight?: number
+): Record<Difficulty, DifficultyConfig> {
   if (isMobile && screenWidth && screenHeight) {
     return generateDynamicMobileConfigs(screenWidth, screenHeight);
   }

@@ -92,7 +92,7 @@
           <div
             class="text-center text-xs flex gap-1 justify-center h-4 items-center overflow-hidden"
           >
-            @if (selectedTiles().length > 0) { @for (tile of selectedTiles(); track tile.id) {
+            @if (selectedTiles.length > 0) { @for (tile of selectedTiles; track tile.id) {
             <span class="text-xs leading-none">{{ petEmojis[tile.petType] }}</span>
             } } @else {
             <span class="text-neutral-500 text-xs leading-none">點擊寵物</span>
@@ -122,8 +122,8 @@
   <main class="flex justify-center">
     <div class="relative inline-block">
       <div
-        class="inline-grid gap-[2px] p-4 border-2 border-lime-700 rounded-lg"
-        [ngStyle]="{ 'grid-template-columns': 'repeat(' + boardWidth + ', minmax(0, 1fr))' }"
+        class="inline-grid gap-[1px] p-2 bg-lime-900/40 border border-lime-800 rounded touch-none select-none"
+        [ngStyle]="{ 'grid-template-columns': 'repeat(' + gameState().width + ', 48px' }"
       >
         @for (row of board(); track $index) { @for (tile of row; track tile?.id || $index) {
         <div
@@ -139,9 +139,9 @@
       </div>
 
       <!-- Connection Path Overlay -->
-      @if (showPath()) {
+      @if (showingPath) {
       <div class="absolute inset-0 pointer-events-none">
-        @for (segment of matchPath(); track $index) {
+        @for (segment of getDisplayPath(); track $index) {
         <div
           class="absolute animate-pulse transition-all duration-300"
           [ngStyle]="getPathStyle(segment)"

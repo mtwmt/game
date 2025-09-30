@@ -1,27 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Position, Tile, PathSegment } from '../pet-match.interface';
 
-export interface Position {
-  x: number;
-  y: number;
-}
-
-export interface PathSegment {
-  start: Position;
-  end: Position;
-  direction: 'horizontal' | 'vertical';
-}
-
-export interface Tile {
-  id: number;
-  petType: number;
-  position: Position;
-  selected: boolean;
-}
-
-@Injectable({
-  providedIn: 'root',
-})
-export class PathfindingService {
+/**
+ * 路徑搜尋工具類
+ * 實作連連看遊戲的路徑搜尋演算法
+ */
+export class PetMatchPathfinding {
   findPath(
     start: Position,
     end: Position,
@@ -89,30 +72,6 @@ export class PathfindingService {
     const path2Clear =
       path1Clear && this.isPathClear(corner1, end, 'horizontal', board, boardWidth, boardHeight);
 
-    if (
-      typeof window !== 'undefined' &&
-      start.x === 1 &&
-      start.y === 2 &&
-      end.x === 4 &&
-      end.y === 1
-    ) {
-      console.log(`L1 路徑分析: corner1=(${corner1.x},${corner1.y})`);
-      console.log('- 轉角點有效:', corner1Valid);
-      console.log('- 轉角點位置有效:', corner1Position);
-      console.log('- 垂直路徑暢通:', path1Clear);
-      console.log('- 水平路徑暢通:', path2Clear);
-      if (corner1Position) {
-        console.log(
-          '- 轉角點內容:',
-          corner1.x >= 0 && corner1.x < boardWidth && corner1.y >= 0 && corner1.y < boardHeight
-            ? board[corner1.y][corner1.x]
-              ? '有方塊'
-              : '空白'
-            : '邊界外'
-        );
-      }
-    }
-
     if (corner1Valid && corner1Position && path1Clear && path2Clear) {
       return [
         { start, end: corner1, direction: 'vertical' },
@@ -132,30 +91,6 @@ export class PathfindingService {
       this.isPathClear(start, corner2, 'horizontal', board, boardWidth, boardHeight);
     const path4Clear =
       path3Clear && this.isPathClear(corner2, end, 'vertical', board, boardWidth, boardHeight);
-
-    if (
-      typeof window !== 'undefined' &&
-      start.x === 1 &&
-      start.y === 2 &&
-      end.x === 4 &&
-      end.y === 1
-    ) {
-      console.log(`L2 路徑分析: corner2=(${corner2.x},${corner2.y})`);
-      console.log('- 轉角點有效:', corner2Valid);
-      console.log('- 轉角點位置有效:', corner2Position);
-      console.log('- 水平路徑暢通:', path3Clear);
-      console.log('- 垂直路徑暢通:', path4Clear);
-      if (corner2Position) {
-        console.log(
-          '- 轉角點內容:',
-          corner2.x >= 0 && corner2.x < boardWidth && corner2.y >= 0 && corner2.y < boardHeight
-            ? board[corner2.y][corner2.x]
-              ? '有方塊'
-              : '空白'
-            : '邊界外'
-        );
-      }
-    }
 
     if (corner2Valid && corner2Position && path3Clear && path4Clear) {
       return [
