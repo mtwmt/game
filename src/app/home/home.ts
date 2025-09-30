@@ -1,7 +1,7 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Component, OnInit, inject, PLATFORM_ID } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, PLATFORM_ID } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { GameHeaderComponent, GameRule } from '../shared/components/game-header/game-header';
+import { GameHeader, GameRule } from '../shared/components/game-header/game-header';
 
 interface Game {
   title: string;
@@ -15,8 +15,9 @@ interface Game {
 
 @Component({
   selector: 'app-home',
-  imports: [CommonModule, RouterModule, GameHeaderComponent],
+  imports: [CommonModule, RouterModule, GameHeader],
   templateUrl: './home.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Home implements OnInit {
   private platformId = inject(PLATFORM_ID);

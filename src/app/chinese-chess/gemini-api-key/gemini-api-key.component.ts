@@ -1,4 +1,4 @@
-import { Component, signal, output, inject, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, output, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChineseChessService } from '../chinese-chess.service';
@@ -8,9 +8,10 @@ import { ChineseChessService } from '../chinese-chess.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './gemini-api-key.component.html',
-  styleUrl: './gemini-api-key.component.scss'
+  styleUrl: './gemini-api-key.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GeminiApiKeyComponent {
+export class GeminiApiKey {
   private chineseChessService = inject(ChineseChessService);
 
   apiKeyInput = '';

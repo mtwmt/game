@@ -1,7 +1,7 @@
-import { Component, Input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { ModalComponent } from '../modal/modal.component';
+import { Modal } from '../modal/modal.component';
 
 export interface GameRule {
   title: string;
@@ -11,12 +11,13 @@ export interface GameRule {
 @Component({
   selector: 'app-game-header',
   standalone: true,
-  imports: [CommonModule, RouterLink, ModalComponent],
+  imports: [CommonModule, RouterLink, Modal],
   templateUrl: './game-header.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GameHeaderComponent {
-  @Input() title: string = '';
-  @Input() gameRules: GameRule | null = null;
+export class GameHeader {
+  title = input<string>('');
+  gameRules = input<GameRule | null>(null);
 
   // 遊戲規則彈窗控制
   protected isGameRulesModalOpen = signal(false);

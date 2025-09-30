@@ -1,290 +1,206 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnDestroy, OnInit, signal } from '@angular/core';
-import { GameHeaderComponent, GameRule } from '../shared/components/game-header/game-header';
-import { ModalComponent } from '../shared/components/modal/modal.component';
-
-interface Position {
-  x: number;
-  y: number;
-}
-
-type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
+import { ChangeDetectionStrategy, Component, HostListener, OnDestroy, OnInit, computed, inject } from '@angular/core';
+import { GameHeader } from '../shared/components/game-header/game-header';
+import { Modal } from '../shared/components/modal/modal.component';
+import { SnakeService } from './snake.service';
+import { Direction, GameStatus } from './snake.interface';
+import { GAME_CONFIG, GAME_RULES, KEY_TO_DIRECTION } from './utils/snake-config';
+import { SnakeValidation } from './utils/snake-validation';
+import { SnakeLogic } from './utils/snake-logic';
 
 @Component({
   selector: 'app-snake',
-  imports: [CommonModule, GameHeaderComponent, ModalComponent],
+  imports: [CommonModule, GameHeader, Modal],
   templateUrl: './snake.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Snake implements OnInit, OnDestroy {
-  protected readonly boardSize = 20;
-  protected readonly snake = signal<Position[]>([{ x: 10, y: 10 }]);
-  protected readonly food = signal<Position>({ x: 5, y: 5 });
-  protected readonly direction = signal<Direction>('RIGHT');
-  protected readonly score = signal(0);
-  protected readonly gameOver = signal(false);
-  protected readonly gameStarted = signal(false);
-  protected readonly isPaused = signal(false);
+  private snakeService = inject(SnakeService);
 
-  // 遊戲規則定義
-  protected readonly gameRules: GameRule = {
-    title: '貪食蛇遊戲規則',
-    rules: [
-      '使用方向鍵 (↑↓←→) 或觸控滑動控制蛇的移動方向',
-      '吃到紅色食物可以增加分數並讓蛇身變長',
-      '避免撞到邊界牆壁或蛇身本體，否則遊戲結束',
-      '按空白鍵可以暫停/繼續遊戲',
-      '遊戲目標是獲得最高分數，挑戰自己的極限',
-      '蛇移動速度固定，需要提前預判路線'
-    ]
-  };
+  // 從 service 獲取遊戲狀態
+  protected readonly gameState = this.snakeService.gameState;
 
-  private gameLoop?: NodeJS.Timeout;
-  private readonly gameSpeed = 150;
+  // 遊戲配置
+  protected readonly boardSize = GAME_CONFIG.boardSize;
+  protected readonly gameRules = GAME_RULES;
+
+  // 計算屬性
+  protected readonly snake = computed(() => this.gameState().snake);
+  protected readonly food = computed(() => this.gameState().food);
+  protected readonly direction = computed(() => this.gameState().direction);
+  protected readonly score = computed(() => this.gameState().score);
+  protected readonly gameStatus = computed(() => this.gameState().gameStatus);
+
+  // 遊戲狀態檢查
+  protected readonly gameOver = computed(() =>
+    SnakeValidation.isGameOver(this.gameState().gameStatus)
+  );
+  protected readonly gameStarted = computed(() =>
+    SnakeValidation.isGameStarted(this.gameState().gameStatus)
+  );
+  protected readonly isPaused = computed(() =>
+    SnakeValidation.isPaused(this.gameState().gameStatus)
+  );
+
+  // 觸控控制
   private touchStartX = 0;
   private touchStartY = 0;
-  private readonly minSwipeDistance = 30;
 
   ngOnInit() {
-    this.generateFood();
+    this.snakeService.initializeGame();
   }
 
   ngOnDestroy() {
-    if (this.gameLoop) {
-      clearInterval(this.gameLoop);
-    }
+    this.snakeService.cleanup();
   }
 
+  /**
+   * 鍵盤事件處理
+   */
   @HostListener('window:keydown', ['$event'])
   handleKeyPress(event: KeyboardEvent) {
-    if (!this.gameStarted() && event.key === ' ') {
+    const currentStatus = this.gameStatus();
+
+    // 空白鍵控制
+    if (event.key === ' ') {
+      event.preventDefault();
+      this.handleSpaceKey(currentStatus);
+      return;
+    }
+
+    // 方向鍵控制（只在遊戲進行中有效）
+    if (currentStatus !== GameStatus.PLAYING) {
+      return;
+    }
+
+    const newDirection = KEY_TO_DIRECTION[event.key];
+    if (newDirection) {
+      event.preventDefault();
+      this.snakeService.setDirection(newDirection);
+    }
+  }
+
+  /**
+   * 處理空白鍵
+   */
+  private handleSpaceKey(currentStatus: GameStatus): void {
+    if (currentStatus === GameStatus.WAITING) {
       this.startGame();
-      return;
-    }
-
-    if (this.gameOver() && event.key === ' ') {
+    } else if (currentStatus === GameStatus.GAME_OVER) {
       this.resetGame();
-      return;
-    }
-
-    if (this.gameStarted() && !this.gameOver() && event.key === ' ') {
+    } else if (currentStatus === GameStatus.PLAYING || currentStatus === GameStatus.PAUSED) {
       this.togglePause();
-      return;
-    }
-
-    if (!this.gameStarted() || this.gameOver() || this.isPaused()) return;
-
-    const currentDirection = this.direction();
-
-    switch (event.key) {
-      case 'ArrowUp':
-        if (currentDirection !== 'DOWN') this.direction.set('UP');
-        break;
-      case 'ArrowDown':
-        if (currentDirection !== 'UP') this.direction.set('DOWN');
-        break;
-      case 'ArrowLeft':
-        if (currentDirection !== 'RIGHT') this.direction.set('LEFT');
-        break;
-      case 'ArrowRight':
-        if (currentDirection !== 'LEFT') this.direction.set('RIGHT');
-        break;
     }
   }
 
-  protected startGame() {
-    this.gameStarted.set(true);
-    this.gameLoop = setInterval(() => this.moveSnake(), this.gameSpeed);
+  /**
+   * 開始遊戲
+   */
+  protected startGame(): void {
+    this.snakeService.startGame();
   }
 
-  protected resetGame() {
-    this.snake.set([{ x: 10, y: 10 }]);
-    this.direction.set('RIGHT');
-    this.score.set(0);
-    this.gameOver.set(false);
-    this.gameStarted.set(false);
-    this.isPaused.set(false);
-    this.generateFood();
-
-    if (this.gameLoop) {
-      clearInterval(this.gameLoop);
-    }
+  /**
+   * 重置遊戲
+   */
+  protected resetGame(): void {
+    this.snakeService.resetGame();
   }
 
-  protected togglePause() {
-    if (this.isPaused()) {
-      this.resumeGame();
-    } else {
-      this.pauseGame();
-    }
+  /**
+   * 切換暫停
+   */
+  protected togglePause(): void {
+    this.snakeService.togglePause();
   }
 
-  protected pauseGame() {
-    this.isPaused.set(true);
-    if (this.gameLoop) {
-      clearInterval(this.gameLoop);
-      this.gameLoop = undefined;
-    }
-  }
-
-  protected resumeGame() {
-    this.isPaused.set(false);
-    if (this.gameStarted() && !this.gameOver()) {
-      this.gameLoop = setInterval(() => this.moveSnake(), this.gameSpeed);
-    }
-  }
-
-  private moveSnake() {
-    const currentSnake = this.snake();
-    const head = { ...currentSnake[0] };
-
-    switch (this.direction()) {
-      case 'UP':
-        head.y--;
-        break;
-      case 'DOWN':
-        head.y++;
-        break;
-      case 'LEFT':
-        head.x--;
-        break;
-      case 'RIGHT':
-        head.x++;
-        break;
-    }
-
-    if (this.checkCollision(head)) {
-      this.endGame();
-      return;
-    }
-
-    const newSnake = [head, ...currentSnake];
-
-    if (head.x === this.food().x && head.y === this.food().y) {
-      this.score.update((score) => score + 10);
-      this.generateFood();
-    } else {
-      newSnake.pop();
-    }
-
-    this.snake.set(newSnake);
-  }
-
-  private checkCollision(head: Position): boolean {
-    if (head.x < 0 || head.x >= this.boardSize || head.y < 0 || head.y >= this.boardSize) {
-      return true;
-    }
-
-    return this.snake().some((segment) => segment.x === head.x && segment.y === head.y);
-  }
-
-  private generateFood() {
-    let newFood: Position;
-    do {
-      newFood = {
-        x: Math.floor(Math.random() * this.boardSize),
-        y: Math.floor(Math.random() * this.boardSize),
-      };
-    } while (this.snake().some((segment) => segment.x === newFood.x && segment.y === newFood.y));
-
-    this.food.set(newFood);
-  }
-
-  private endGame() {
-    this.gameOver.set(true);
-    if (this.gameLoop) {
-      clearInterval(this.gameLoop);
-    }
-  }
-
+  /**
+   * 獲取格子的 CSS 類別
+   */
   protected getCellClass(x: number, y: number): string {
     const isSnakeHead =
       this.snake().length > 0 && this.snake()[0].x === x && this.snake()[0].y === y;
     const isSnakeBody = this.snake().some((segment) => segment.x === x && segment.y === y);
     const isFood = this.food().x === x && this.food().y === y;
-    const isEmpty = !isSnakeHead && !isSnakeBody && !isFood;
 
-    if (isSnakeHead) return 'bg-lime-400 border border-lime-600 ';
+    if (isSnakeHead) return 'bg-lime-400 border border-lime-600';
     if (isSnakeBody) return 'bg-lime-600 border border-lime-500';
     if (isFood) return 'bg-fuchsia-500 shadow-[0_0_6px_#c026d3,0_0_12px_#c026d3] animate-pulse';
-    if (isEmpty) return 'bg-lime-900';
-    return '';
+    return 'bg-lime-900';
   }
 
+  /**
+   * 獲取棋盤陣列
+   */
   protected getBoard(): number[] {
     return Array(this.boardSize * this.boardSize)
       .fill(0)
       .map((_, i) => i);
   }
 
+  /**
+   * 獲取行索引
+   */
   protected getRow(index: number): number {
     return Math.floor(index / this.boardSize);
   }
 
+  /**
+   * 獲取列索引
+   */
   protected getCol(index: number): number {
     return index % this.boardSize;
   }
 
-  // Touch control methods
-  protected onTouchStart(event: TouchEvent) {
+  /**
+   * 觸控開始
+   */
+  protected onTouchStart(event: TouchEvent): void {
     event.preventDefault();
     const touch = event.touches[0];
     this.touchStartX = touch.clientX;
     this.touchStartY = touch.clientY;
   }
 
-  protected onTouchMove(event: TouchEvent) {
+  /**
+   * 觸控移動
+   */
+  protected onTouchMove(event: TouchEvent): void {
     event.preventDefault();
   }
 
-  protected onTouchEnd(event: TouchEvent) {
-    if (!this.gameStarted() || this.gameOver() || this.isPaused()) return;
+  /**
+   * 觸控結束
+   */
+  protected onTouchEnd(event: TouchEvent): void {
+    if (this.gameStatus() !== GameStatus.PLAYING) {
+      return;
+    }
 
     event.preventDefault();
     const touch = event.changedTouches[0];
-    const deltaX = touch.clientX - this.touchStartX;
-    const deltaY = touch.clientY - this.touchStartY;
 
-    const absDeltaX = Math.abs(deltaX);
-    const absDeltaY = Math.abs(deltaY);
+    const swipeDirection = SnakeLogic.detectSwipeDirection(
+      this.touchStartX,
+      this.touchStartY,
+      touch.clientX,
+      touch.clientY,
+      GAME_CONFIG.minSwipeDistance
+    );
 
-    // Check if swipe distance is sufficient
-    if (Math.max(absDeltaX, absDeltaY) < this.minSwipeDistance) return;
-
-    const currentDirection = this.direction();
-
-    if (absDeltaX > absDeltaY) {
-      // Horizontal swipe
-      if (deltaX > 0 && currentDirection !== 'LEFT') {
-        this.direction.set('RIGHT');
-      } else if (deltaX < 0 && currentDirection !== 'RIGHT') {
-        this.direction.set('LEFT');
-      }
-    } else {
-      // Vertical swipe
-      if (deltaY > 0 && currentDirection !== 'UP') {
-        this.direction.set('DOWN');
-      } else if (deltaY < 0 && currentDirection !== 'DOWN') {
-        this.direction.set('UP');
-      }
+    if (swipeDirection) {
+      this.snakeService.setDirection(swipeDirection);
     }
   }
 
-  // Button control method
-  protected changeDirection(newDirection: Direction) {
-    if (!this.gameStarted() || this.gameOver() || this.isPaused()) return;
-
-    const currentDirection = this.direction();
-
-    // Prevent opposite direction
-    const opposites: Record<Direction, Direction> = {
-      UP: 'DOWN',
-      DOWN: 'UP',
-      LEFT: 'RIGHT',
-      RIGHT: 'LEFT',
-    };
-
-    if (opposites[currentDirection] !== newDirection) {
-      this.direction.set(newDirection);
+  /**
+   * 按鈕控制方向
+   */
+  protected changeDirection(newDirection: Direction): void {
+    if (this.gameStatus() !== GameStatus.PLAYING) {
+      return;
     }
+
+    this.snakeService.setDirection(newDirection);
   }
 }

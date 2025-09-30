@@ -1,11 +1,10 @@
-import { Tile, Position } from '../pet-match.interface';
+import { Tile } from '../pet-match.interface';
 import { PetMatchPathfinding } from './pet-match-pathfinding';
 
 /**
  * 寵物連連看遊戲邏輯工具類
  */
 export class PetMatchLogic {
-
   initializeBoard(boardWidth: number, boardHeight: number, petTypes: number): (Tile | null)[][] {
     const board: (Tile | null)[][] = [];
     let id = 0;
@@ -169,14 +168,19 @@ export class PetMatchLogic {
   }
 
   getRemainingTileCount(board: (Tile | null)[][]): number {
-    return board.flat().filter(tile => tile !== null).length;
+    return board.flat().filter((tile) => tile !== null).length;
   }
 
   isGameComplete(board: (Tile | null)[][]): boolean {
     return this.getRemainingTileCount(board) === 0;
   }
 
-  hasValidMoves(board: (Tile | null)[][], boardWidth: number, boardHeight: number, pathfinding: PetMatchPathfinding): boolean {
+  hasValidMoves(
+    board: (Tile | null)[][],
+    boardWidth: number,
+    boardHeight: number,
+    pathfinding: PetMatchPathfinding
+  ): boolean {
     // 檢查是否還有可配對的方塊
     for (let y1 = 0; y1 < boardHeight; y1++) {
       for (let x1 = 0; x1 < boardWidth; x1++) {
@@ -188,7 +192,9 @@ export class PetMatchLogic {
             const tile2 = board[y2][x2];
             if (!tile2 || tile1.id === tile2.id || tile1.petType !== tile2.petType) continue;
 
-            if (pathfinding.findPath(tile1.position, tile2.position, board, boardWidth, boardHeight)) {
+            if (
+              pathfinding.findPath(tile1.position, tile2.position, board, boardWidth, boardHeight)
+            ) {
               return true;
             }
           }
@@ -201,7 +207,12 @@ export class PetMatchLogic {
   /**
    * 尋找一個有效的配對（用於提示功能）
    */
-  findValidPair(board: (Tile | null)[][], boardWidth: number, boardHeight: number, pathfinding: PetMatchPathfinding): { tile1: Tile; tile2: Tile } | null {
+  findValidPair(
+    board: (Tile | null)[][],
+    boardWidth: number,
+    boardHeight: number,
+    pathfinding: PetMatchPathfinding
+  ): { tile1: Tile; tile2: Tile } | null {
     for (let y1 = 0; y1 < boardHeight; y1++) {
       for (let x1 = 0; x1 < boardWidth; x1++) {
         const tile1 = board[y1][x1];
@@ -212,7 +223,13 @@ export class PetMatchLogic {
             const tile2 = board[y2][x2];
             if (!tile2 || tile1.id === tile2.id || tile1.petType !== tile2.petType) continue;
 
-            const path = pathfinding.findPath(tile1.position, tile2.position, board, boardWidth, boardHeight);
+            const path = pathfinding.findPath(
+              tile1.position,
+              tile2.position,
+              board,
+              boardWidth,
+              boardHeight
+            );
             if (path) {
               return { tile1, tile2 };
             }

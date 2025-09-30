@@ -1,7 +1,7 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit, computed, PLATFORM_ID } from '@angular/core';
-import { GameHeaderComponent } from '../shared/components/game-header/game-header';
-import { ModalComponent } from '../shared/components/modal/modal.component';
+import { ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit, computed, PLATFORM_ID } from '@angular/core';
+import { GameHeader } from '../shared/components/game-header/game-header';
+import { Modal } from '../shared/components/modal/modal.component';
 import { PetMatchService } from './pet-match.service';
 import { Tile, PathSegment, GameStatus, LevelStatus, GameRule } from './pet-match.interface';
 import { PET_EMOJIS, PET_COLORS, GAME_CONSTANTS } from './utils/pet-match-config';
@@ -9,8 +9,9 @@ import { PetMatchValidation } from './utils/pet-match-validation';
 
 @Component({
   selector: 'app-pet-match',
-  imports: [CommonModule, GameHeaderComponent, ModalComponent],
+  imports: [CommonModule, GameHeader, Modal],
   templateUrl: './pet-match.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PetMatch implements OnInit, OnDestroy {
   private petMatchService = inject(PetMatchService);

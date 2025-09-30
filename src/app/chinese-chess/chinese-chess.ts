@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { GameHeaderComponent, GameRule } from '../shared/components/game-header/game-header';
-import { ModalComponent } from '../shared/components/modal/modal.component';
+import { GameHeader, GameRule } from '../shared/components/game-header/game-header';
+import { Modal } from '../shared/components/modal/modal.component';
 import { ChineseChessService, initialState } from './chinese-chess.service';
 import { ChineseChessAiService } from './chinese-chess-ai.service';
 import {
@@ -18,8 +18,9 @@ import { GAME_CONSTANTS } from './utils/chinese-chess-config';
 @Component({
   selector: 'app-chinese-chess',
   standalone: true,
-  imports: [CommonModule, FormsModule, GameHeaderComponent, ModalComponent],
+  imports: [CommonModule, FormsModule, GameHeader, Modal],
   templateUrl: './chinese-chess.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChineseChess implements OnInit, OnDestroy {
   private chineseChessService = inject(ChineseChessService);

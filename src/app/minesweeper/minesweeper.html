@@ -9,7 +9,7 @@
       <div class="flex gap-2 w-1/2">
         <button
           class="h-12 flex-1 rounded-lg border font-bold text-lg shadow-lg focus:outline-none focus:ring-3 transition-all flex items-center justify-center"
-          [class]="
+          [ngClass]="
             gameMode() === 'dig'
               ? 'bg-lime-700 border-lime-500 text-lime-50 focus:ring-lime-300'
               : 'bg-neutral-700 border-neutral-500 text-neutral-300 hover:bg-neutral-600 focus:ring-neutral-300'
@@ -20,7 +20,7 @@
         </button>
         <button
           class="h-12 flex-1 rounded-lg border font-bold text-lg shadow-lg focus:outline-none focus:ring-3 transition-all flex items-center justify-center"
-          [class]="
+          [ngClass]="
             gameMode() === 'flag'
               ? 'bg-red-700 border-red-500 text-red-50 focus:ring-red-300'
               : 'bg-neutral-700 border-neutral-500 text-neutral-300 hover:bg-neutral-600 focus:ring-neutral-300'
@@ -32,7 +32,7 @@
       </div>
       }
       <!-- 難度選擇下拉選單 -->
-      <div class="relative dropdown-container" [class]="isMobile() ? 'w-1/2' : 'w-2/4'">
+      <div class="relative dropdown-container" [ngClass]="isMobile() ? 'w-1/2' : 'w-2/4'">
         <button
           class="h-12 w-full rounded-md bg-lime-700 border border-lime-500 text-lime-50 font-semibold text-sm shadow hover:bg-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-300 flex items-center justify-between px-3 transition-all"
           (click)="toggleDropdown()"
@@ -54,7 +54,7 @@
         >
           <button
             class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700"
-            [class]="isCurrentDifficulty(Difficulty.BEGINNER) ? 'bg-lime-700' : ''"
+            [ngClass]="isCurrentDifficulty(Difficulty.BEGINNER) ? 'bg-lime-700' : ''"
             (click)="selectDifficulty(Difficulty.BEGINNER)"
           >
             {{ getDifficultyName(Difficulty.BEGINNER) }}
@@ -62,14 +62,14 @@
           <div class="border-t border-neutral-600"></div>
           <button
             class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700"
-            [class]="isCurrentDifficulty(Difficulty.INTERMEDIATE) ? 'bg-lime-700' : ''"
+            [ngClass]="isCurrentDifficulty(Difficulty.INTERMEDIATE) ? 'bg-lime-700' : ''"
             (click)="selectDifficulty(Difficulty.INTERMEDIATE)"
           >
             {{ getDifficultyName(Difficulty.INTERMEDIATE) }}
           </button>
           <button
             class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700"
-            [class]="isCurrentDifficulty(Difficulty.EXPERT) ? 'bg-lime-700' : ''"
+            [ngClass]="isCurrentDifficulty(Difficulty.EXPERT) ? 'bg-lime-700' : ''"
             (click)="selectDifficulty(Difficulty.EXPERT)"
           >
             {{ getDifficultyName(Difficulty.EXPERT) }}
@@ -133,7 +133,7 @@
       <div class="w-full mt-2 h-2 bg-neutral-700/80 rounded overflow-hidden relative">
         <div
           class="h-full bg-gradient-to-r transition-all duration-300"
-          [class]="timelineColorClass()"
+          [ngClass]="timelineColorClass()"
           [style.width.%]="timelinePercentage()"
         ></div>
         <span

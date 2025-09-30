@@ -1,9 +1,9 @@
-import { Component, inject, OnDestroy, OnInit, computed, signal, PLATFORM_ID } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit, computed, signal, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { GameHeaderComponent } from '../shared/components/game-header/game-header';
-import { ModalComponent } from '../shared/components/modal/modal.component';
+import { GameHeader } from '../shared/components/game-header/game-header';
+import { Modal } from '../shared/components/modal/modal.component';
 import { MinesweeperService } from './minesweeper.service';
 import {
   Position,
@@ -16,10 +16,11 @@ import { getDifficultyConfigs } from './utils/minesweeper-config';
 @Component({
   selector: 'app-minesweeper',
   standalone: true,
-  imports: [CommonModule, FormsModule, GameHeaderComponent, ModalComponent],
+  imports: [CommonModule, FormsModule, GameHeader, Modal],
   templateUrl: './minesweeper.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class MinesweeperComponent implements OnInit, OnDestroy {
+export class Minesweeper implements OnInit, OnDestroy {
   private minesweeperService = inject(MinesweeperService);
   private platformId = inject(PLATFORM_ID);
 

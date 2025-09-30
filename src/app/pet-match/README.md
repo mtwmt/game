@@ -1,230 +1,581 @@
-# 寵物連連看檔案架構與邏輯
+# 寵物連連看架構文件
 
-## 核心檔案結構
+## 專案結構
 
 ```
 src/app/pet-match/
-├── pet-match.ts                     # 主元件 (UI 控制器和遊戲狀態管理)
-├── pet-match.html                   # 範本檔案 (響應式遊戲介面)
-├── pathfinding.service.ts           # 路徑尋找服務 (連線算法實作)
-├── game-logic.service.ts            # 遊戲邏輯服務 (關卡管理和重力系統)
-└── pet-match.scss                   # 樣式檔案 (遊戲視覺效果)
+├── pet-match.interface.ts              # 型別定義
+├── pet-match.service.ts                # 核心遊戲服務（狀態管理）
+├── pet-match.ts                        # UI 元件
+├── pet-match.html                      # 範本檔案
+└── utils/
+    ├── pet-match-config.ts             # 配置與常數（含動態棋盤計算）
+    ├── pet-match-validation.ts         # 驗證邏輯
+    ├── pet-match-logic.ts              # 遊戲邏輯工具（棋盤、重力）
+    └── pet-match-pathfinding.ts        # 路徑搜尋演算法
 ```
+
+## 架構設計模式
+
+遵循與踩地雷相同的分層架構：
+
+```
+介面定義 → 配置 → 驗證 → 工具 → 服務 → 元件
+```
+
+### 分層職責
+
+1. **Interface 層** - 型別定義和介面
+2. **Config 層** - 遊戲配置和常數
+3. **Validation 層** - 驗證邏輯（純函數）
+4. **Utils 層** - 遊戲邏輯工具（純函數）
+5. **Service 層** - 狀態管理和業務邏輯
+6. **Component 層** - UI 控制和使用者互動
 
 ## 核心型別定義
 
+### 基礎介面
+
 ```typescript
-// 基礎介面
+// 方塊
 interface Tile {
-  id: string;
-  petType: number; // 0-11，對應12種不同寵物
-  x: number;       // 棋盤 X 座標 (0-5)
-  y: number;       // 棋盤 Y 座標 (0-8)
-  isSelected: boolean;
-  isMatched: boolean;
+  id: number;
+  petType: number; // 0-11，對應12種寵物
+  position: Position; // 棋盤座標
+  selected: boolean; // 是否被選中
+}
+
+// 座標
+interface Position {
+  x: number; // 列座標
+  y: number; // 行座標
 }
 
 // 路徑片段
 interface PathSegment {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  isHorizontal: boolean;
+  start: Position;
+  end: Position;
+  direction: 'horizontal' | 'vertical';
 }
 
-// 關卡類型
-enum LevelType {
-  CLASSIC = 'classic',      // 第一關：不補位
-  GRAVITY_DOWN = 'down',    // 第二關：向下補位
-  GRAVITY_UP = 'up',        // 第三關：向上補位
-  GRAVITY_LEFT = 'left',    // 第四關：向左補位
-  GRAVITY_RIGHT = 'right'   // 第五關以後：向右補位
+// 遊戲狀態
+interface GameState {
+  board: (Tile | null)[][];
+  width: number;
+  height: number;
+  petTypes: number;
+  score: number;
+  level: number;
+  moves: number;
+  remainingTiles: number;
+  gameStatus: GameStatus;
+  levelStatus: LevelStatus;
+  gameTime: number;
+  countdownTime: number;
+  // 道具系統
+  totalShufflesUsed: number;
+  totalHintsUsed: number;
+  maxShufflesPerGame: number;
+  maxHintsPerGame: number;
+  // 提示系統
+  hintTiles: Tile[];
+  showHint: boolean;
 }
+```
+
+### 遊戲狀態枚舉
+
+```typescript
+enum GameStatus {
+  WAITING = 'waiting',
+  PLAYING = 'playing',
+  TIME_UP = 'timeup',
+  NO_MOVES = 'nomoves',
+  COMPLETE = 'complete',
+}
+
+enum LevelStatus {
+  PLAYING = 'playing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
+type LevelType = 'classic' | 'down' | 'up' | 'left' | 'right';
 ```
 
 ## 核心系統架構
 
-### 1. 遊戲狀態管理 (pet-match.ts)
+### 1. 配置系統 (pet-match-config.ts)
 
-**主要 Signals**:
+#### PC 版配置
+
 ```typescript
-protected readonly board = signal<(Tile | null)[][]>([]);           // 6x9 棋盤陣列
-protected readonly selectedTiles = signal<Tile[]>([]);              // 選中的方塊 (最多2個)
-protected readonly score = signal(0);                               // 當前分數
-protected readonly level = signal(1);                               // 當前關卡
-protected readonly moves = signal(0);                               // 移動次數
-protected readonly gameTime = signal(0);                            // 遊戲總時間
-protected readonly countdownTime = signal(300);                     // 倒數計時 (5分鐘)
-protected readonly gameOver = signal(false);                        // 遊戲結束狀態
-protected readonly levelComplete = signal(false);                   // 關卡完成狀態
-protected readonly gameComplete = signal(false);                    // 全破關狀態
+const GAME_CONFIG = {
+  width: 7,
+  height: 10,
+  petTypes: 12,
+  maxLevelTime: 300, // 5分鐘
+};
 ```
 
-**重力補位系統**:
-- 不同關卡有不同的重力方向
-- 消除方塊後會觸發對應方向的補位
-- 補位動畫與遊戲邏輯分離
+#### 動態棋盤計算（手機版）
 
-### 2. 路徑尋找系統 (pathfinding.service.ts)
+**特色**：自動根據螢幕尺寸計算最適合的棋盤配置
 
-**演算法核心**:
 ```typescript
-// 主要尋路方法
-findPath(board: (Tile | null)[][], tile1: Tile, tile2: Tile): PathSegment[]
+calculateOptimalMobileBoard(screenWidth, screenHeight);
+```
 
-// 路徑驗證規則
-- 最多2次轉彎 (3個線段)
+**關鍵特性**：
+
+- ✅ 使用共用的 `calculateOptimalBoard()` 工具
+- ✅ **確保總格子數為雙數**（配對遊戲需求）
+- ✅ 自動調整寵物類型數量
+- ✅ 針對連連看優化參數：
+  - `cellSize: 48px`（比踩地雷更大）
+  - `paddingVertical: 280px`（考慮統計區域）
+  - `maxBoardWidth: 10`（手機版限制）
+
+**雙數保證邏輯**：
+
+```typescript
+if (totalCells % 2 !== 0) {
+  // 優先減少高度
+  if (board.height > minBoardSize) {
+    board.height--;
+  } else if (board.width > minBoardSize) {
+    // 如果高度已最小，則減少寬度
+    board.width--;
+  }
+}
+```
+
+#### 遊戲常數
+
+```typescript
+const GAME_CONSTANTS = {
+  MATCH_SCORE: 10, // 每次配對得分
+  MAX_SHUFFLES_PER_GAME: 5, // 重排次數
+  MAX_HINTS_PER_GAME: 5, // 提示次數
+  PATH_ANIMATION_TIME: 200, // 路徑動畫時間
+  SELECTION_CLEAR_TIME: 300, // 選擇清除延遲
+  MAX_LEVELS: 5, // 總關卡數
+  MAX_TURNS: 2, // 最多2個轉彎
+  TIMER_INTERVAL: 1000, // 計時器間隔
+};
+```
+
+### 2. 驗證系統 (pet-match-validation.ts)
+
+提供所有遊戲操作的驗證邏輯（純函數）：
+
+#### 基礎驗證
+
+- `isValidPosition()` - 檢查座標有效性
+- `isValidGameConfig()` - 檢查配置有效性（含雙數檢查）
+- `isValidLevel()` - 檢查關卡等級
+
+#### 遊戲狀態檢查
+
+- `canMakeMove()` - 可否進行操作
+- `canClickTile()` - 可否點擊方塊
+- `canMatch()` - 兩方塊可否配對
+- `isLevelComplete()` - 關卡是否完成
+- `isGameOver()` - 遊戲是否結束
+
+#### 道具系統檢查
+
+- `canUseShuffle()` - 可否使用重排
+- `canUseHint()` - 可否使用提示
+
+### 3. 路徑搜尋系統 (pet-match-pathfinding.ts)
+
+**核心演算法**：最多 2 次轉彎的路徑搜尋
+
+#### 尋路策略（優先順序）
+
+1. **直線路徑**（0 轉彎）
+
+   - 水平直線
+   - 垂直直線
+
+2. **L 型路徑**（1 轉彎）
+
+   - 先垂直後水平
+   - 先水平後垂直
+
+3. **U 型和ㄈ型路徑**（2 轉彎）
+
+   - 水平-垂直-水平（U 型）
+   - 垂直-水平-垂直（ㄈ型）
+
+4. **邊界路徑**
+   - 利用棋盤外圍空間
+   - 支援上/下/左/右邊界
+
+**路徑驗證規則**：
+
 - 路徑不能被其他方塊阻擋
-- 支援邊界延伸尋路
-```
+- 棋盤內位置必須為空
+- 棋盤外位置視為有效
 
-**尋路策略**:
-1. **直線連接** - 檢查水平或垂直直線路徑
-2. **一次轉彎** - L型路徑
-3. **兩次轉彎** - Z型路徑
-4. **邊界延伸** - 利用棋盤邊界的虛擬空間
+### 4. 遊戲邏輯系統 (pet-match-logic.ts)
 
-### 3. 遊戲邏輯服務 (game-logic.service.ts)
+提供遊戲核心邏輯工具：
 
-**關卡管理**:
+#### 棋盤操作
+
+- `initializeBoard()` - 初始化棋盤（確保成對）
+- `removeTiles()` - 移除配對方塊
+- `getRemainingTileCount()` - 計算剩餘方塊
+- `isGameComplete()` - 檢查遊戲完成
+
+#### 重力系統
+
+- `collapseBoardDown()` - 向下重力
+- `collapseBoardUp()` - 向上重力
+- `collapseBoardLeft()` - 向左重力
+- `collapseBoardRight()` - 向右重力
+
+#### 輔助功能
+
+- `hasValidMoves()` - 檢查是否有可用移動
+- `findValidPair()` - 尋找有效配對（提示用）
+- `formatTime()` - 格式化時間顯示
+
+### 5. 遊戲服務 (pet-match.service.ts)
+
+**職責**：集中管理遊戲狀態和業務邏輯
+
+#### 核心功能
+
 ```typescript
-generateLevel(level: number): (Tile | null)[][]
-applyGravity(board: (Tile | null)[][], levelType: LevelType): void
-getRemainingTileCount(board: (Tile | null)[][]): number
-formatTime(seconds: number): string
+class PetMatchService {
+  // 響應式狀態
+  gameState = signal<GameState>({ ...initialGameState });
+
+  // 設備配置
+  setDeviceType(isMobile, screenWidth?, screenHeight?);
+
+  // 遊戲控制
+  initializeGame();
+  resetGame();
+  nextLevel();
+
+  // 遊戲操作
+  attemptMatch(tile1, tile2): MatchResult;
+  shuffleTiles();
+  useHint();
+  hideHint();
+
+  // 計時管理
+  private startLevelTimer();
+  private stopAllTimers();
+
+  // 工具方法
+  getRemainingShuffles(): number;
+  getRemainingHints(): number;
+  formatTime(seconds): string;
+  cleanup();
+}
 ```
 
-**重力系統實作**:
-- **CLASSIC**: 無重力，消除後留空
-- **GRAVITY_DOWN**: 方塊向下掉落
-- **GRAVITY_UP**: 方塊向上飄移
-- **GRAVITY_LEFT**: 方塊向左滑動
-- **GRAVITY_RIGHT**: 方塊向右滑動
+#### 設備適配流程
 
-## 遊戲流程邏輯
+1. 元件初始化時呼叫 `setDeviceType()`
+2. Service 根據設備類型選擇配置：
+   - 手機：使用 `calculateOptimalMobileBoard()`
+   - PC：使用固定 `GAME_CONFIG`
+3. 動態配置應用於所有遊戲操作
 
-### 1. 遊戲初始化
+### 6. UI 元件 (pet-match.ts)
+
+**職責**：UI 控制和使用者互動
+
+#### 核心職責
+
+- 從 service 獲取 gameState signal
+- 使用 computed 派生 UI 所需屬性
+- 處理使用者互動事件
+- 管理動畫和視覺效果
+
+#### 關鍵方法
+
+```typescript
+class PetMatch {
+  // 生命週期
+  ngOnInit() {
+    // 設置設備類型
+    const isMobile = window.innerWidth <= 768;
+    this.petMatchService.setDeviceType(isMobile, width, height);
+    this.petMatchService.initializeGame();
+  }
+
+  // 使用者互動
+  onTileClick(tile);
+  shuffleTiles();
+  useHint();
+
+  // 遊戲控制
+  nextLevel();
+  resetGame();
+
+  // UI 工具
+  getTileClass(tile): string;
+  getPathStyle(segment): any;
+  isHintTile(tile): boolean;
+}
+```
+
+## 遊戲流程
+
+### 1. 初始化流程
 
 ```
-ngOnInit()
-→ resetGame()
-→ GameLogicService.generateLevel(1)
-→ 生成6x9棋盤，放置隨機寵物
-→ 啟動倒數計時器
+元件初始化
+→ 偵測設備類型（isMobile, width, height）
+→ setDeviceType()
+→ initializeGame()
+  → getGameConfig() 根據設備取得配置
+  → initializeBoard() 生成配對方塊
+  → 啟動倒數計時器
 ```
 
-### 2. 玩家互動處理
+### 2. 配對流程
 
 ```
 玩家點擊方塊
 → onTileClick(tile)
-→ 檢查是否可選擇
-→ 更新 selectedTiles
-→ 如果選擇2個方塊：
-  → PathfindingService.findPath()
-  → 如果路徑存在：
-    → 顯示連線動畫
-    → 消除方塊
-    → 觸發重力補位
-    → 更新分數和移動次數
-    → 檢查關卡完成條件
+→ PetMatchValidation.canClickTile() 驗證
+→ 更新選中狀態
+→ 如果選中2個方塊：
+  → attemptMatch(tile1, tile2)
+    → PetMatchValidation.canMatch() 驗證
+    → PetMatchPathfinding.findPath() 尋找路徑
+    → 如果找到路徑：
+      → 顯示路徑動畫
+      → PetMatchLogic.removeTiles() 移除方塊
+      → 根據關卡類型應用重力
+      → 更新分數和統計
+      → 檢查關卡完成
 ```
 
-### 3. 關卡進程管理
+### 3. 關卡進程
 
 ```
-checkLevelComplete()
-→ 如果 remainingTiles === 0：
-  → 設置 levelComplete = true
-  → 計算關卡獎勵分數
+檢查關卡完成
+→ PetMatchValidation.isLevelComplete()
+→ 如果完成：
+  → 停止計時器
   → 如果 level >= 5：
-    → 設置 gameComplete = true
+    → 設置 COMPLETE 狀態
   → 否則：
-    → 準備下一關
+    → 設置 COMPLETED 狀態
+    → 等待玩家進入下一關
+→ 否則檢查是否有可用移動：
+  → PetMatchLogic.hasValidMoves()
+  → 如果無移動且還有重排：
+    → 自動重排
+  → 如果無移動且無重排：
+    → 設置 NO_MOVES 狀態
 ```
+
+## 關卡系統
+
+### 重力類型
+
+| 關卡    | 重力類型      | 說明               |
+| ------- | ------------- | ------------------ |
+| 第 1 關 | CLASSIC       | 無重力，消除後留空 |
+| 第 2 關 | GRAVITY_DOWN  | 方塊向下掉落       |
+| 第 3 關 | GRAVITY_UP    | 方塊向上飄移       |
+| 第 4 關 | GRAVITY_LEFT  | 方塊向左滑動       |
+| 第 5 關 | GRAVITY_RIGHT | 方塊向右滑動       |
+
+### 關卡配置
+
+- **每關限時**：5 分鐘
+- **總關卡數**：5 關
+- **過關條件**：消除所有方塊
+- **失敗條件**：時間到或無可用移動
+
+## 道具系統
+
+### 重排功能
+
+- **次數**：整個遊戲共 5 次
+- **作用**：重新洗牌所有方塊
+- **觸發**：
+  - 手動點擊重排按鈕
+  - 自動觸發（無可用移動時）
+
+### 提示功能
+
+- **次數**：整個遊戲共 5 次
+- **作用**：顯示一組可配對的方塊
+- **顯示**：綠色高亮 + 脈衝動畫
+- **持續**：3 秒自動隱藏
 
 ## 計分系統
 
 ### 基礎分數
-- **成功配對**: 100分
-- **連續配對獎勵**: 額外50分 (連續配對時)
-- **時間獎勵**: 剩餘時間 × 2分
-- **移動效率獎勵**: 基於移動次數的效率分數
 
-### 道具系統
-- **重排功能**: 最多3次，重新洗牌所有方塊
-- **提示功能**: 最多3次，顯示可配對的方塊
-- **道具使用**: 不影響分數，但計入統計
+- **成功配對**：每對 10 分
 
-## UI/UX 設計特色
+### 統計項目
+
+- 總分數
+- 移動次數
+- 遊戲時間
+- 道具使用次數
+
+## UI/UX 設計
 
 ### 響應式設計
-- **手機優先**: 基於 `max-w-sm` 的緊湊設計
-- **觸控友善**: 適當的觸控目標大小 (48px)
-- **統計區塊**: 整合式遊戲狀態顯示
 
-### 視覺回饋
-- **選擇狀態**: 紫色邊框和背景高亮
-- **連線動畫**: 路徑片段的脈衝動畫效果
-- **消除效果**: 方塊消失的淡出動畫
-- **重力動畫**: 方塊移動的流暢過渡
+- **手機優先**：基於 `max-w-sm` 的緊湊設計
+- **觸控友善**：方塊尺寸 48×48px
+- **動態棋盤**：自動適應螢幕尺寸
 
-### 統計區塊功能
-```typescript
-// 統計資訊展示
-- 關卡進度 (cyan)
-- 當前分數 (lime)
-- 移動次數 (yellow)
-- 剩餘方塊 (orange)
-- 已選寵物 (purple) - 固定寬度設計
-- 時間線條 (gradient) - 視覺化倒數計時
+### 視覺元素
+
+#### 棋盤外框
+
+- 背景：`bg-lime-900/40` 深綠半透明
+- 邊框：`border-lime-800`
+- 間距：`gap-[1px]`
+- 內邊距：`p-2`
+
+#### 方塊樣式
+
+- 基礎：圓角 + 漸層背景 + 2px 邊框
+- 選中：黃色高亮 + 亮度提升
+- 提示：綠色 + 脈衝動畫 + 外圈光暈
+- 空格：深灰半透明
+
+#### 連線動畫
+
+- 顏色：黃橙漸層 (`#fbbf24` → `#f59e0b`)
+- 粗細：2px
+- 效果：光暈陰影
+- 精確度：通過方塊中心（含 padding 和 gap 偏移）
+
+### 統計區塊
+
+```
+┌────────────────────────────┐
+│ 關卡(cyan) 分數(lime)      │
+│ 移動(yellow) 剩餘(orange)  │
+│ 已選(purple) 固定寬度      │
+│ ═══ 時間線條 ═══           │
+└────────────────────────────┘
 ```
 
 ## 效能優化
 
-### Signal 響應式架構
-- 使用 Angular Signals 實現高效的狀態更新
+### Signal 架構
+
+- 使用 Angular Signals 實現響應式
 - Computed 自動計算衍生狀態
-- 最小化不必要的重新渲染
+- 最小化重新渲染
 
 ### 記憶體管理
-- 定時器清理：`ngOnDestroy` 中清除所有計時器
-- 事件監聽器管理：適當的綁定和解綁
-- 方塊物件重用：減少物件創建開銷
 
-### 路徑尋找優化
-- 早期終止：找到路徑後立即返回
-- 邊界檢查：避免無效的路徑探索
-- 路徑快取：同一回合內的路徑結果快取
+- `ngOnDestroy` 清除所有計時器
+- 適當的事件監聽器管理
+- 避免記憶體洩漏
 
-## 遊戲難度設計
+### 演算法優化
 
-### 關卡進程
-1. **第1關**: 經典模式，無重力補位
-2. **第2關**: 下重力，增加動態元素
-3. **第3關**: 上重力，反向思考
-4. **第4關**: 左重力，橫向策略
-5. **第5關**: 右重力，完整挑戰
+- 早期終止：找到路徑立即返回
+- 邊界檢查：避免無效探索
+- 純函數設計：易於最佳化
 
-### 時間管理
-- **關卡限時**: 每關5分鐘
-- **時間壓力**: 視覺化倒數提醒
-- **時間獎勵**: 快速完成有額外分數
+### SSR 支援
 
-## 程式碼結構原則
+- 使用 `isPlatformBrowser` 檢查
+- 計時器僅在瀏覽器環境啟動
+- 正確處理 window 物件
+
+## 測試建議
+
+### 單元測試重點
+
+1. **Validation 層**
+
+   - 所有驗證函數的邊界條件
+   - 雙數檢查邏輯
+
+2. **Pathfinding 層**
+
+   - 各種路徑類型
+   - 邊界情況
+
+3. **Logic 層**
+
+   - 棋盤初始化（確保成對）
+   - 重力系統正確性
+
+4. **Service 層**
+   - 狀態轉換邏輯
+   - 計時器管理
+
+### E2E 測試場景
+
+1. 完整遊戲流程
+2. 道具功能測試
+3. 關卡進程測試
+4. 響應式布局測試
+
+## 擴展性設計
+
+### 新增寵物類型
+
+修改 `pet-match-config.ts`：
+
+```typescript
+export const PET_EMOJIS = [..., '🦁', '🐯'];
+export const PET_COLORS = [..., 'from-...'];
+```
+
+### 新增關卡模式
+
+1. 在 `LevelType` 新增類型
+2. 在 `getLevelType()` 新增對應邏輯
+3. 在 `PetMatchLogic` 實作重力邏輯
+
+### 新增道具功能
+
+1. 在 `GameState` 新增狀態
+2. 在 `GAME_CONSTANTS` 新增配置
+3. 在 Service 實作邏輯
+4. 在 Validation 新增驗證
+
+## 程式碼品質原則
 
 ### 關注點分離
-- **pet-match.ts**: UI 控制和狀態管理
-- **pathfinding.service.ts**: 純演算法邏輯
-- **game-logic.service.ts**: 遊戲規則和關卡生成
+
+- **Interface**：型別定義
+- **Config**：配置和常數
+- **Validation**：驗證邏輯（純函數）
+- **Utils**：工具函數（純函數）
+- **Service**：狀態管理
+- **Component**：UI 控制
 
 ### 可測試性
-- 服務層邏輯與 UI 分離
-- 純函數設計便於單元測試
-- 狀態變更的可預測性
+
+- 純函數易於測試
+- 服務層與 UI 分離
+- 狀態變更可預測
+
+### 可維護性
+
+- 清晰的檔案結構
+- 完整的型別定義
+- 詳細的註解說明
 
 ### 可擴展性
-- 新增寵物類型：調整 `petTypes` 常數
-- 新增關卡模式：擴展 `LevelType` 枚舉
-- 新增道具功能：擴展道具系統架構
+
+- 模組化設計
+- 配置驅動
+- 開放封閉原則

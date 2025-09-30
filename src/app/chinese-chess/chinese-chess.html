@@ -30,7 +30,7 @@
         >
           <button
             class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700 flex items-center gap-2"
-            [class]="!isVsAI() ? 'bg-lime-700' : ''"
+            [ngClass]="!isVsAI() ? 'bg-lime-700' : ''"
             (click)="selectMode('pvp')"
           >
             👥 雙人模式
@@ -38,21 +38,21 @@
           <div class="border-t border-neutral-600"></div>
           <button
             class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700 flex items-center gap-2"
-            [class]="isVsAI() && aiDifficulty() === 'easy' ? 'bg-lime-700' : ''"
+            [ngClass]="isVsAI() && aiDifficulty() === 'easy' ? 'bg-lime-700' : ''"
             (click)="selectMode('easy')"
           >
             🤖 簡單AI
           </button>
           <button
             class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700 flex items-center gap-2"
-            [class]="isVsAI() && aiDifficulty() === 'medium' ? 'bg-lime-700' : ''"
+            [ngClass]="isVsAI() && aiDifficulty() === 'medium' ? 'bg-lime-700' : ''"
             (click)="selectMode('medium')"
           >
             🤖 中等AI
           </button>
           <button
             class="w-full px-3 py-2 text-left text-sm text-white hover:bg-neutral-700 flex items-center gap-2"
-            [class]="isVsAI() && aiDifficulty() === 'hard' ? 'bg-lime-700' : ''"
+            [ngClass]="isVsAI() && aiDifficulty() === 'hard' ? 'bg-lime-700' : ''"
             (click)="selectMode('hard')"
           >
             🤖 困難AI
@@ -179,13 +179,13 @@
             @for (i of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; track i) {
             <div
               class="absolute left-0 right-0 h-[1px] bg-amber-800"
-              [class]="i === 6 ? 'z-20 h-[1.5px]' : 'z-10'"
+              [ngClass]="i === 6 ? 'z-20 h-[1.5px]' : 'z-10'"
               [ngClass]="'sm:hidden'"
               [style.top.px]="i * 40 + 4"
             ></div>
             <div
               class="absolute left-0 right-0 h-[1px] bg-amber-800 hidden sm:block"
-              [class]="i === 6 ? 'z-20 h-[1.5px]' : 'z-10'"
+              [ngClass]="i === 6 ? 'z-20 h-[1.5px]' : 'z-10'"
               [style.top.px]="i * 50 + 4"
             ></div>
             }
@@ -413,7 +413,7 @@
               >
                 <div
                   class="w-10 h-10 rounded-full border-2 flex items-center justify-center text-lg font-bold shadow-lg"
-                  [class]="
+                  [ngClass]="
                     square.color === PlayerColor.RED
                       ? 'bg-red-100 border-red-600 text-red-800'
                       : 'bg-neutral-100 border-neutral-800 text-neutral-800'

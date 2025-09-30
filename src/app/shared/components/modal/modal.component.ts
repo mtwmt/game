@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export type ModalSize = 'auto' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
@@ -18,8 +18,9 @@ interface ModalStyles {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './modal.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ModalComponent {
+export class Modal {
   isOpen = input.required<boolean>();
   title = input<string>();
   size = input<ModalSize>('auto');

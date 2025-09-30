@@ -23,7 +23,7 @@ export const routes: Routes = [
   },
   {
     path: 'minesweeper',
-    loadComponent: () => import('./minesweeper/minesweeper').then((m) => m.MinesweeperComponent),
+    loadComponent: () => import('./minesweeper/minesweeper').then((m) => m.Minesweeper),
     title: 'Game - Minesweeper',
   },
   {

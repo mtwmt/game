@@ -45,7 +45,7 @@
 - 使用 `setInterval` 的遊戲循環，並在 `ngOnDestroy` 中清理
 - 響應式設計與行動裝置專用控制
 - TailwindCSS 主題類別 (復古風格用 lime/green，霓虹風格用 fuchsia/cyan)
-- 統一的遊戲標題元件 (GameHeaderComponent) 包含：
+- 統一的遊戲標題元件 (GameHeader) 包含：
   - GitHub Star 按鈕 (支援暗色主題)
   - HOME 返回按鈕
   - 遊戲規則彈窗功能 (可選)
@@ -60,9 +60,9 @@
 
 ### 遊戲規則系統
 
-#### GameHeaderComponent 遊戲規則功能
+#### GameHeader 遊戲規則功能
 
-每個遊戲都透過 `GameHeaderComponent` 提供統一的遊戲規則查看功能：
+每個遊戲都透過 `GameHeader` 提供統一的遊戲規則查看功能：
 
 **使用方式**：
 

@@ -1,19 +1,19 @@
 @if (isOpen()) {
 <div
   class="fixed inset-0 flex items-center justify-center z-50 p-4"
-  [class]="getBackdropClass()"
+  [ngClass]="getBackdropClass()"
   (click)="onBackdropClick()"
 >
   <div
     class="rounded-lg overflow-hidden"
-    [class]="getModalClass()"
+    [ngClass]="getModalClass()"
     (click)="$event.stopPropagation()"
   >
     <!-- Modal Header (只在有標題或需要關閉按鈕時顯示) -->
     @if (title() || showCloseButton()) {
-    <div class="flex items-center justify-between p-4" [class]="getHeaderClass()">
+    <div class="flex items-center justify-between p-4" [ngClass]="getHeaderClass()">
       @if (title()) {
-      <h3 class="text-lg font-bold" [class]="getTitleClass()">{{ title() }}</h3>
+      <h3 class="text-lg font-bold" [ngClass]="getTitleClass()">{{ title() }}</h3>
       } @else {
       <div></div>
       }
@@ -32,13 +32,13 @@
     }
 
     <!-- Modal Content -->
-    <div [class]="getContentClass()">
+    <div [ngClass]="getContentClass()">
       <ng-content></ng-content>
     </div>
 
     <!-- Modal Footer (可選) -->
     @if (hasFooter()) {
-    <div class="p-4" [class]="getFooterClass()">
+    <div class="p-4" [ngClass]="getFooterClass()">
       <ng-content select="[slot=footer]"></ng-content>
     </div>
     }

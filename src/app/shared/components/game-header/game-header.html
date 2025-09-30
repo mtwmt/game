@@ -1,9 +1,9 @@
 <div class="flex justify-between items-center">
   <div class="flex items-center gap-3">
     <h1 class="text-center text-2xl font-bold tracking-wider text-lime-400 drop-shadow">
-      {{ title }}
+      {{ title() }}
     </h1>
-    @if (gameRules) {
+    @if (gameRules()) {
     <button
       (click)="openGameRulesModal()"
       class="text-lime-600 hover:text-lime-400 transition-colors p-1 rounded-full hover:bg-lime-600/10"
@@ -32,16 +32,16 @@
 
 <!-- Game Rules Modal -->
 <app-modal
-  [isOpen]="isGameRulesModalOpen() && !!gameRules"
-  [title]="gameRules?.title || ''"
+  [isOpen]="isGameRulesModalOpen() && !!gameRules()"
+  [title]="gameRules()?.title || ''"
   [type]="'card'"
   [hasFooter]="true"
   size="sm"
   (close)="closeGameRulesModal()"
 >
-  @if (gameRules) {
+  @if (gameRules()) {
   <ul class="space-y-3 text-sm">
-    @for (rule of gameRules.rules; track $index) {
+    @for (rule of gameRules()!.rules; track $index) {
     <li class="flex gap-3">
       <span class="text-lime-400 font-bold min-w-[1.5rem]">{{ $index + 1 }}.</span>
       <span class="text-neutral-200">{{ rule }}</span>

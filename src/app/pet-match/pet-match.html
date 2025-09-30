@@ -22,7 +22,7 @@
 
       <button
         class="h-12 w-1/3 rounded-md border font-medium shadow focus:outline-none focus:ring-2"
-        [class]="
+        [ngClass]="
           canUseShuffle()
             ? 'bg-zinc-800 border-zinc-600 text-lime-200 hover:bg-zinc-700 focus:ring-lime-300'
             : 'bg-zinc-800 border-zinc-600 text-zinc-400 opacity-50'
@@ -37,7 +37,7 @@
 
       <button
         class="h-12 w-1/3 rounded-md border font-medium shadow focus:outline-none focus:ring-2"
-        [class]="
+        [ngClass]="
           canUseHint()
             ? 'bg-emerald-700 border-emerald-500 text-emerald-50 hover:bg-emerald-600 focus:ring-emerald-300'
             : 'bg-zinc-800 border-zinc-600 text-zinc-400 opacity-50'
@@ -104,12 +104,12 @@
         <div class="w-full mt-2 h-2 bg-neutral-700/80 rounded overflow-hidden relative">
           <div
             class="h-full bg-gradient-to-r transition-all duration-300"
-            [class]="timelineColorClass()"
+            [ngClass]="timelineColorClass()"
             [style.width.%]="timelinePercentage()"
           ></div>
           <span
             class="absolute inset-0 text-[9px] tracking-wide font-semibold flex items-center justify-center select-none transition-colors duration-300"
-            [class]="timelineTextClass()"
+            [ngClass]="timelineTextClass()"
           >
             {{ formattedTime() }} / {{ formattedCountdown() }}
           </span>
@@ -161,22 +161,22 @@
         <div class="text-3xl mb-4" [innerHTML]="timeUp() ? '⏰' : '😵'"></div>
         <h2
           class="text-2xl font-bold mb-4"
-          [class]="timeUp() ? 'text-red-100' : 'text-orange-100'"
+          [ngClass]="timeUp() ? 'text-red-100' : 'text-orange-100'"
         >
           {{ timeUp() ? '時間到了！' : '遊戲結束' }}
         </h2>
         <div
           class="rounded-lg p-3 mb-6"
-          [class]="timeUp() ? 'bg-red-700/50' : 'bg-orange-700/50'"
+          [ngClass]="timeUp() ? 'bg-red-700/50' : 'bg-orange-700/50'"
         >
-          <div [class]="timeUp() ? 'text-red-200' : 'text-orange-200'">總分數</div>
-          <div class="font-bold text-2xl" [class]="timeUp() ? 'text-red-100' : 'text-orange-100'">
+          <div [ngClass]="timeUp() ? 'text-red-200' : 'text-orange-200'">總分數</div>
+          <div class="font-bold text-2xl" [ngClass]="timeUp() ? 'text-red-100' : 'text-orange-100'">
             {{ score() }}
           </div>
         </div>
         <button
           class="font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
-          [class]="
+          [ngClass]="
             timeUp()
               ? 'bg-red-500 hover:bg-red-400 text-red-900'
               : 'bg-orange-500 hover:bg-orange-400 text-orange-900'
@@ -198,7 +198,7 @@
         <div class="text-3xl mb-4" [innerHTML]="gameComplete() ? '🏆' : '🎉'"></div>
         <h2
           class="text-2xl font-bold mb-4"
-          [class]="gameComplete() ? 'text-yellow-100' : 'text-green-100'"
+          [ngClass]="gameComplete() ? 'text-yellow-100' : 'text-green-100'"
         >
           {{ gameComplete() ? '恭喜你全部破關！' : '關卡 ' + level() + ' 完成！' }}
         </h2>
@@ -249,7 +249,7 @@
 
         <button
           class="font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
-          [class]="
+          [ngClass]="
             gameComplete()
               ? 'bg-yellow-400 hover:bg-yellow-300 text-yellow-900'
               : 'bg-green-500 hover:bg-green-400 text-green-900'
