@@ -147,11 +147,9 @@
   <main class="flex justify-center">
     <div class="relative inline-block">
       <!-- Game Board -->
-      <div
-        class="bg-amber-100 border-2 sm:border-4 border-amber-800 p-2 sm:p-6 relative"
-      >
+      <div class="bg-amber-100 border-2 sm:border-4 border-amber-800 p-2 sm:p-6 relative">
         <!-- Column Labels (Top) -->
-        <div class="flex justify-center mb-1 sm:mb-2">
+        <div class="flex justify-center mb-2 sm:mb-6">
           <div class="grid grid-cols-9 gap-0">
             @for (letter of getColumnLetters(); track letter) {
             <div class="w-[36px] sm:w-[50px] text-center text-xs font-bold text-amber-800">
@@ -163,7 +161,7 @@
 
         <div class="flex">
           <!-- Row Numbers (Left) -->
-          <div class="flex flex-col justify-center mr-1 sm:mr-2">
+          <div class="flex flex-col mr-1 sm:mr-2 relative -top-4">
             @for (num of getRowNumbers(); track num) {
             <div
               class="h-[40px] sm:h-[50px] flex items-center justify-center text-xs font-bold text-amber-800 w-4 sm:w-6"
@@ -174,13 +172,12 @@
           </div>
 
           <!-- Game Board Grid - 改為線條網格 -->
-          <div class="relative w-[310px] h-[360px] sm:w-[408px] sm:h-[450px] bg-amber-100">
+          <div class="relative w-[310px] h-[360px] sm:w-[408px] sm:h-[454px] bg-amber-100">
             <!-- 水平線 -->
             @for (i of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; track i) {
             <div
-              class="absolute left-0 right-0 h-[1px] bg-amber-800"
+              class="absolute left-0 right-0 h-[1px] bg-amber-800 sm:hidden"
               [ngClass]="i === 6 ? 'z-20 h-[1.5px]' : 'z-10'"
-              [ngClass]="'sm:hidden'"
               [style.top.px]="i * 40 + 4"
             ></div>
             <div
@@ -442,7 +439,7 @@
           </div>
 
           <!-- Row Numbers (Right) -->
-          <div class="flex flex-col justify-center ml-1 sm:ml-2">
+          <div class="flex flex-col ml-1 sm:ml-2 relative -top-4">
             @for (num of getRowNumbers(); track num) {
             <div
               class="h-[40px] sm:h-[50px] flex items-center justify-center text-xs font-bold text-amber-800 w-4 sm:w-6"
@@ -454,7 +451,7 @@
         </div>
 
         <!-- Column Labels (Bottom) -->
-        <div class="flex justify-center mt-1 sm:mt-2">
+        <div class="flex justify-center mt-2 sm:mt-3 absolute bottom-[8px] left-[22px] sm:bottom-[22px] sm:left-[36px]">
           <div class="grid grid-cols-9 gap-0">
             @for (letter of getColumnLetters(); track letter) {
             <div class="w-[36px] sm:w-[50px] text-center text-xs font-bold text-amber-800">
@@ -513,9 +510,7 @@
             : 'hover:bg-neutral-800'
         }}"
       >
-        <span class="text-neutral-400 min-w-[2rem] font-mono"
-          >{{ Math.floor(i / 2) + 1 }}.</span
-        >
+        <span class="text-neutral-400 min-w-[2rem] font-mono">{{ Math.floor(i / 2) + 1 }}.</span>
         <div class="flex gap-4 flex-1">
           <span class="text-red-400 min-w-[4rem]">{{ move }}</span>
           @if (moveHistory()[i + 1]) {
