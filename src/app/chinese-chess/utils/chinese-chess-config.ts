@@ -146,15 +146,15 @@ export const POSITION_VALUES = {
 // XQWLight 搜尋深度配置
 export const XQWLIGHT_CONFIG = {
   DEPTHS: {
-    easy: 3,
-    medium: 5,
-    hard: 7,
+    easy: 5,      // 簡單：5層 (基礎棋力)
+    medium: 10,   // 中等：10層 (中級棋力)
+    hard: 14,     // 困難：14層 (高級棋力，逼近專業)
   },
-  MAX_TIME: 8000, // 8秒最大思考時間
+  MAX_TIME: 15000, // 15秒最大思考時間 (深度搜尋需要更多時間)
   INFINITY: 20000,
   MATE_VALUE: 10000,
-  CHECK_BONUS: 50,
-  MOBILITY_FACTOR: 2,
+  CHECK_BONUS: 150,      // 提高將軍獎勵 (50→150)
+  MOBILITY_FACTOR: 3,    // 提高機動性權重 (2→3)
 };
 
 // XQWLight 移動排序權重

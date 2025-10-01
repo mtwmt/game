@@ -52,7 +52,7 @@ export class Minesweeper implements OnInit, OnDestroy {
 
     const controlRules = this.isMobile()
       ? [
-          '使用挖掘🔨和標旗🚩按鈕切換操作模式',
+          '點擊切換按鈕來切換挖掘🔨和標旗🚩模式',
           '挖掘模式：點擊揭開格子',
           '標旗模式：點擊標記/取消標記地雷',
         ]
@@ -90,8 +90,27 @@ export class Minesweeper implements OnInit, OnDestroy {
   // 計算所有格子的顯示內容（效能優化）
   protected readonly cellContents = computed(() => {
     const board = this.gameState().board;
-    return board.map(row =>
-      row.map(cell => {
+    const gameStatus = this.gameState().gameStatus;
+    const triggeredMine = this.gameState().triggeredMinePosition;
+    
+    return board.map((row, y) =>
+      row.map((cell, x) => {
+        // 遊戲失敗時顯示所有地雷
+        if (gameStatus === GameStatus.LOST) {
+          if (cell.isMine) {
+            // 觸發爆炸的地雷用特殊符號
+            if (triggeredMine && triggeredMine.x === x && triggeredMine.y === y) {
+              return '💥';
+            }
+            return '💣';
+          }
+          // 非地雷格子顯示原本的內容
+          if (cell.isFlagged && !cell.isMine) return '❌'; // 錯誤標記
+          if (cell.isRevealed && cell.neighborMineCount > 0) return cell.neighborMineCount.toString();
+          return '';
+        }
+        
+        // 正常遊戲狀態
         if (cell.isFlagged) return '🚩';
         if (!cell.isRevealed) return '';
         if (cell.isMine) return '💣';
@@ -105,25 +124,76 @@ export class Minesweeper implements OnInit, OnDestroy {
   protected readonly cellClasses = computed(() => {
     const board = this.gameState().board;
     const mobile = this.isMobile();
+    const gameStatus = this.gameState().gameStatus;
+    const triggeredMine = this.gameState().triggeredMinePosition;
 
-    return board.map(row =>
-      row.map(cell => {
+    return board.map((row, y) =>
+      row.map((cell, x) => {
         const classes: Record<string, boolean> = {
           'w-8 h-8 text-sm': mobile,
           'w-5 h-5 text-xs': !mobile,
-          'bg-neutral-50 hover:bg-neutral-100': !cell.isRevealed && !cell.isFlagged,
-          'bg-neutral-300': cell.isRevealed && !cell.isMine,
-          'bg-red-500 text-white': cell.isRevealed && cell.isMine,
-          'bg-yellow-300': cell.isFlagged,
-          'text-blue-600': cell.isRevealed && cell.neighborMineCount === 1,
-          'text-green-600': cell.isRevealed && cell.neighborMineCount === 2,
-          'text-red-600': cell.isRevealed && cell.neighborMineCount === 3,
-          'text-purple-600': cell.isRevealed && cell.neighborMineCount === 4,
-          'text-yellow-600': cell.isRevealed && cell.neighborMineCount === 5,
-          'text-pink-600': cell.isRevealed && cell.neighborMineCount === 6,
-          'text-black': cell.isRevealed && cell.neighborMineCount === 7,
-          'text-neutral-600': cell.isRevealed && cell.neighborMineCount === 8
         };
+
+        // 遊戲失敗時的特殊樣式
+        if (gameStatus === GameStatus.LOST) {
+          if (cell.isMine) {
+            // 觸發爆炸的地雷
+            if (triggeredMine && triggeredMine.x === x && triggeredMine.y === y) {
+              Object.assign(classes, {
+                'bg-yellow-500 text-red-900 animate-pulse ring-4 ring-yellow-300': true,
+                'font-black': true
+              });
+            } else {
+              // 其他地雷
+              Object.assign(classes, {
+                'bg-red-500 text-white': true
+              });
+            }
+          } else {
+            // 非地雷格子
+            if (cell.isFlagged) {
+              // 錯誤標記的旗標
+              Object.assign(classes, {
+                'bg-orange-400 text-white': true
+              });
+            } else if (cell.isRevealed) {
+              // 已揭開的安全格子
+              Object.assign(classes, {
+                'bg-neutral-300': true,
+                'text-blue-600': cell.neighborMineCount === 1,
+                'text-green-600': cell.neighborMineCount === 2,
+                'text-red-600': cell.neighborMineCount === 3,
+                'text-purple-600': cell.neighborMineCount === 4,
+                'text-yellow-600': cell.neighborMineCount === 5,
+                'text-pink-600': cell.neighborMineCount === 6,
+                'text-black': cell.neighborMineCount === 7,
+                'text-neutral-600': cell.neighborMineCount === 8
+              });
+            } else {
+              // 未揭開的安全格子
+              Object.assign(classes, {
+                'bg-neutral-200': true
+              });
+            }
+          }
+        } else {
+          // 正常遊戲狀態
+          Object.assign(classes, {
+            'bg-neutral-50 hover:bg-neutral-100': !cell.isRevealed && !cell.isFlagged,
+            'bg-neutral-300': cell.isRevealed && !cell.isMine,
+            'bg-red-500 text-white': cell.isRevealed && cell.isMine,
+            'bg-yellow-300': cell.isFlagged,
+            'text-blue-600': cell.isRevealed && cell.neighborMineCount === 1,
+            'text-green-600': cell.isRevealed && cell.neighborMineCount === 2,
+            'text-red-600': cell.isRevealed && cell.neighborMineCount === 3,
+            'text-purple-600': cell.isRevealed && cell.neighborMineCount === 4,
+            'text-yellow-600': cell.isRevealed && cell.neighborMineCount === 5,
+            'text-pink-600': cell.isRevealed && cell.neighborMineCount === 6,
+            'text-black': cell.isRevealed && cell.neighborMineCount === 7,
+            'text-neutral-600': cell.isRevealed && cell.neighborMineCount === 8
+          });
+        }
+
         return classes;
       })
     );
@@ -275,20 +345,6 @@ export class Minesweeper implements OnInit, OnDestroy {
   protected readonly timelineTextClass = computed(() => {
     const gameTime = this.gameState().gameTime;
     return gameTime >= 300 ? 'text-neutral-900/90' : 'text-white';
-  });
-
-  // 計算小地圖格子尺寸（適合在彈窗中顯示完整棋盤）
-  protected readonly miniMapCellSize = computed(() => {
-    const width = this.gameState().width;
-    const height = this.gameState().height;
-    const maxWidth = 280; // 彈窗內最大寬度
-    const maxHeight = 200; // 彈窗內最大高度
-
-    const cellWidth = Math.floor(maxWidth / width);
-    const cellHeight = Math.floor(maxHeight / height);
-
-    // 取最小值確保整個棋盤能顯示，最小 4px
-    return Math.max(4, Math.min(cellWidth, cellHeight, 12));
   });
 
   /**

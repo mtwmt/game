@@ -105,8 +105,11 @@ export class ChineseChess implements OnInit, OnDestroy {
     this.resetGame();
     this.chineseChessService.updateApiKeyStatus();
 
-    // 初始化為 XQWLight 引擎
-    this.chineseChessAiService.setAIMode('chessdb-only');
+    // 初始化為自動模式 (ChessDB優先 → XQWLight備用)
+    this.chineseChessAiService.setAIMode('auto');
+
+    // 初始化 AI 難度設定
+    this.chineseChessAiService.setDifficulty(this.aiDifficulty());
 
     // 恢復事件監聽器 - 保留以後可能用到
     if (typeof window !== 'undefined') {
@@ -597,6 +600,8 @@ export class ChineseChess implements OnInit, OnDestroy {
   // 設置AI難度
   setAIDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
     this.aiDifficulty.set(difficulty);
+    // 真正傳遞難度設定給 AI 引擎
+    this.chineseChessAiService.setDifficulty(difficulty);
     console.log('🤖 AI難度設置為:', difficulty);
   }
 

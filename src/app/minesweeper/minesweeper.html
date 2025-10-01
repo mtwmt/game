@@ -6,28 +6,18 @@
     <div class="flex gap-2 justify-between">
       <!-- 手機版模式切換按鈕 -->
       @if (isMobile()) {
-      <div class="flex gap-2 w-1/2">
+      <div class="w-1/4">
         <button
-          class="h-12 flex-1 rounded-lg border font-bold text-lg shadow-lg focus:outline-none focus:ring-3 transition-all flex items-center justify-center"
+          class="h-12 w-full rounded-lg border font-bold text-base shadow-lg focus:outline-none focus:ring-3 transition-all flex items-center justify-center gap-2"
           [ngClass]="
             gameMode() === 'dig'
-              ? 'bg-lime-700 border-lime-500 text-lime-50 focus:ring-lime-300'
-              : 'bg-neutral-700 border-neutral-500 text-neutral-300 hover:bg-neutral-600 focus:ring-neutral-300'
+              ? 'bg-lime-700 border-lime-500 text-lime-50 focus:ring-lime-300 hover:bg-lime-600'
+              : 'bg-red-700 border-red-500 text-red-50 focus:ring-red-300 hover:bg-red-600'
           "
-          (click)="gameMode() === 'flag' ? toggleGameMode() : null"
+          (click)="toggleGameMode()"
         >
-          🔨
-        </button>
-        <button
-          class="h-12 flex-1 rounded-lg border font-bold text-lg shadow-lg focus:outline-none focus:ring-3 transition-all flex items-center justify-center"
-          [ngClass]="
-            gameMode() === 'flag'
-              ? 'bg-red-700 border-red-500 text-red-50 focus:ring-red-300'
-              : 'bg-neutral-700 border-neutral-500 text-neutral-300 hover:bg-neutral-600 focus:ring-neutral-300'
-          "
-          (click)="gameMode() === 'dig' ? toggleGameMode() : null"
-        >
-          🚩
+          <span class="text-lg">{{ gameMode() === 'dig' ? '🔨' : '🚩' }}</span>
+          <span class="text-sm">{{ gameMode() === 'dig' ? '挖掘' : '標旗' }}</span>
         </button>
       </div>
       }
@@ -129,6 +119,28 @@
         <div class="text-center text-xs">{{ gameState().flaggedCount }}</div>
       </div>
 
+      <!-- Mode Indicator (Mobile Only) -->
+      @if (isMobile()) {
+      <div
+        class="border px-2 py-1 font-bold transition-colors duration-300"
+        [ngClass]="{
+          'border-lime-400 bg-lime-400/20 text-lime-300': gameMode() === 'dig',
+          'border-red-400 bg-red-400/20 text-red-300': gameMode() === 'flag'
+        }"
+      >
+        <div
+          class="text-xs"
+          [ngClass]="{
+            'text-lime-400': gameMode() === 'dig',
+            'text-red-400': gameMode() === 'flag'
+          }"
+        >
+          模式
+        </div>
+        <div class="text-center text-xs">{{ gameMode() === 'dig' ? '🔨' : '🚩' }}</div>
+      </div>
+      }
+
       <!-- Timeline -->
       <div class="w-full mt-2 h-2 bg-neutral-700/80 rounded overflow-hidden relative">
         <div
@@ -170,11 +182,44 @@
   </main>
   <!-- Controls Info -->
   <footer class="mt-4 text-center text-xs text-zinc-400 px-4">
+    <!-- Game Over 失敗統計 -->
+    @if (gameState().gameStatus === GameStatus.LOST) {
+    <div class="mb-4 bg-red-700/20 border border-red-600 rounded-lg p-4">
+      <div class="text-red-400 font-bold text-lg mb-3 flex items-center justify-center gap-2">
+        💥 踩到地雷！
+      </div>
+      <div class="grid grid-cols-3 gap-3 text-center mb-4">
+        <div class="bg-red-600/30 rounded-lg p-2">
+          <div class="text-red-300 text-xs">遊戲時間</div>
+          <div class="text-red-100 font-bold">{{ formattedTime() }}</div>
+        </div>
+        <div class="bg-red-600/30 rounded-lg p-2">
+          <div class="text-red-300 text-xs">已開格子</div>
+          <div class="text-red-100 font-bold">{{ gameState().revealedCount }}</div>
+        </div>
+        <div class="bg-red-600/30 rounded-lg p-2">
+          <div class="text-red-300 text-xs">完成度</div>
+          <div class="text-red-100 font-bold">{{ getProgressPercentage() }}%</div>
+        </div>
+      </div>
+      <div class="text-red-300 text-xs flex justify-center gap-4 mb-3">
+        <span>💥 觸發地雷</span>
+        <span>💣 其他地雷</span>
+        <span>❌ 錯誤標記</span>
+      </div>
+      <button
+        class="w-full bg-red-500 hover:bg-red-400 text-red-50 font-bold py-2 px-4 rounded-lg transition-all"
+        (click)="resetGame()"
+      >
+        重新開始
+      </button>
+    </div>
+    }
+
     @if (isMobile()) {
     <div class="flex justify-center gap-4">
-      <span>🔨 挖掘模式</span>
-      <span>🚩 標旗模式</span>
-      <span>👆 點擊操作</span>
+      <span>🔄 點擊按鈕切換模式</span>
+      <span>👆 點擊格子操作</span>
     </div>
     } @else {
     <div class="flex justify-center gap-4">
@@ -183,69 +228,6 @@
     </div>
     }
   </footer>
-
-  <!-- Game Over Modal (失敗) -->
-  <app-modal
-    [isOpen]="gameState().gameStatus === GameStatus.LOST"
-    theme="red"
-    [showCloseButton]="false"
-    [closeOnBackdrop]="false"
-    (close)="resetGame()"
-  >
-    <div class="text-3xl mb-4">💥</div>
-    <h2 class="text-2xl font-bold mb-4 text-red-100">踩到地雷！</h2>
-
-    <!-- 地雷分布小地圖 -->
-    <div class="bg-red-700/50 rounded-lg p-3 mb-4">
-      <div class="text-red-200 text-sm mb-2 text-center">地雷分布圖</div>
-      <div class="flex justify-center">
-        <div
-          class="grid gap-[1px] bg-red-900/40 p-1 rounded"
-          [style.grid-template-columns]="'repeat(' + gameState().width + ', ' + miniMapCellSize() + 'px)'"
-        >
-          @for (y of getYIndices(); track y) {
-            @for (x of getXIndices(); track x) {
-              <div
-                [style.width.px]="miniMapCellSize()"
-                [style.height.px]="miniMapCellSize()"
-                [ngClass]="{
-                  'bg-yellow-400 ring-2 ring-yellow-200': gameState().triggeredMinePosition?.x === x && gameState().triggeredMinePosition?.y === y,
-                  'bg-red-500': gameState().board[y][x].isMine && !(gameState().triggeredMinePosition?.x === x && gameState().triggeredMinePosition?.y === y),
-                  'bg-neutral-700': !gameState().board[y][x].isMine && !gameState().board[y][x].isRevealed,
-                  'bg-neutral-500': !gameState().board[y][x].isMine && gameState().board[y][x].isRevealed
-                }"
-              ></div>
-            }
-          }
-        </div>
-      </div>
-      <div class="text-red-300 text-xs mt-2 text-center flex justify-center gap-3">
-        <span>🟡 觸發</span>
-        <span>🔴 地雷</span>
-        <span>⬛ 未開</span>
-        <span>⬜ 已開</span>
-      </div>
-    </div>
-
-    <div class="bg-red-700/50 rounded-lg p-3 mb-6">
-      <div class="grid grid-cols-2 gap-4 text-center">
-        <div class="bg-red-600/50 rounded-lg p-3">
-          <div class="text-red-200">遊戲時間</div>
-          <div class="text-red-100 font-bold text-xl">{{ formattedTime() }}</div>
-        </div>
-        <div class="bg-red-600/50 rounded-lg p-3">
-          <div class="text-red-200">已開格子</div>
-          <div class="text-red-100 font-bold text-xl">{{ gameState().revealedCount }}</div>
-        </div>
-      </div>
-    </div>
-    <button
-      class="bg-red-500 hover:bg-red-400 text-red-900 font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
-      (click)="resetGame()"
-    >
-      重新開始
-    </button>
-  </app-modal>
 
   <!-- Game Won Modal (獲勝) -->
   <app-modal
