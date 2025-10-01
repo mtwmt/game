@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/mtwmt/game/compare/v1.14.0...v1.15.0) (2025-10-01)
+
+
+### Features
+
+* enhance game mechanics and mobile UI ([b20015c](https://github.com/mtwmt/game/commit/b20015cb202bdfec33ef941d96854cd078540985))
+
 # [1.14.0](https://github.com/mtwmt/game/compare/v1.13.0...v1.14.0) (2025-10-01)
 
 
