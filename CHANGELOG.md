@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/mtwmt/game/compare/v1.12.0...v1.13.0) (2025-10-01)
+
+
+### Features
+
+* integrate ChessDB cloud engine with difficulty levels ([dba167f](https://github.com/mtwmt/game/commit/dba167fc4c06ad7cef31b4b52b8d7959b0febabc))
+
 # [1.12.0](https://github.com/mtwmt/game/compare/v1.11.0...v1.12.0) (2025-09-29)
 
 
