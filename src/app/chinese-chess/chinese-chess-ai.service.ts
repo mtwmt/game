@@ -18,7 +18,7 @@ export class ChineseChessAiService {
   }
 
   // 設置 AI 模式
-  setAIMode(mode: 'xqwlight-only' | 'gemini-only' | 'mixed' | 'auto'): void {
+  setAIMode(mode: 'chessdb-only' | 'xqwlight-only' | 'gemini-only' | 'auto'): void {
     this.strategyService.setAIMode(mode);
   }
 
@@ -29,11 +29,13 @@ export class ChineseChessAiService {
 
   // 獲取當前 AI 狀態
   getAIStatus(): {
+    chessdb: boolean;
     xqwlight: boolean;
     geminiAI: boolean;
   } {
     const coordinatorStatus = this.strategyService.getStrategyStatus();
     return {
+      chessdb: coordinatorStatus.chessdb,
       xqwlight: coordinatorStatus.xqwlight,
       geminiAI: coordinatorStatus.gemini,
     };
@@ -58,7 +60,10 @@ export class ChineseChessAiService {
     let mode = 'unknown';
     let description = '';
 
-    if (aiStatus.xqwlight) {
+    if (aiStatus.chessdb) {
+      mode = 'chessdb';
+      description = 'ChessDB 雲庫思考中...';
+    } else if (aiStatus.xqwlight) {
       mode = 'xqwlight';
       description = 'XQWLight 專業引擎思考中...';
     } else if (aiStatus.geminiAI) {

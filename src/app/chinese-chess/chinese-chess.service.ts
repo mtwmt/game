@@ -809,4 +809,72 @@ export class ChineseChessService {
       };
     }
   }
+
+  /**
+   * 將棋盤狀態轉換為 FEN 格式
+   * FEN (Forsyth-Edwards Notation) 是象棋局面的標準表示法
+   * @param gameState 當前遊戲狀態
+   * @returns FEN 格式字串
+   */
+  convertToFEN(gameState: GameState): string {
+    const board = gameState.board;
+    const fenRows: string[] = [];
+
+    // 轉換棋盤 (從上到下，從左到右)
+    for (let y = 0; y < GAME_CONSTANTS.BOARD_HEIGHT; y++) {
+      let row = '';
+      let emptyCount = 0;
+
+      for (let x = 0; x < GAME_CONSTANTS.BOARD_WIDTH; x++) {
+        const piece = board[y][x];
+
+        if (!piece) {
+          emptyCount++;
+        } else {
+          // 先輸出累積的空格數
+          if (emptyCount > 0) {
+            row += emptyCount.toString();
+            emptyCount = 0;
+          }
+
+          // 添加棋子符號
+          row += this.pieceToFEN(piece);
+        }
+      }
+
+      // 行末如果有空格，也要輸出
+      if (emptyCount > 0) {
+        row += emptyCount.toString();
+      }
+
+      fenRows.push(row);
+    }
+
+    // 組合 FEN: 棋盤 + 當前玩家 + 其他資訊
+    const boardFEN = fenRows.join('/');
+    const activeColor = gameState.currentPlayer === PlayerColor.RED ? 'w' : 'b';
+
+    // 簡化版 FEN：棋盤 + 當前玩家
+    // 完整 FEN 還包括：回合數、無吃子回合數等，這裡暫時省略
+    return `${boardFEN} ${activeColor}`;
+  }
+
+  /**
+   * 將棋子轉換為 FEN 符號
+   * 紅方用大寫，黑方用小寫
+   */
+  private pieceToFEN(piece: ChessPiece): string {
+    const fenMap: Record<PieceType, string> = {
+      [PieceType.KING]: 'k',
+      [PieceType.ADVISOR]: 'a',
+      [PieceType.ELEPHANT]: 'b', // bishop
+      [PieceType.HORSE]: 'n',    // knight
+      [PieceType.ROOK]: 'r',
+      [PieceType.CANNON]: 'c',
+      [PieceType.SOLDIER]: 'p',  // 兵/卒
+    };
+
+    const char = fenMap[piece.type];
+    return piece.color === PlayerColor.RED ? char.toUpperCase() : char.toLowerCase();
+  }
 }

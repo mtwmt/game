@@ -3,6 +3,7 @@ import { GameState, PlayerColor, Position } from '../chinese-chess-piece.interfa
 import { BaseAIStrategy } from './base-strategy';
 import { GeminiAIStrategy } from './gemini-ai-strategy';
 import { XQWLightStrategy } from './xqwlight-strategy';
+import { ChessDBStrategy } from './chessdb-strategy';
 import { ChineseChessService } from '../chinese-chess.service';
 
 @Injectable({
@@ -12,11 +13,13 @@ export class StrategyService {
   private chineseChessService = inject(ChineseChessService);
   private geminiStrategy = inject(GeminiAIStrategy);
   private xqwlightStrategy = inject(XQWLightStrategy);
+  private chessdbStrategy = inject(ChessDBStrategy);
 
   private strategies: BaseAIStrategy[] = [];
   private enabledStrategies = {
-    xqwlight: true,
-    gemini: false,
+    chessdb: true,   // ChessDB 雲庫 (最強)
+    xqwlight: true,  // XQWLight 引擎 (備用)
+    gemini: false,   // Gemini AI (實驗性)
   };
 
   constructor() {
@@ -25,8 +28,9 @@ export class StrategyService {
 
   private initializeStrategies(): void {
     this.strategies = [
-      this.xqwlightStrategy, // 最高優先級
-      this.geminiStrategy,
+      this.chessdbStrategy,   // 優先級 0 - 最高優先
+      this.xqwlightStrategy,  // 優先級 1 - 次要
+      this.geminiStrategy,    // 優先級 2 - 最低
     ];
   }
 
@@ -78,6 +82,7 @@ export class StrategyService {
 
   private getEnabledStrategiesList(): BaseAIStrategy[] {
     return this.strategies.filter((strategy) => {
+      if (strategy instanceof ChessDBStrategy) return this.enabledStrategies.chessdb;
       if (strategy instanceof XQWLightStrategy) return this.enabledStrategies.xqwlight;
       if (strategy instanceof GeminiAIStrategy) return this.enabledStrategies.gemini;
       return false;
@@ -90,6 +95,11 @@ export class StrategyService {
   }
 
   // 策略控制方法
+  setChessDBEnabled(enabled: boolean): void {
+    this.enabledStrategies.chessdb = enabled;
+    console.log(`☁️ ChessDB 雲庫策略: ${enabled ? '啟用' : '停用'}`);
+  }
+
   setGeminiEnabled(enabled: boolean): void {
     this.enabledStrategies.gemini = enabled;
     console.log(`🤖 Gemini AI 策略: ${enabled ? '啟用' : '停用'}`);
@@ -101,32 +111,37 @@ export class StrategyService {
   }
 
   // 設置 AI 模式
-  setAIMode(mode: 'xqwlight-only' | 'gemini-only' | 'mixed' | 'auto'): void {
+  setAIMode(mode: 'chessdb-only' | 'xqwlight-only' | 'gemini-only' | 'auto'): void {
     switch (mode) {
+      case 'chessdb-only':
+        this.enabledStrategies = { chessdb: true, xqwlight: false, gemini: false };
+        console.log('☁️ AI 模式: 僅使用 ChessDB 雲庫 (最強)');
+        break;
       case 'xqwlight-only':
-        this.enabledStrategies = { xqwlight: true, gemini: false };
-        console.log('🔥 AI 模式: 僅使用 XQWLight 專業引擎');
+        this.enabledStrategies = { chessdb: false, xqwlight: true, gemini: false };
+        console.log('🔥 AI 模式: 僅使用 XQWLight 引擎');
         break;
       case 'gemini-only':
-        this.enabledStrategies = { xqwlight: false, gemini: true };
-        console.log('🤖 AI 模式: 僅使用 Gemini AI');
-        break;
-      case 'mixed':
-        this.enabledStrategies = { xqwlight: true, gemini: true };
-        console.log('🔀 AI 模式: 混合模式 (XQWLight → Gemini)');
+        this.enabledStrategies = { chessdb: false, xqwlight: false, gemini: true };
+        console.log('🤖 AI 模式: 僅使用 Gemini AI (實驗性)');
         break;
       case 'auto':
       default:
-        this.enabledStrategies = { xqwlight: true, gemini: false };
-        console.log('⚡ AI 模式: 自動 (優先 XQWLight 專業引擎)');
+        this.enabledStrategies = { chessdb: true, xqwlight: true, gemini: false };
+        console.log('⚡ AI 模式: 自動 (ChessDB → XQWLight)');
         break;
     }
   }
 
-  // 設置難度 (影響 XQWLight 引擎)
+  // 設置難度 (影響所有支援難度的引擎)
   setDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
+    // 設定 ChessDB 難度
+    this.chessdbStrategy.setDifficulty(difficulty);
+
+    // 設定 XQWLight 難度
     this.xqwlightStrategy.setDifficulty(difficulty);
-    console.log(`🎯 XQWLight 引擎難度設置為: ${difficulty}`);
+
+    console.log(`🎯 全局難度設置為: ${difficulty} (ChessDB + XQWLight)`);
   }
 
   // 獲取當前思考狀態
@@ -141,6 +156,7 @@ export class StrategyService {
 
   // 獲取策略狀態
   getStrategyStatus(): {
+    chessdb: boolean;
     xqwlight: boolean;
     gemini: boolean;
   } {

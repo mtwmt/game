@@ -106,7 +106,7 @@ export class ChineseChess implements OnInit, OnDestroy {
     this.chineseChessService.updateApiKeyStatus();
 
     // 初始化為 XQWLight 引擎
-    this.chineseChessAiService.setAIMode('xqwlight-only');
+    this.chineseChessAiService.setAIMode('chessdb-only');
 
     // 恢復事件監聽器 - 保留以後可能用到
     if (typeof window !== 'undefined') {
