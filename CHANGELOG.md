@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/mtwmt/game/compare/v1.15.0...v1.16.0) (2025-10-15)
+
+
+### Features
+
+* replace Utterances with Giscus comment system ([079467e](https://github.com/mtwmt/game/commit/079467ed2e364279b7678c5d0b50a931fa703707))
+
 # [1.15.0](https://github.com/mtwmt/game/compare/v1.14.0...v1.15.0) (2025-10-01)
 
 
