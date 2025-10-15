@@ -103,18 +103,26 @@ export class Home implements OnInit {
 
   ngOnInit() {
     if (this.isBrowser) {
-      this.loadUtterances();
+      this.loadGiscus();
     }
   }
 
-  private loadUtterances() {
+  private loadGiscus() {
     const script = document.createElement('script');
-    script.src = 'https://utteranc.es/client.js';
-    script.setAttribute('repo', 'mtwmt/game'); // 替換為你的 GitHub repo
-    script.setAttribute('issue-term', 'pathname');
-    script.setAttribute('theme', 'github-dark');
+    script.src = 'https://giscus.app/client.js';
+    script.setAttribute('data-repo', 'mtwmt/game');
+    script.setAttribute('data-repo-id', 'R_kgDOPz6_7Q');
+    script.setAttribute('data-category', 'General');
+    script.setAttribute('data-category-id', 'DIC_kwDOPz6_7c4Cwrwj');
+    script.setAttribute('data-mapping', 'pathname');
+    script.setAttribute('data-strict', '0');
+    script.setAttribute('data-reactions-enabled', '1');
+    script.setAttribute('data-emit-metadata', '1');
+    script.setAttribute('data-input-position', 'top');
+    script.setAttribute('data-theme', 'dark_tritanopia');
+    script.setAttribute('data-lang', 'zh-TW');
     script.setAttribute('crossorigin', 'anonymous');
-    script.async = true;
+    script.setAttribute('async', '');
 
     const container = document.getElementById('comments');
     if (container) {
