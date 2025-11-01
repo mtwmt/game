@@ -1,0 +1,10 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://mtwmt.com/game/sitemap.xml
+
+# 禁止抓取的路徑 (如果有)
+# Disallow: /admin/
+# Disallow: /api/
