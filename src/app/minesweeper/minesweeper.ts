@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { GameHeader } from '../shared/components/game-header/game-header';
 import { Modal } from '../shared/components/modal/modal.component';
 import { MinesweeperService } from './minesweeper.service';
+import { SeoService } from '../shared/services/seo.service';
 import {
   Position,
   GameStatus,
@@ -23,6 +24,7 @@ import { getDifficultyConfigs } from './utils/minesweeper-config';
 export class Minesweeper implements OnInit, OnDestroy {
   private minesweeperService = inject(MinesweeperService);
   private platformId = inject(PLATFORM_ID);
+  private seoService = inject(SeoService);
 
   // 計算屬性
   protected readonly gameState = this.minesweeperService.gameState;
@@ -217,6 +219,16 @@ export class Minesweeper implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    // 設定踩地雷 SEO
+    this.seoService.updateSeoTags({
+      title: '踩地雷',
+      description: '經典踩地雷遊戲線上玩！點擊格子避開隱藏的地雷,數字提示周圍地雷數量。支援多種難度,考驗你的邏輯推理和運氣。免費暢玩,支援手機電腦！',
+      keywords: '踩地雷,踩地雷遊戲,掃雷,Minesweeper,益智遊戲,邏輯遊戲,經典遊戲,免費遊戲',
+      type: 'game',
+      url: 'https://mtwmt.com/game/minesweeper',
+      canonical: 'https://mtwmt.com/game/minesweeper',
+    });
+
     // 設置設備類型和螢幕尺寸到service
     this.minesweeperService.setDeviceType(this.isMobile(), this.getScreenWidth(), this.getScreenHeight());
     this.minesweeperService.initializeGame();

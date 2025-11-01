@@ -7,6 +7,7 @@ import { Direction, GameStatus } from './snake.interface';
 import { GAME_CONFIG, GAME_RULES, KEY_TO_DIRECTION } from './utils/snake-config';
 import { SnakeValidation } from './utils/snake-validation';
 import { SnakeLogic } from './utils/snake-logic';
+import { SeoService } from '../shared/services/seo.service';
 
 @Component({
   selector: 'app-snake',
@@ -16,6 +17,7 @@ import { SnakeLogic } from './utils/snake-logic';
 })
 export class Snake implements OnInit, OnDestroy {
   private snakeService = inject(SnakeService);
+  private seoService = inject(SeoService);
 
   // 從 service 獲取遊戲狀態
   protected readonly gameState = this.snakeService.gameState;
@@ -47,6 +49,16 @@ export class Snake implements OnInit, OnDestroy {
   private touchStartY = 0;
 
   ngOnInit() {
+    // 設定貪食蛇 SEO
+    this.seoService.updateSeoTags({
+      title: '貪食蛇遊戲',
+      description: '經典貪食蛇遊戲線上玩！控制貪食蛇吃掉食物,避免撞到自己或牆壁。支援鍵盤方向鍵和觸控操作,考驗你的反應速度和策略規劃。免費暢玩,無需下載！',
+      keywords: '貪食蛇,貪食蛇遊戲,線上貪食蛇,Snake Game,經典遊戲,免費遊戲,益智遊戲,動作遊戲',
+      type: 'game',
+      url: 'https://mtwmt.com/game/snake',
+      canonical: 'https://mtwmt.com/game/snake',
+    });
+
     this.snakeService.initializeGame();
   }
 

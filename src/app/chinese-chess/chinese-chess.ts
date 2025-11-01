@@ -5,6 +5,7 @@ import { GameHeader, GameRule } from '../shared/components/game-header/game-head
 import { Modal } from '../shared/components/modal/modal.component';
 import { ChineseChessService, initialState } from './chinese-chess.service';
 import { ChineseChessAiService } from './chinese-chess-ai.service';
+import { SeoService } from '../shared/services/seo.service';
 import {
   ChessPiece,
   PlayerColor,
@@ -25,6 +26,7 @@ import { GAME_CONSTANTS } from './utils/chinese-chess-config';
 export class ChineseChess implements OnInit, OnDestroy {
   private chineseChessService = inject(ChineseChessService);
   private chineseChessAiService = inject(ChineseChessAiService);
+  private seoService = inject(SeoService);
   private apiKeyUpdateListener?: () => void;
   private lastSelectedPiece: ChessPiece | null = null;
 
@@ -102,6 +104,16 @@ export class ChineseChess implements OnInit, OnDestroy {
    * 初始化遊戲狀態、設定 AI 引擎、設置事件監聽器
    */
   ngOnInit(): void {
+    // 設定中國象棋 SEO
+    this.seoService.updateSeoTags({
+      title: '中國象棋',
+      description: '經典中國象棋對弈平台！完整實作象棋規則,搭載專業XQWLight引擎AI,支援多種難度。體驗真實的中國象棋對戰,支援人人對戰和人機對戰模式。',
+      keywords: '中國象棋,象棋遊戲,線上象棋,象棋AI,Chinese Chess,策略遊戲,棋類遊戲,免費象棋',
+      type: 'game',
+      url: 'https://mtwmt.com/game/chinese-chess',
+      canonical: 'https://mtwmt.com/game/chinese-chess',
+    });
+
     this.resetGame();
     this.chineseChessService.updateApiKeyStatus();
 

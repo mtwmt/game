@@ -53,10 +53,6 @@ export class Modal {
 
   private getModalStyles(): ModalStyles {
     const currentType = this.type();
-    console.log('Raw type value:', currentType);
-    console.log('Type of type:', typeof currentType);
-    console.log('Available styles keys:', Object.keys(this.modalStyles));
-    console.log('Type exists in styles?', currentType in this.modalStyles);
 
     return this.modalStyles[currentType] || this.modalStyles.hero;
   }

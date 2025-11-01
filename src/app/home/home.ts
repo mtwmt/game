@@ -2,6 +2,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, inject, PLATFORM_ID } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { GameHeader, GameRule } from '../shared/components/game-header/game-header';
+import { SeoService } from '../shared/services/seo.service';
 
 interface Game {
   title: string;
@@ -22,6 +23,7 @@ interface Game {
 export class Home implements OnInit {
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
+  private seoService = inject(SeoService);
 
   // 自動顏色選擇邏輯
   private getGameColor(game: Game): string {
@@ -102,6 +104,16 @@ export class Home implements OnInit {
   }
 
   ngOnInit() {
+    // 設定首頁 SEO
+    this.seoService.updateSeoTags({
+      title: '線上小遊戲中心',
+      description: '免費線上小遊戲平台,提供貪食蛇、寵物連連看、中國象棋、踩地雷等經典遊戲。支援電腦手機跨平台遊玩,無需下載即可開始。挑戰你的反應力、邏輯思維和策略規劃能力！',
+      keywords: '線上遊戲,免費遊戲,小遊戲,貪食蛇,寵物連連看,中國象棋,踩地雷,益智遊戲,休閒遊戲,網頁遊戲,HTML5遊戲',
+      type: 'website',
+      url: 'https://mtwmt.com/game/',
+      canonical: 'https://mtwmt.com/game/',
+    });
+
     if (this.isBrowser) {
       this.loadGiscus();
     }

@@ -6,6 +6,7 @@ import { PetMatchService } from './pet-match.service';
 import { Tile, PathSegment, GameStatus, LevelStatus, GameRule } from './pet-match.interface';
 import { PET_EMOJIS, PET_COLORS, GAME_CONSTANTS } from './utils/pet-match-config';
 import { PetMatchValidation } from './utils/pet-match-validation';
+import { SeoService } from '../shared/services/seo.service';
 
 @Component({
   selector: 'app-pet-match',
@@ -17,6 +18,7 @@ export class PetMatch implements OnInit, OnDestroy {
   private petMatchService = inject(PetMatchService);
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
+  private seoService = inject(SeoService);
 
   // 從 service 獲取遊戲狀態
   protected readonly gameState = this.petMatchService.gameState;
@@ -121,6 +123,16 @@ export class PetMatch implements OnInit, OnDestroy {
   protected showingPath = false;
 
   ngOnInit() {
+    // 設定寵物連連看 SEO
+    this.seoService.updateSeoTags({
+      title: '寵物連連看',
+      description: '可愛寵物連連看遊戲！找出相同的寵物圖案,用不超過3次轉彎的線連接消除。支援多種關卡和重力補位效果,考驗你的眼力和策略。免費線上玩,支援手機電腦！',
+      keywords: '連連看,寵物連連看,益智遊戲,配對遊戲,消除遊戲,免費遊戲,線上遊戲,Match Game',
+      type: 'game',
+      url: 'https://mtwmt.com/game/pet-match',
+      canonical: 'https://mtwmt.com/game/pet-match',
+    });
+
     // 設置設備類型和螢幕尺寸
     if (this.isBrowser) {
       const isMobile = window.innerWidth <= 768;
