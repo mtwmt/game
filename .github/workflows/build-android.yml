@@ -1,0 +1,87 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: # 允許手動觸發
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Angular for Capacitor
+        run: npm run build -- --configuration capacitor
+
+      - name: Add Android platform
+        run: npx cap add android
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: Create Release APK (optional)
+        run: |
+          cd android
+          ./gradlew assembleRelease || echo "Release build skipped (no signing key)"
+
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}-android
+          name: Android APK v${{ steps.version.outputs.version }}
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+          body: |
+            ## Android APK 下載
+
+            下載 `app-debug.apk` 並安裝到你的 Android 手機上測試。
+
+            ### 安裝方式
+            1. 下載 APK 檔案
+            2. 在手機上允許「安裝未知來源應用程式」
+            3. 開啟 APK 檔案進行安裝
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

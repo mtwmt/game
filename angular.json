@@ -61,6 +61,12 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "capacitor": {
+              "outputHashing": "all",
+              "outputMode": "static",
+              "ssr": false,
+              "prerender": false
             }
           },
           "defaultConfiguration": "production"
