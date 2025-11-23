@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/mtwmt/game/compare/v1.17.0...v1.17.1) (2025-11-23)
+
+
+### Bug Fixes
+
+* use Java 21 for Capacitor 7 Android build ([da68ac5](https://github.com/mtwmt/game/commit/da68ac5ceda5841a719004208e75fd8da76bb815))
+
 # [1.17.0](https://github.com/mtwmt/game/compare/v1.16.0...v1.17.0) (2025-11-23)
 
 
