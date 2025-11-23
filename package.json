@@ -1,6 +1,6 @@
 {
   "name": "game",
-  "version": "1.17.2",
+  "version": "1.17.3",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
