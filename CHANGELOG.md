@@ -1,3 +1,10 @@
+## [1.17.4](https://github.com/mtwmt/game/compare/v1.17.3...v1.17.4) (2025-11-23)
+
+
+### Bug Fixes
+
+* disable CSS optimization to preserve Tailwind v4 responsive classes ([491f5f1](https://github.com/mtwmt/game/commit/491f5f16f4da0c34c3e6315fa1871d39f29cc6e4))
+
 ## [1.17.3](https://github.com/mtwmt/game/compare/v1.17.2...v1.17.3) (2025-11-23)
 
 
