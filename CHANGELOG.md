@@ -1,3 +1,10 @@
+## [1.17.2](https://github.com/mtwmt/game/compare/v1.17.1...v1.17.2) (2025-11-23)
+
+
+### Bug Fixes
+
+* copy index.csr.html to index.html for GitHub Pages compatibility ([7641d5c](https://github.com/mtwmt/game/commit/7641d5c211a27d90c60b7be46884786fa76ac5e4))
+
 ## [1.17.1](https://github.com/mtwmt/game/compare/v1.17.0...v1.17.1) (2025-11-23)
 
 
