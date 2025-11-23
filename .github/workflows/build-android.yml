@@ -54,7 +54,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/classic-games.apk
           retention-days: 30
 
       - name: Create Release APK (optional)
@@ -71,11 +71,11 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.version }}-android
           name: Android APK v${{ steps.version.outputs.version }}
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          files: android/app/build/outputs/apk/debug/classic-games.apk
           body: |
             ## Android APK 下載
 
-            下載 `app-debug.apk` 並安裝到你的 Android 手機上測試。
+            下載 `classic-games.apk` 並安裝到你的 Android 手機上測試。
 
             ### 安裝方式
             1. 下載 APK 檔案
