@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/mtwmt/game/compare/v1.16.0...v1.17.0) (2025-11-23)
+
+
+### Features
+
+* add Capacitor Android support with GitHub Actions build ([39ae49b](https://github.com/mtwmt/game/commit/39ae49ba2dfd0438d23e224ed3fa9fd3b07e1549))
+
 # [1.16.0](https://github.com/mtwmt/game/compare/v1.15.0...v1.16.0) (2025-10-15)
 
 
