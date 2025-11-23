@@ -51,8 +51,13 @@ jobs:
           npm install
           npm run build -- --base-href=/game/ --prerender=false
 
-      - name: Add .nojekyll
-        run: touch dist/game/browser/.nojekyll
+      - name: Prepare for GitHub Pages
+        run: |
+          touch dist/game/browser/.nojekyll
+          # Rename index.csr.html to index.html if it exists (Angular 20 SSR build)
+          if [ -f dist/game/browser/index.csr.html ] && [ ! -f dist/game/browser/index.html ]; then
+            cp dist/game/browser/index.csr.html dist/game/browser/index.html
+          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
