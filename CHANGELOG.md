@@ -1,3 +1,10 @@
+## [1.17.3](https://github.com/mtwmt/game/compare/v1.17.2...v1.17.3) (2025-11-23)
+
+
+### Bug Fixes
+
+* disable critical CSS inlining for proper responsive styles loading ([8338a48](https://github.com/mtwmt/game/commit/8338a48761543b1357178c4949698ffd11925de7))
+
 ## [1.17.2](https://github.com/mtwmt/game/compare/v1.17.1...v1.17.2) (2025-11-23)
 
 
